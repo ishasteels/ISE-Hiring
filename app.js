@@ -156,7 +156,7 @@ function _renderHome() {
     deptCounts[d] = (deptCounts[d] || 0) + 1; 
   });
 
-  // Inject HTML structure first
+  // Inject HTML Shell Matrix
   document.getElementById('v-home').innerHTML = `
     <div class="kpi-row">
       <div class="kpi-card"><span class="kpi-title">Active Vacancies</span><span class="kpi-value">${openJobs}</span></div>
@@ -172,66 +172,75 @@ function _renderHome() {
     </div>
   `;
 
-  // Safely trigger Chart rendering after a slight delay to ensure the canvas elements exist in DOM
+  // Safely trigger Chart rendering in an isolated block to prevent blank page state crashes
   setTimeout(function() {
-    Object.keys(charts).forEach(function(k) { if(charts[k]) charts[k].destroy(); });
+    try {
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js library not detected.');
+        return;
+      }
 
-    var isDark = document.body.getAttribute('data-theme') === 'dark';
-    var labelColor = isDark ? '#9CA3AF' : '#64748B';
-    var gridColor = isDark ? '#1F2937' : '#E2E8F0';
+      Object.keys(charts).forEach(function(k) { if(charts[k]) charts[k].destroy(); });
 
-    var elPipeline = document.getElementById('cPipeline');
-    if (elPipeline) {
-      charts.pipeline = new Chart(elPipeline, {
-        type: 'doughnut',
-        data: {
-          labels: ['Inbound Applied', 'Verification Interview', 'Selected Nodes', 'Hired & Active'],
-          datasets: [{
-            data: [pipelineReview, verifiedActive, cands.filter(function(c){return c['Stage']==='Selected';}).length, closedHired],
-            backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#E31E24'],
-            borderWidth: 0
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
-      });
+      var isDark = document.body.getAttribute('data-theme') === 'dark';
+      var labelColor = isDark ? '#9CA3AF' : '#64748B';
+      var gridColor = isDark ? '#1F2937' : '#E2E8F0';
+
+      var elPipeline = document.getElementById('cPipeline');
+      if (elPipeline) {
+        charts.pipeline = new Chart(elPipeline.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Inbound Applied', 'Verification Interview', 'Selected Nodes', 'Hired & Active'],
+            datasets: [{
+              data: [pipelineReview, verifiedActive, cands.filter(function(c){return c['Stage']==='Selected';}).length, closedHired],
+              backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#E31E24'],
+              borderWidth: 0
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
+        });
+      }
+
+      var elDept = document.getElementById('cDepartment');
+      if (elDept) {
+        charts.department = new Chart(elDept.getContext('2d'), {
+          type: 'polarArea',
+          data: {
+            labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['None'],
+            datasets: [{ data: Object.values(deptCounts).length ? Object.values(deptCounts) : [0], backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(227,30,36,0.7)'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridColor }, ticks: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
+        });
+      }
+
+      var elMetrics = document.getElementById('cMetrics');
+      if (elMetrics) {
+        charts.metrics = new Chart(elMetrics.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['Q1 Target', 'Q2 Evaluation', 'Current Run-Rate'],
+            datasets: [{ label: 'Performance Metrics', data: [openJobs * 2, pipelineReview + 3, closedHired + 2], backgroundColor: '#E31E24', borderRadius: 4 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: labelColor } }, y: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
+        });
+      }
+
+      var elHoriz = document.getElementById('cHorizontal');
+      if (elHoriz) {
+        charts.horizontal = new Chart(elHoriz.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['Sourcing Lag', 'Screening Turnaround', 'Offer Generation Speed'],
+            datasets: [{ data: [12, 19, 8], backgroundColor: '#3B82F6', borderRadius: 4 }]
+          },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
+        });
+      }
+    } catch(err) {
+      console.warn("Chart rendering bypassed safely to keep UI alive: ", err);
     }
-
-    var elDept = document.getElementById('cDepartment');
-    if (elDept) {
-      charts.department = new Chart(elDept, {
-        type: 'polarArea',
-        data: {
-          labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['None'],
-          datasets: [{ data: Object.values(deptCounts).length ? Object.values(deptCounts) : [0], backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(227,30,36,0.7)'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridColor }, ticks: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
-      });
-    }
-
-    var elMetrics = document.getElementById('cMetrics');
-    if (elMetrics) {
-      charts.metrics = new Chart(elMetrics, {
-        type: 'bar',
-        data: {
-          labels: ['Q1 Target', 'Q2 Evaluation', 'Current Run-Rate'],
-          datasets: [{ label: 'Performance Metrics', data: [openJobs * 2, pipelineReview + 3, closedHired + 2], backgroundColor: '#E31E24', borderRadius: 4 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: labelColor } }, y: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
-      });
-    }
-
-    var elHoriz = document.getElementById('cHorizontal');
-    if (elHoriz) {
-      charts.horizontal = new Chart(elHoriz, {
-        type: 'bar',
-        data: {
-          labels: ['Sourcing Lag', 'Screening Turnaround', 'Offer Generation Speed'],
-          datasets: [{ data: [12, 19, 8], backgroundColor: '#3B82F6', borderRadius: 4 }]
-        },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
-      });
-    }
-  }, 50);
+  }, 100);
 }
 
 // ─── VIEW 2: PIPELINES WORKSPACE (TABLE MODE) ─────────────────
@@ -584,10 +593,6 @@ function _submitOffer() {
     candidateId: cid, jobId: c?c['Job ID']:'', offeredCtc: document.getElementById('o_ctc').value,
     joiningDate: document.getElementById('o_jdate').value, designation: 'Core Systems Infrastructure Specialist Asset'
   }, function(r) { _submitting = false; if(r.success) { _closeModal(); _refresh(); } });
-}
-
-function _updateOfferStatus(offerId, candidateId, status) {
-  _api('updateOfferStatus', { offerId: offerId, candidateId: candidateId, status: status }, function(r) { if (r.success) { _refresh(); } });
 }
 
 // ─── UTILITY CORE CONTROLLER ENGINES ─────────────────────────
