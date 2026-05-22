@@ -95,8 +95,21 @@ body { background: var(--bg-app); color: var(--text-main); height: 100vh; overfl
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 /* Zoho Action Buttons */
-.btn { inline-flex: align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; border-radius: var(--r-smooth); border: 1px solid transparent; cursor: pointer; transition: var(--transition); text-decoration: none; }
-.btn-primary { background: var(--brand-accent); color: #FFFFFF; }
+/* ── BUTTONS & COMPONENTS CORRECTION ── */
+.btn { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 8px; 
+  padding: 10px 18px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  border-radius: var(--r-smooth); 
+  border: 1px solid transparent; 
+  cursor: pointer; 
+  transition: var(--transition); 
+  text-decoration: none; 
+}
 .btn-primary:hover { background: #C0181D; transform: translateY(-1px); }
 .btn-secondary { background: var(--bg-surface-muted); border-color: var(--border-color); color: var(--text-main); box-shadow: var(--shadow-sm); }
 .btn-secondary:hover { background: var(--border-color); }
