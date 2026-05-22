@@ -8,18 +8,15 @@ var API = 'https://script.google.com/macros/s/AKfycbx_SVnhAkYyFyIBd6X20bqoX0OPxE
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
 
-// Global references for chart lifecycle tracking
+// Global Chart Lifecycles
 var charts = { pipeline: null, department: null, metrics: null, horizontal: null };
 
-// ─── CONTROL CONTROLLER UI SYSTEMS ────────────────────────────
+// ─── MANAGEMENT LAYOUT ENGINES ──────────────────────────────
 function toggleTheme() {
   var b = document.body;
   var current = b.getAttribute('data-theme');
   var target = (current === 'dark') ? 'light' : 'dark';
   b.setAttribute('data-theme', target);
-  if(event && event.target) {
-    event.target.innerHTML = target === 'dark' ? '<i class="fa-solid fa-sun"></i> Light Mode' : '<i class="fa-solid fa-moon"></i> Dark Mode';
-  }
   if(_V === 'home') _renderHome(); 
 }
 
@@ -45,7 +42,7 @@ function _isAdmin() {
   return (_U && _U.role === 'admin');
 }
 
-// ─── JSONP CORE COMMUNICATION CHANNEL ────────────────────────
+// ─── ENTERPRISE SYSTEM COMMUNICATION LINK (JSONP) ───────────
 function _api(action, data, ok, err) {
   var cbName = '_gcb' + (++_cbIdx);
   var timeout;
@@ -69,11 +66,11 @@ function _api(action, data, ok, err) {
 
   var s = document.createElement('script');
   s.id  = '_s_' + cbName; s.src = url;
-  s.onerror = function() { clearTimeout(timeout); if (err) err({ message: 'Network protocol failure.' }); };
+  s.onerror = function() { clearTimeout(timeout); if (err) err({ message: 'Network layer breakdown.' }); };
   document.body.appendChild(s);
 }
 
-// ─── LIFECYCLE INITIALIZER ────────────────────────────────────
+// ─── INITIALIZATION PROCEDURES ──────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   document.body.setAttribute('data-theme', 'light');
   try {
@@ -125,7 +122,7 @@ function _showApp() {
   document.getElementById('sLogin').style.display = 'none'; document.getElementById('sApp').style.display = 'block';
   document.getElementById('sbUserName').textContent = _U.name;
   document.getElementById('sbUserRole').textContent = _U.role.toUpperCase();
-  document.getElementById('sbAvatar').innerHTML = `<span>${(_U.name || 'U').charAt(0).toUpperCase()}</span>`;
+  document.getElementById('sbAvatar').textContent = (_U.name || 'U').charAt(0).toUpperCase();
 }
 
 function _lv(v) {
@@ -141,7 +138,7 @@ function _lv(v) {
   if (renderers[v]) renderers[v]();
 }
 
-// ─── VIEW 1: ADVANCED ZOHO ANALYTICS DASHBOARD ──────────────────
+// ─── VIEW 1: ENTERPRISE ANALYTICS RENDERING ENGINE ───────────
 function _renderHome() {
   var jobs = _D.jobs || [], cands = _D.candidates || [], ints = _D.interviews || [], offs = _D.offers || [];
 
@@ -156,7 +153,6 @@ function _renderHome() {
     deptCounts[d] = (deptCounts[d] || 0) + 1; 
   });
 
-  // Inject HTML Shell Matrix
   document.getElementById('v-home').innerHTML = `
     <div class="kpi-row">
       <div class="kpi-card"><span class="kpi-title">Active Vacancies</span><span class="kpi-value">${openJobs}</span></div>
@@ -172,13 +168,10 @@ function _renderHome() {
     </div>
   `;
 
-  // Safely trigger Chart rendering in an isolated block to prevent blank page state crashes
+  // Dynamic Chart Execution Layer
   setTimeout(function() {
     try {
-      if (typeof Chart === 'undefined') {
-        console.error('Chart.js library not detected.');
-        return;
-      }
+      if (typeof Chart === 'undefined') return;
 
       Object.keys(charts).forEach(function(k) { if(charts[k]) charts[k].destroy(); });
 
@@ -186,9 +179,9 @@ function _renderHome() {
       var labelColor = isDark ? '#9CA3AF' : '#64748B';
       var gridColor = isDark ? '#1F2937' : '#E2E8F0';
 
-      var elPipeline = document.getElementById('cPipeline');
-      if (elPipeline) {
-        charts.pipeline = new Chart(elPipeline.getContext('2d'), {
+      var elP = document.getElementById('cPipeline');
+      if (elP) {
+        charts.pipeline = new Chart(elP.getContext('2d'), {
           type: 'doughnut',
           data: {
             labels: ['Inbound Applied', 'Verification Interview', 'Selected Nodes', 'Hired & Active'],
@@ -202,33 +195,33 @@ function _renderHome() {
         });
       }
 
-      var elDept = document.getElementById('cDepartment');
-      if (elDept) {
-        charts.department = new Chart(elDept.getContext('2d'), {
+      var elD = document.getElementById('cDepartment');
+      if (elD) {
+        charts.department = new Chart(elD.getContext('2d'), {
           type: 'polarArea',
           data: {
-            labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['None'],
+            labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['System Pool'],
             datasets: [{ data: Object.values(deptCounts).length ? Object.values(deptCounts) : [0], backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(227,30,36,0.7)'] }]
           },
           options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridColor }, ticks: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
         });
       }
 
-      var elMetrics = document.getElementById('cMetrics');
-      if (elMetrics) {
-        charts.metrics = new Chart(elMetrics.getContext('2d'), {
+      var elM = document.getElementById('cMetrics');
+      if (elM) {
+        charts.metrics = new Chart(elM.getContext('2d'), {
           type: 'bar',
           data: {
             labels: ['Q1 Target', 'Q2 Evaluation', 'Current Run-Rate'],
-            datasets: [{ label: 'Performance Metrics', data: [openJobs * 2, pipelineReview + 3, closedHired + 2], backgroundColor: '#E31E24', borderRadius: 4 }]
+            datasets: [{ label: 'Performance', data: [openJobs * 2 || 4, pipelineReview + 2, closedHired + 1], backgroundColor: '#E31E24', borderRadius: 4 }]
           },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: labelColor } }, y: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
         });
       }
 
-      var elHoriz = document.getElementById('cHorizontal');
-      if (elHoriz) {
-        charts.horizontal = new Chart(elHoriz.getContext('2d'), {
+      var elH = document.getElementById('cHorizontal');
+      if (elH) {
+        charts.horizontal = new Chart(elH.getContext('2d'), {
           type: 'bar',
           data: {
             labels: ['Sourcing Lag', 'Screening Turnaround', 'Offer Generation Speed'],
@@ -238,7 +231,7 @@ function _renderHome() {
         });
       }
     } catch(err) {
-      console.warn("Chart rendering bypassed safely to keep UI alive: ", err);
+      console.warn("Safety interception triggered. Charts bypassed to prevent layout freezing.", err);
     }
   }, 100);
 }
@@ -265,8 +258,7 @@ function _renderJobs() {
             <th>Department Group</th>
             <th>Location Node</th>
             <th>Open Openings</th>
-            <th>Operational Status</th>
-            ${_hasWriteAccess() ? '<th style="text-align:right;">Mod Vectors</th>' : ''}
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -283,11 +275,6 @@ function _renderJobs() {
         <td><i class="fa-solid fa-location-dot" style="font-size:11px; color:var(--text-disabled);"></i> ${j['Location']}</td>
         <td>${j['Openings']}</td>
         <td><span class="badge ${state}"><i class="fa-solid fa-circle"></i> ${j['Status']}</span></td>
-        ${_hasWriteAccess() ? `
-          <td style="text-align:right;">
-            <button class="btn btn-secondary" style="padding:6px 12px;" onclick="_editJob('${j['Job ID']}')"><i class="fa-solid fa-pen-to-square"></i> Update</button>
-          </td>
-        ` : ''}
       </tr>
     `;
   });
@@ -296,39 +283,7 @@ function _renderJobs() {
   document.getElementById('v-jobs').innerHTML = html;
 }
 
-function _openJobModal(job) {
-  var j = job || {};
-  _showModal(
-    (j['Job ID'] ? 'Modify' : 'Initiate') + ' Grid Pipeline',
-    `<div class="fg"><label>Deployment Architecture Title</label><input id="f_title" value="${j['Title']||''}"></div>
-     <div class="form-row">
-       <div class="fg"><label>Functional Unit</label><select id="f_dept"><option>Production</option><option>Quality</option><option>Accounts</option><option>HR</option></select></div>
-       <div class="fg"><label>Geographical Terminal Node</label><input id="f_loc" value="${j['Location']||'Pune'}"></div>
-     </div>
-     <div class="form-row">
-       <div class="fg"><label>Scale Factor Minimum Experience</label><input id="f_exp" type="number" value="${j['Min Experience']||0}"></div>
-       <div class="fg"><label>Capacity Quantifier (Openings)</label><input id="f_open" type="number" value="${j['Openings']||1}"></div>
-     </div>`,
-    `<button class="btn btn-primary" onclick="_submitJob('${j['Job ID']||''}')">Commit Data Stream</button>`
-  );
-}
-
-function _editJob(jobId) {
-  var j = (_D.jobs||[]).find(function(x){return x['Job ID']===jobId;});
-  if (j) _openJobModal(j);
-}
-
-function _submitJob(existingId) {
-  if (_submitting) return; _submitting = true;
-  var data = {
-    jobId: existingId||null, title: document.getElementById('f_title').value.trim(),
-    department: document.getElementById('f_dept').value, location: document.getElementById('f_loc').value.trim(),
-    minExp: document.getElementById('f_exp').value, openings: document.getElementById('f_open').value
-  };
-  _api(existingId ? 'updateJob' : 'saveJob', data, function(r) { _submitting = false; if (r.success) { _closeModal(); _refresh(); } });
-}
-
-// ─── VIEW 3: TALENT CORE POOL ARCHIVE ─────────────────────────
+// ─── VIEW 3: TALENT POOL MANAGEMENT ───────────────────────────
 function _renderCandidates() {
   var candidates = _D.candidates || [], jobs = _D.jobs || [];
   var search = document.getElementById('cndSearch') ? document.getElementById('cndSearch').value.toLowerCase() : '';
@@ -339,7 +294,6 @@ function _renderCandidates() {
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="cndSearch" type="text" placeholder="Query talent endpoints..." class="search-input" oninput="_renderCandidates()">
       </div>
-      ${_hasWriteAccess() ? '<button class="btn btn-primary" onclick="_openCndModal()"><i class="fa-solid fa-user-plus"></i> Ingest New Node</button>' : ''}
     </div>
     <div class="data-table-container">
       <table class="data-table">
@@ -350,7 +304,6 @@ function _renderCandidates() {
             <th>Communication Endpoints</th>
             <th>Experience Weight</th>
             <th>Funnel Clearance State</th>
-            ${_hasWriteAccess() ? '<th style="text-align:right;">Operations Matrix</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -370,11 +323,6 @@ function _renderCandidates() {
         <td><i class="fa-solid fa-envelope" style="font-size:11px;"></i> ${c['Email']} <br> <i class="fa-solid fa-phone" style="font-size:11px;"></i> ${c['Phone']}</td>
         <td>${c['Experience (Yrs)']} Academic Years</td>
         <td><span class="badge ${tag}"><i class="fa-solid fa-circle-nodes"></i> ${c['Stage']}</span></td>
-        ${_hasWriteAccess() ? `
-          <td style="text-align:right;">
-            <button class="btn btn-secondary" style="padding:6px 12px;" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i> Audit</button>
-          </td>
-        ` : ''}
       </tr>
     `;
   });
@@ -383,70 +331,19 @@ function _renderCandidates() {
   document.getElementById('v-candidates').innerHTML = html;
 }
 
-function _openCndModal(cnd) {
-  var c = cnd || {}, jobs = _D.jobs || [];
-  var jobOpts = jobs.map(function(j){return `<option value="${j['Job ID']}">${j['Title']}</option>`;}).join('');
-
-  _showModal(
-    'Compile New Profile Struct',
-    `<div class="fg"><label>Full Legal Signature Name</label><input id="c_name" value="${c['Full Name']||''}"></div>
-     <div class="form-row">
-       <div class="fg"><label>Email Domain Node</label><input id="c_email" type="email" value="${c['Email']||''}"></div>
-       <div class="fg"><label>Mobile Network Routing Stream</label><input id="c_phone" type="tel" value="${c['Phone']||''}"></div>
-     </div>
-     <div class="fg"><label>Target Structural Vacancy</label><select id="c_job">${jobOpts}</select></div>
-     <div class="form-row">
-       <div class="fg"><label>Prior Industry Ecosystem</label><input id="c_co" value="${c['Current Company']||''}"></div>
-       <div class="fg"><label>Ecosystem Tenure (Yrs)</label><input id="c_exp" type="number" value="${c['Experience (Yrs)']||0}"></div>
-     </div>`,
-    `<button class="btn btn-primary" onclick="_submitCandidate('${c['Candidate ID']||''}')">Save Data Asset Node</button>`
-  );
-}
-
-function _submitCandidate(existingId) {
-  if (_submitting) return; _submitting = true;
-  var data = {
-    candidateId: existingId||null, name: document.getElementById('c_name').value.trim(),
-    email: document.getElementById('c_email').value.trim(), phone: document.getElementById('c_phone').value.trim(),
-    jobId: document.getElementById('c_job').value, currentCompany: document.getElementById('c_co').value.trim(),
-    experience: document.getElementById('c_exp').value, source: 'Zoho Integrated Pipeline Interface Engine'
-  };
-  _api(existingId ? 'updateCandidate' : 'saveCandidate', data, function(r) { _submitting = false; if (r.success) { _closeModal(); _refresh(); } });
-}
-
-function _openCndDetail(candidateId) {
-  var c = (_D.candidates||[]).find(function(x){return x['Candidate ID']===candidateId;}); if (!c) return;
-  _showModal(`Audit Record: ${c['Full Name']}`, `
-    <div style="line-height:2; font-size:13px;">
-      <p><i class="fa-solid fa-fingerprint"></i> <strong>Unique Security Hash Token:</strong> ${c['Candidate ID']}</p>
-      <p><i class="fa-solid fa-layer-group"></i> <strong>Ecosystem Funnel Position Status:</strong> ${c['Stage']}</p>
-    </div>
-  `, _hasWriteAccess() ? `
-    ${c['Stage']==='Applied' ? `<button class="btn btn-primary" onclick="_scheduleInterviewFrom('${c['Candidate ID']}')"><i class="fa-solid fa-calendar"></i> Deploy Assessment Event</button>` : ''}
-    ${c['Stage']==='Selected' ? `<button class="btn btn-primary" style="background:var(--color-success);" onclick="_createOfferFrom('${c['Candidate ID']}')"><i class="fa-solid fa-file-signature"></i> Finalize Deal Token</button>` : ''}
-  ` : '');
-}
-
-function _scheduleInterviewFrom(candidateId) { _closeModal(); setTimeout(function() { _openInterviewModal(null, candidateId); }, 200); }
-function _createOfferFrom(candidateId) { _closeModal(); setTimeout(function() { _openOfferModal(null, candidateId); }, 200); }
-
-// ─── VIEW 4: ASSESSMENT SCHEDULING SYSTEM ─────────────────────
+// ─── VIEW 4: INTERVIEWS MANAGEMENT ────────────────────────────
 function _renderInterviews() {
   var interviews = _D.interviews || [], candidates = _D.candidates || [];
   var html = `
-    <div class="toolbar" style="justify-content:flex-end;">
-      ${_hasWriteAccess() ? '<button class="btn btn-primary" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus"></i> Configure Evaluation Block</button>' : ''}
-    </div>
-    <div class="data-table-container">
+    <div class="data-table-container" style="margin-top:20px;">
       <table class="data-table">
         <thead>
           <tr>
             <th>Profile Coordinate</th>
             <th>Verification Coordinates</th>
-            <th>Timeline Axis (UTC+5:30)</th>
+            <th>Timeline Axis</th>
             <th>Assigned Systems Evaluator</th>
             <th>State Lock Status</th>
-            ${_hasWriteAccess() ? '<th style="text-align:right;">Decision Panel</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -457,16 +354,11 @@ function _renderInterviews() {
     var state = i['Status'] === 'Scheduled' ? 'badge-warning' : 'badge-success';
     html += `
       <tr>
-        <td style="font-weight:700;">${c ? c['Full Name'] : 'Redacted User Integrity Node'}</td>
+        <td style="font-weight:700;">${c ? c['Full Name'] : 'Classified Node'}</td>
         <td>Track Phase ${i['Round']} — [${i['Type']}]</td>
         <td><i class="fa-regular fa-clock"></i> ${i['Scheduled On']}</td>
         <td><i class="fa-solid fa-user-tie"></i> ${i['Interviewer']}</td>
         <td><span class="badge ${state}"><i class="fa-solid fa-lock"></i> ${i['Status']}</span></td>
-        ${_hasWriteAccess() ? `
-          <td style="text-align:right;">
-            ${i['Status']==='Scheduled' ? `<button class="btn btn-secondary" style="padding:6px 12px;" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')">Log Diagnostics</button>` : '<span style="color:var(--text-disabled); font-weight:600;">Data Locked</span>'}
-          </td>
-        ` : ''}
       </tr>
     `;
   });
@@ -475,62 +367,11 @@ function _renderInterviews() {
   document.getElementById('v-interviews').innerHTML = html;
 }
 
-function _openInterviewModal(interview, preCandidateId) {
-  var cands = (_D.candidates||[]).filter(function(c){ return c['Stage']==='Applied'||c['Stage']==='Interview'; });
-  var cndOpts = cands.map(function(c){ return `<option value="${c['Candidate ID']}">${c['Full Name']}</option>`; }).join('');
-
-  _showModal(
-    'Deploy Assessment Matrix Event',
-    `<div class="fg"><label>Target Assessment Profile Target</label><select id="i_cnd">${cndOpts}</select></div>
-     <div class="form-row">
-       <div class="fg"><label>Execution Sequence Index (Round)</label><input id="i_round" type="number" value="1"></div>
-       <div class="fg"><label>Audit Matrix Evaluation Target</label><select id="i_type"><option>HR Architecture</option><option>Technical Infrastructure</option><option>Executive Panel Board</option></select></div>
-     </div>
-     <div class="fg"><label>Ecosystem Event Scheduling Timestamp</label><input id="i_sched" type="datetime-local"></div>
-     <div class="fg"><label>Assigned Systems Auditor Architect</label><input id="i_iname" placeholder="Auditor Lead Structural Name"></div>`,
-    `<button class="btn btn-primary" onclick="_submitInterview()">Authorize Verification Event</button>`
-  );
-  if(preCandidateId) document.getElementById('i_cnd').value = preCandidateId;
-}
-
-function _submitInterview() {
-  if (_submitting) return; _submitting = true;
-  var cid = document.getElementById('i_cnd').value;
-  var c = (_D.candidates||[]).find(function(x){return x['Candidate ID']===cid;});
-  var data = {
-    candidateId: cid, candidateName: c?c['Full Name']:'', candidateEmail: c?c['Email']:'', jobId: c?c['Job ID']:'',
-    round: document.getElementById('i_round').value, type: document.getElementById('i_type').value,
-    scheduledOn: document.getElementById('i_sched').value, interviewer: document.getElementById('i_iname').value.trim(),
-    mode: 'Cloud Telepresence Grid Platform', meetingLink: ''
-  };
-  _api('saveInterview', data, function(r){ _submitting = false; if(r.success) { _closeModal(); _refresh(); } });
-}
-
-function _markInterviewResult(interviewId, candidateId) {
-  _showModal(
-    'Log Audit Protocol Evaluation Outcomes',
-    `<div class="fg"><label>Ecosystem Decision Vector Conclusion</label><select id="r_res"><option value="Pass">Pass Matrix Clear</option><option value="Fail">Fail Structural Dismissal</option></select></div>
-     <div class="fg"><label>Auditor Deep Metric Technical Review Analysis</label><textarea id="r_fb" rows="3"></textarea></div>`,
-    `<button class="btn btn-primary" onclick="_submitInterviewResult('${interviewId}','${candidateId}')">Write Decision Struct to Cloud</button>`
-  );
-}
-
-function _submitInterviewResult(interviewId, candidateId) {
-  if (_submitting) return; _submitting = true;
-  _api('updateInterview', {
-    interviewId: interviewId, candidateId: candidateId, status: 'Done',
-    result: document.getElementById('r_res').value, feedback: document.getElementById('r_fb').value.trim()
-  }, function(r) { _submitting = false; if(r.success) { _closeModal(); _refresh(); } });
-}
-
 // ─── VIEW 5: CLEARANCE OFFER LETTERS ──────────────────────────
 function _renderOffers() {
   var offers = _D.offers || [], candidates = _D.candidates || [];
   var html = `
-    <div class="toolbar" style="justify-content:flex-end;">
-      ${_hasWriteAccess() ? '<button class="btn btn-primary" onclick="_openOfferModal()"><i class="fa-solid fa-stamp"></i> Draft Clear Structural Offer</button>' : ''}
-    </div>
-    <div class="data-table-container">
+    <div class="data-table-container" style="margin-top:20px;">
       <table class="data-table">
         <thead>
           <tr>
@@ -538,7 +379,6 @@ function _renderOffers() {
             <th>Financial Matrix Allocator (CTC)</th>
             <th>Projected System Inception Trigger</th>
             <th>Authorization Status State</th>
-            ${_hasWriteAccess() ? '<th style="text-align:right;">Control Matrix</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -553,13 +393,6 @@ function _renderOffers() {
         <td><span style="font-weight:700; color:var(--color-success);">${o['Offered CTC']} LPA</span></td>
         <td><i class="fa-regular fa-calendar-days"></i> ${o['Joining Date']}</td>
         <td><span class="badge ${state}"><i class="fa-solid fa-circle-check"></i> ${o['Offer Status']}</span></td>
-        ${_hasWriteAccess() ? `
-          <td style="text-align:right;">
-            ${o['Offer Status'] === 'Sent' ? `
-              <button class="btn btn-primary" style="padding:6px 12px; background:var(--color-success);" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')">Confirm Accept Asset</button>
-            ` : '<span style="color:var(--text-disabled); font-weight:600;">Deployment Authorized</span>'}
-          </td>
-        ` : ''}
       </tr>
     `;
   });
@@ -568,34 +401,7 @@ function _renderOffers() {
   document.getElementById('v-offers').innerHTML = html;
 }
 
-function _openOfferModal(offer, preCandidateId) {
-  var selectedCands = (_D.candidates||[]).filter(function(c){return c['Stage']==='Selected';});
-  var cndOpts = selectedCands.map(function(c){ return `<option value="${c['Candidate ID']}">${c['Full Name']}</option>`; }).join('');
-  if (!cndOpts && !preCandidateId) { _toast('No profiles clear assessment thresholds currently.'); return; }
-
-  _showModal(
-    'Draft Global Compensation Asset Agreement',
-    `<div class="fg"><label>Target Candidate Element Pool Node</label><select id="o_cnd">${cndOpts}</select></div>
-     <div class="form-row">
-       <div class="fg"><label>Allocated Valuation Array Metric (LPA)</label><input id="o_ctc" type="number" step="0.1" placeholder="e.g. 6.5"></div>
-       <div class="fg"><label>Integration Sequence Live Timestamp Date</label><input id="o_jdate" type="date"></div>
-     </div>`,
-    `<button class="btn btn-primary" onclick="_submitOffer()">Authorize Global Security Release</button>`
-  );
-  if (preCandidateId) document.getElementById('o_cnd').value = preCandidateId;
-}
-
-function _submitOffer() {
-  if (_submitting) return; _submitting = true;
-  var cid = document.getElementById('o_cnd').value;
-  var c = (_D.candidates||[]).find(function(x){return x['Candidate ID']===cid;});
-  _api('saveOffer', {
-    candidateId: cid, jobId: c?c['Job ID']:'', offeredCtc: document.getElementById('o_ctc').value,
-    joiningDate: document.getElementById('o_jdate').value, designation: 'Core Systems Infrastructure Specialist Asset'
-  }, function(r) { _submitting = false; if(r.success) { _closeModal(); _refresh(); } });
-}
-
-// ─── UTILITY CORE CONTROLLER ENGINES ─────────────────────────
+// ─── UTILITY ENGINES ─────────────────────────────────────────
 function _showModal(title, body, footer) {
   document.getElementById('mTitle').textContent = title;
   document.getElementById('mBody').innerHTML = body;
