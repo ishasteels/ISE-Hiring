@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0F172A">
-<title>ISHA Talent Analytics Portal</title>
+<title>ISHA Advanced Analytics & Hiring Portal</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdgh2Kelto3OmUK98V71WethooLIvRbc4DB3ZeDc3plxuMTqepEBM389c20RodcEZOy2nA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -22,7 +22,7 @@
   --font-main: 'Plus Jakarta Sans', sans-serif;
   --r-base: 8px;
   --r-smooth: 6px;
-  --transition: all 0.2s ease-in-out;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --sbw-expanded: 260px;
   --sbw-collapsed: 70px;
   --topbar-h: 60px;
@@ -81,11 +81,12 @@ body { background: var(--bg-app); color: var(--text-main); height: 100vh; overfl
 #sLogin { position: fixed; inset: 0; background: radial-gradient(circle at top right, #1E1E2F, #0F172A); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
 .login-card { background: #FFFFFF; width: 100%; max-width: 420px; padding: 40px 32px; border-radius: var(--r-base); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); color: #0F172A; }
 .login-header { text-align: center; margin-bottom: 32px; }
-.login-header img { height: 48px; margin-bottom: 16px; object-fit: contain; }
+.login-header .logo-bg-white { background: #FFFFFF; padding: 10px 20px; border-radius: var(--r-base); display: inline-block; box-shadow: var(--shadow-sm); margin-bottom: 16px; border: 1px solid #E2E8F0; }
+.login-header img { height: 44px; object-fit: contain; display: block; }
 .login-header h2 { font-size: 22px; font-weight: 700; color: #1E293B; letter-spacing: -0.5px; }
 .login-header p { font-size: 13px; color: #64748B; margin-top: 6px; }
 
-/* Form Layout Utilities */
+/* Dynamic Zoho-Style Form Fields */
 .fg { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
 .fg label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
 .fg-input-wrap { position: relative; }
@@ -101,8 +102,10 @@ body { background: var(--bg-app); color: var(--text-main); height: 100vh; overfl
 .btn-secondary { background: var(--bg-surface-muted); border-color: var(--border-color); color: var(--text-main); box-shadow: var(--shadow-sm); }
 .btn-secondary:hover { background: var(--border-color); }
 .btn-danger { background: var(--color-error); color: #FFFFFF; }
+.btn-full { width: 100%; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
 
-/* ── MAIN SHELL APPLICATION ── */
+/* ── MAIN WORKSPACE ARCHITECTURE ── */
 #sApp { display: none; height: 100vh; }
 
 #topbar { position: fixed; top: 0; left: var(--sbw-expanded); right: 0; height: var(--topbar-h); background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; z-index: 90; transition: var(--transition); box-shadow: var(--shadow-sm); }
@@ -110,13 +113,14 @@ body.sidebar-collapsed #topbar { left: var(--sbw-collapsed); }
 #tbTitle { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
 .topbar-actions { display: flex; gap: 12px; align-items: center; }
 
-/* Sidebar Layout Engine */
+/* Collapsible Zoho Workspace Sidebar */
 #sb { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sbw-expanded); background: var(--bg-sidebar); color: var(--text-sidebar); z-index: 100; display: flex; flex-direction: column; transition: var(--transition); border-right: 1px solid var(--border-color); }
 body.sidebar-collapsed #sb { width: var(--sbw-collapsed); }
 
 .sb-header { height: var(--topbar-h); display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .sb-logo-wrap { display: flex; align-items: center; gap: 10px; overflow: hidden; }
-.sb-logo-wrap img { height: 28px; width: auto; object-fit: contain; }
+.sb-logo-box-white { background: #FFFFFF; padding: 4px 10px; border-radius: var(--r-smooth); display: flex; align-items: center; justify-content: center; }
+.sb-logo-wrap img { height: 24px; width: auto; object-fit: contain; }
 .sb-logo-text { font-weight: 800; color: #FFF; font-size: 14px; letter-spacing: 0.5px; white-space: nowrap; }
 body.sidebar-collapsed .sb-logo-text { display: none; }
 .sb-toggle { background: transparent; border: none; color: var(--text-sidebar); cursor: pointer; font-size: 14px; padding: 6px; border-radius: 4px; }
@@ -138,48 +142,53 @@ body.sidebar-collapsed .nav-text { display: none; }
 
 .sb-footer { padding: 12px; border-top: 1px solid rgba(255,255,255,0.04); }
 .btn-logout { width: 100%; display: flex; align-items: center; gap: 12px; background: transparent; border: none; color: var(--text-sidebar); padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 600; text-align: left; border-radius: var(--r-smooth); }
+.btn-logout:hover { background: rgba(239,68,68,0.1); color: var(--color-error); }
 body.sidebar-collapsed .btn-logout span { display: none; }
 
-/* View Management Windows */
+/* Main Dynamic Window Content Container */
 #content { position: fixed; top: var(--topbar-h); left: var(--sbw-expanded); right: 0; bottom: 0; overflow-y: auto; padding: 32px; transition: var(--transition); }
 body.sidebar-collapsed #content { left: var(--sbw-collapsed); }
 .view { display: none; max-width: 1400px; margin: 0 auto; }
 
-/* KPI Grid Systems */
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
-.kpi-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; }
+/* KPI Component Layouts */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 32px; }
+.kpi-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; border-top: 4px solid var(--brand-accent); }
 .kpi-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .kpi-value { font-size: 26px; font-weight: 800; color: var(--text-main); }
 
-/* Analytics Presentation Engine */
-.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-top: 12px; }
+/* Analytics Charts Elements Grid */
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; margin-top: 12px; }
+@media (max-width: 600px) { .analytics-grid { grid-template-columns: 1fr; } }
 .chart-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); padding: 24px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 16px; }
 .chart-card h3 { font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
 .chart-wrapper { position: relative; width: 100%; height: 260px; }
 
-/* Zoho CRM Standard Tables */
+/* Professional Zoho Custom Data Grid Tables */
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-.search-container { position: relative; flex: 1; max-width: 360px; }
+.filter-box-group { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; }
+.search-container { position: relative; min-width: 260px; }
 .search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-disabled); }
-.search-container input { padding-left: 36px; }
+.search-container input { padding-left: 36px; height: 38px; border: 1px solid var(--border-color); border-radius: var(--r-smooth); font-size: 13px; background: var(--bg-surface); color: var(--text-main); outline: none; width: 100%; }
 
-.data-table-container { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); box-shadow: var(--shadow-md); overflow: hidden; }
+.custom-select-filter { height: 38px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: var(--r-smooth); background: var(--bg-surface); color: var(--text-main); outline: none; min-width: 140px; font-size: 13px; }
+
+.data-table-container { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); box-shadow: var(--shadow-md); overflow: hidden; margin-bottom: 32px; }
 .data-table { width: 100%; border-collapse: collapse; text-align: left; }
 .data-table th { background: var(--bg-surface-muted); padding: 14px 20px; font-weight: 700; border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-.data-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 13px; }
+.data-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 13px; vertical-align: middle; }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--bg-surface-muted); }
 
-/* Badges System */
+/* Custom Badge Tags */
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; }
 .badge-success { background: rgba(16,185,129,0.12); color: var(--color-success); }
 .badge-warning { background: rgba(245,158,11,0.12); color: var(--color-warning); }
 .badge-error { background: rgba(239,68,68,0.12); color: var(--color-error); }
 .badge-info { background: rgba(59,130,246,0.12); color: var(--color-info); }
 
-/* System Layout Overlays */
+/* System Layout Dialog Overlays */
 #mOv { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 500; backdrop-filter: blur(4px); }
-#modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); width: 92%; max-width: 580px; max-height: 85vh; flex-direction: column; z-index: 501; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+#modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--r-base); width: 92%; max-width: 620px; max-height: 85vh; flex-direction: column; z-index: 501; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
 .modal-hdr { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 .modal-body { padding: 24px; overflow-y: auto; }
 .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; }
@@ -202,7 +211,9 @@ body.sidebar-collapsed #content { left: var(--sbw-collapsed); }
 <div id="sLogin">
   <div class="login-card">
     <div class="login-header">
-      <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA LOGO">
+      <div class="logo-bg-white">
+        <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA LOGO">
+      </div>
       <h2>Talent Engine</h2>
       <p>Secure Enterprise Workforce Authentication</p>
     </div>
@@ -231,7 +242,9 @@ body.sidebar-collapsed #content { left: var(--sbw-collapsed); }
   <div id="sb">
     <div class="sb-header">
       <div class="sb-logo-wrap">
-        <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA">
+        <div class="sb-logo-box-white">
+          <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA">
+        </div>
         <span class="sb-logo-text">ISHA METRICS</span>
       </div>
       <button class="sb-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-arrow-left-long"></i></button>
