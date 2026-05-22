@@ -220,24 +220,23 @@ body.sidebar-collapsed #content { left: var(--sbw-collapsed); }
       <p>Secure Enterprise Workforce Authentication</p>
     </div>
     <div class="fg">
-      <label>Operator Email</label>
-      <div class="fg-input-wrap">
-        <i class="fa-solid fa-envelope"></i>
-        <input id="loginEmail" type="email" placeholder="username@ishasteels.com">
-      </div>
-    </div>
-    <div class="fg">
-      <label>Security Key</label>
-      <div class="fg-input-wrap">
-        <i class="fa-solid fa-lock"></i>
-        <input id="loginPass" type="password" placeholder="••••••••">
-      </div>
-    </div>
-    <button class="btn btn-primary" style="width:100%; padding:12px; margin-top:8px;" onclick="doLogin()" id="loginBtn">
-      <i class="fa-solid fa-shield-halved"></i> Authenticate System
-    </button>
-    <div class="login-err" id="loginErr"></div>
+  <label>Operator Email</label>
+  <div class="fg-input-wrap">
+    <i class="fa-solid fa-envelope"></i>
+    <input id="loginEmail" type="email" placeholder="username@ishasteels.com">
   </div>
+</div>
+<div class="fg">
+  <label>Security Key</label>
+  <div class="fg-input-wrap">
+    <i class="fa-solid fa-lock"></i>
+    <input id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+</div>
+<button class="btn btn-primary" style="width:100%; padding:12px; margin-top:8px;" onclick="doLogin()" id="loginBtn">
+  <i class="fa-solid fa-shield-halved"></i> Authenticate System
+</button>
+<div class="login-err" id="loginErr" style="color:var(--color-error); font-size:12px; text-align:center; margin-top:12px; font-weight:500;"></div>
 </div>
 
 <div id="sApp">
