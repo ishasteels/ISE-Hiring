@@ -105,6 +105,19 @@ function doLogin() {
   });
 }
 
+// ... baaki saara code upar rahega ...
+
+function _toast(msg) {
+  var t = document.getElementById('toast'); 
+  t.textContent = msg; 
+  t.classList.add('on');
+  setTimeout(function() { t.classList.remove('on'); }, 3000);
+}
+
+// ⚠️ CHECK KAREIN: Aapki file ke end mein ye akela closing bracket hona chahiye jo poore script ko wrap karta hai
+}
+
+
 function _signOut() {
   try { localStorage.removeItem('ise_hiring_session'); } catch(e) {}
   _U = null; _TOKEN = null; _D = {}; _showLogin();
