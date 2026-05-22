@@ -17,9 +17,10 @@ function toggleTheme() {
   var current = b.getAttribute('data-theme');
   var target = (current === 'dark') ? 'light' : 'dark';
   b.setAttribute('data-theme', target);
-  var icon = target === 'dark' ? '<i class="fa-solid fa-sun"></i> Light Mode' : '<i class="fa-solid fa-moon"></i> Dark Mode';
-  event.target.innerHTML = icon;
-  if(_V === 'home') _renderHome(); // Re-render charts for color balancing
+  if(event && event.target) {
+    event.target.innerHTML = target === 'dark' ? '<i class="fa-solid fa-sun"></i> Light Mode' : '<i class="fa-solid fa-moon"></i> Dark Mode';
+  }
+  if(_V === 'home') _renderHome(); 
 }
 
 function toggleSidebar() {
@@ -105,15 +106,6 @@ function doLogin() {
   });
 }
 
-// ... baaki saara code upar rahega ...
-
-function _toast(msg) {
-  var t = document.getElementById('toast'); 
-  t.textContent = msg; 
-  t.classList.add('on');
-  setTimeout(function() { t.classList.remove('on'); }, 3000);
-}
-
 function _signOut() {
   try { localStorage.removeItem('ise_hiring_session'); } catch(e) {}
   _U = null; _TOKEN = null; _D = {}; _showLogin();
@@ -133,7 +125,7 @@ function _showApp() {
   document.getElementById('sLogin').style.display = 'none'; document.getElementById('sApp').style.display = 'block';
   document.getElementById('sbUserName').textContent = _U.name;
   document.getElementById('sbUserRole').textContent = _U.role.toUpperCase();
-  document.getElementById('sbAvatar').innerHTML = `<span style="font-weight:700;">${(_U.name || 'U').charAt(0).toUpperCase()}</span>`;
+  document.getElementById('sbAvatar').innerHTML = `<span>${(_U.name || 'U').charAt(0).toUpperCase()}</span>`;
 }
 
 function _lv(v) {
@@ -153,19 +145,18 @@ function _lv(v) {
 function _renderHome() {
   var jobs = _D.jobs || [], cands = _D.candidates || [], ints = _D.interviews || [], offs = _D.offers || [];
 
-  // Metrics Data Extraction
   var openJobs = jobs.filter(function(j) { return j['Status'] === 'Open'; }).length;
   var pipelineReview = cands.filter(function(c) { return c['Stage'] === 'Applied'; }).length;
   var verifiedActive = cands.filter(function(c) { return c['Stage'] === 'Interview'; }).length;
   var closedHired = cands.filter(function(c) { return c['Stage'] === 'Joined'; }).length;
 
-  // Department Distribution calculation
   var deptCounts = {};
   jobs.forEach(function(j) { 
     var d = j['Department'] || 'Unassigned'; 
     deptCounts[d] = (deptCounts[d] || 0) + 1; 
   });
 
+  // Inject HTML structure first
   document.getElementById('v-home').innerHTML = `
     <div class="kpi-row">
       <div class="kpi-card"><span class="kpi-title">Active Vacancies</span><span class="kpi-value">${openJobs}</span></div>
@@ -181,56 +172,66 @@ function _renderHome() {
     </div>
   `;
 
-  // Destroy previous instances to avoid layout memory leaks
-  Object.keys(charts).forEach(function(k) { if(charts[k]) charts[k].destroy(); });
+  // Safely trigger Chart rendering after a slight delay to ensure the canvas elements exist in DOM
+  setTimeout(function() {
+    Object.keys(charts).forEach(function(k) { if(charts[k]) charts[k].destroy(); });
 
-  var isDark = document.body.getAttribute('data-theme') === 'dark';
-  var labelColor = isDark ? '#9CA3AF' : '#64748B';
-  var gridColor = isDark ? '#1F2937' : '#E2E8F0';
+    var isDark = document.body.getAttribute('data-theme') === 'dark';
+    var labelColor = isDark ? '#9CA3AF' : '#64748B';
+    var gridColor = isDark ? '#1F2937' : '#E2E8F0';
 
-  // Chart 1: Doughnut - Conversion Pipeline
-  charts.pipeline = new Chart(document.getElementById('cPipeline'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Inbound Applied', 'Verification Interview', 'Selected Nodes', 'Hired & Active'],
-      datasets: [{
-        data: [pipelineReview, verifiedActive, cands.filter(function(c){return c['Stage']==='Selected';}).length, closedHired],
-        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#E31E24'],
-        borderWidth: 0
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
-  });
+    var elPipeline = document.getElementById('cPipeline');
+    if (elPipeline) {
+      charts.pipeline = new Chart(elPipeline, {
+        type: 'doughnut',
+        data: {
+          labels: ['Inbound Applied', 'Verification Interview', 'Selected Nodes', 'Hired & Active'],
+          datasets: [{
+            data: [pipelineReview, verifiedActive, cands.filter(function(c){return c['Stage']==='Selected';}).length, closedHired],
+            backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#E31E24'],
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
+      });
+    }
 
-  // Chart 2: PolarArea - Department Spread Matrix
-  charts.department = new Chart(document.getElementById('cDepartment'), {
-    type: 'polarArea',
-    data: {
-      labels: Object.keys(deptCounts),
-      datasets: [{ data: Object.values(deptCounts), backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(227,30,36,0.7)'] }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridColor }, ticks: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
-  });
+    var elDept = document.getElementById('cDepartment');
+    if (elDept) {
+      charts.department = new Chart(elDept, {
+        type: 'polarArea',
+        data: {
+          labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['None'],
+          datasets: [{ data: Object.values(deptCounts).length ? Object.values(deptCounts) : [0], backgroundColor: ['rgba(59,130,246,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(227,30,36,0.7)'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: gridColor }, ticks: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { color: labelColor } } } }
+      });
+    }
 
-  // Chart 3: Vertical Bar Chart - Monthly Aggregates
-  charts.metrics = new Chart(document.getElementById('cMetrics'), {
-    type: 'bar',
-    data: {
-      labels: ['Q1 Target', 'Q2 Evaluation', 'Current Run-Rate'],
-      datasets: [{ label: 'Performance Metrics', data: [openJobs * 2, pipelineReview + 3, closedHired + 2], backgroundColor: '#E31E24', borderRadius: 4 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: labelColor } }, y: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
-  });
+    var elMetrics = document.getElementById('cMetrics');
+    if (elMetrics) {
+      charts.metrics = new Chart(elMetrics, {
+        type: 'bar',
+        data: {
+          labels: ['Q1 Target', 'Q2 Evaluation', 'Current Run-Rate'],
+          datasets: [{ label: 'Performance Metrics', data: [openJobs * 2, pipelineReview + 3, closedHired + 2], backgroundColor: '#E31E24', borderRadius: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { color: labelColor } }, y: { grid: { color: gridColor }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
+      });
+    }
 
-  // Chart 4: Horizontal Bar Chart - Phase Velocity
-  charts.horizontal = new Chart(document.getElementById('cHorizontal'), {
-    type: 'bar',
-    data: {
-      labels: ['Sourcing Lag', 'Screening Turnaround', 'Offer Generation Speed'],
-      datasets: [{ data: [12, 19, 8], backgroundColor: '#3B82F6', borderRadius: 4 }]
-    },
-    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
-  });
+    var elHoriz = document.getElementById('cHorizontal');
+    if (elHoriz) {
+      charts.horizontal = new Chart(elHoriz, {
+        type: 'bar',
+        data: {
+          labels: ['Sourcing Lag', 'Screening Turnaround', 'Offer Generation Speed'],
+          datasets: [{ data: [12, 19, 8], backgroundColor: '#3B82F6', borderRadius: 4 }]
+        },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: gridColor }, ticks: { color: labelColor } }, y: { grid: { display: false }, ticks: { color: labelColor } } }, plugins: { legend: { display: false } } }
+      });
+    }
+  }, 50);
 }
 
 // ─── VIEW 2: PIPELINES WORKSPACE (TABLE MODE) ─────────────────
