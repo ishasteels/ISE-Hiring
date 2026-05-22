@@ -114,10 +114,6 @@ function _toast(msg) {
   setTimeout(function() { t.classList.remove('on'); }, 3000);
 }
 
-// ⚠️ CHECK KAREIN: Aapki file ke end mein ye akela closing bracket hona chahiye jo poore script ko wrap karta hai
-}
-
-
 function _signOut() {
   try { localStorage.removeItem('ise_hiring_session'); } catch(e) {}
   _U = null; _TOKEN = null; _D = {}; _showLogin();
