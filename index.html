@@ -697,6 +697,107 @@ body.sb-collapsed .topbar-logo-area { width: var(--sidebar-w-collapsed); }
 .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
 .overflow-x-auto { overflow-x: auto; }
 .hover\:underline:hover { text-decoration: underline; }
+
+/* ══ USER DROPDOWN ═══════════════════════════════════════════ */
+.user-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  background: #fff; border-radius: 14px; min-width: 240px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.15); border: 1px solid #f1f5f9;
+  z-index: 9999; overflow: hidden;
+  animation: ddFadeIn .18s ease;
+}
+@keyframes ddFadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.user-dd-header { display:flex; align-items:center; gap:12px; padding:16px; background:#f8fafc; }
+.user-dd-av { width:42px; height:42px; border-radius:50%; background:#e31e24; color:#fff; font-size:18px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.user-dd-name { font-size:14px; font-weight:700; color:#0f172a; }
+.user-dd-email { font-size:11px; color:#64748b; margin:2px 0; }
+.user-dd-badge { display:inline-block; padding:2px 8px; border-radius:8px; background:#e31e24; color:#fff; font-size:10px; font-weight:700; letter-spacing:.04em; }
+.user-dd-divider { height:1px; background:#f1f5f9; }
+.user-dd-item { width:100%; display:flex; align-items:center; gap:10px; padding:12px 16px; border:none; background:transparent; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s; text-align:left; }
+.user-dd-item:hover { background:#f8fafc; }
+.user-dd-item.danger { color:#ef4444; }
+.user-dd-item.danger:hover { background:#fff1f2; }
+
+/* ══ DARK MODE ════════════════════════════════════════════════ */
+body[data-theme="dark"] {
+  background: #0f172a; color: #e2e8f0;
+}
+body[data-theme="dark"] #topbar {
+  background: #1e293b; border-bottom-color: #334155;
+  box-shadow: 0 1px 8px rgba(0,0,0,.3);
+}
+body[data-theme="dark"] .topbar-logo-box { background: #fff; border-color: #334155; }
+body[data-theme="dark"] .sb-toggle-btn { color: #94a3b8; }
+body[data-theme="dark"] .sb-toggle-btn:hover { background: #334155; color: #e2e8f0; }
+body[data-theme="dark"] #tbTitle { color: #f1f5f9; }
+body[data-theme="dark"] .topbar-btn { background:#1e293b; border-color:#334155; color:#94a3b8; }
+body[data-theme="dark"] .topbar-btn:hover { border-color:#e31e24; color:#e31e24; }
+body[data-theme="dark"] .user-chip { background:#334155; border-color:#475569; }
+body[data-theme="dark"] .user-chip:hover { border-color:#e31e24; }
+body[data-theme="dark"] .user-chip-name { color:#f1f5f9; }
+body[data-theme="dark"] #content { background:#0f172a; }
+body[data-theme="dark"] .kpi-card { background:#1e293b; border-color:#334155; }
+body[data-theme="dark"] .kpi-val { color:#f1f5f9; }
+body[data-theme="dark"] .kpi-label { color:#cbd5e1; }
+body[data-theme="dark"] .dash-section-card { background:#1e293b; border-color:#334155; }
+body[data-theme="dark"] .dash-section-header h3 { color:#f1f5f9; }
+body[data-theme="dark"] .table-card { background:#1e293b; border-color:#334155; }
+body[data-theme="dark"] .data-table thead th { background:#0f172a; color:#64748b; border-bottom-color:#334155; }
+body[data-theme="dark"] .data-table tbody td { border-bottom-color:#1e293b; color:#cbd5e1; }
+body[data-theme="dark"] .data-table tbody tr:hover { background:#334155; }
+body[data-theme="dark"] .text-slate-800 { color:#f1f5f9; }
+body[data-theme="dark"] .text-slate-700 { color:#cbd5e1; }
+body[data-theme="dark"] .text-slate-600 { color:#94a3b8; }
+body[data-theme="dark"] .text-slate-500 { color:#64748b; }
+body[data-theme="dark"] .font-semibold { color:#e2e8f0; }
+body[data-theme="dark"] .view-toolbar .search-box { background:#1e293b; border-color:#334155; }
+body[data-theme="dark"] .search-box input { color:#e2e8f0; background:transparent; }
+body[data-theme="dark"] .filter-select { background:#1e293b; border-color:#334155; color:#e2e8f0; }
+body[data-theme="dark"] .result-count { color:#64748b; }
+body[data-theme="dark"] .detail-field { background:#0f172a; }
+body[data-theme="dark"] .detail-field label { color:#475569; }
+body[data-theme="dark"] .detail-field span { color:#e2e8f0; }
+body[data-theme="dark"] .tl-feedback { background:#0f172a; }
+body[data-theme="dark"] .fg input, body[data-theme="dark"] .fg select, body[data-theme="dark"] .fg textarea { background:#0f172a; border-color:#334155; color:#e2e8f0; }
+body[data-theme="dark"] #modal { background:#1e293b; }
+body[data-theme="dark"] .modal-header { border-bottom-color:#334155; }
+body[data-theme="dark"] .modal-header h3 { color:#f1f5f9; }
+body[data-theme="dark"] .modal-footer { border-top-color:#334155; }
+body[data-theme="dark"] .modal-btn-secondary { background:#0f172a; border-color:#334155; color:#cbd5e1; }
+body[data-theme="dark"] .activity-row { border-bottom-color:#334155; }
+body[data-theme="dark"] .pipeline-legend .pipe-lbl { color:#94a3b8; }
+body[data-theme="dark"] .pipeline-legend .pipe-cnt { color:#e2e8f0; }
+body[data-theme="dark"] .name-cell .font-semibold { color:#f1f5f9; }
+body[data-theme="dark"] .id-cell { color:#475569; }
+body[data-theme="dark"] #bnav { background:#1e293b; border-top-color:#334155; }
+body[data-theme="dark"] .bn-item { color:#475569; }
+body[data-theme="dark"] .user-dropdown { background:#1e293b; border-color:#334155; }
+body[data-theme="dark"] .user-dd-header { background:#0f172a; }
+body[data-theme="dark"] .user-dd-name { color:#f1f5f9; }
+body[data-theme="dark"] .user-dd-email { color:#64748b; }
+body[data-theme="dark"] .user-dd-divider { background:#334155; }
+body[data-theme="dark"] .user-dd-item { color:#e2e8f0; }
+body[data-theme="dark"] .user-dd-item:hover { background:#334155; }
+body[data-theme="dark"] .info-note { background:#0f172a; color:#94a3b8; }
+body[data-theme="dark"] .source-tag { background:#334155; color:#cbd5e1; }
+body[data-theme="dark"] .icon-btn { background:#0f172a; border-color:#334155; color:#64748b; }
+body[data-theme="dark"] .detail-offer-card { background:#0f172a; border-color:#334155; }
+body[data-theme="dark"] .joining-confirm-banner { background:linear-gradient(135deg,#052e16,#064e3b); }
+body[data-theme="dark"] .insight-table th { background:#0f172a; color:#475569; border-bottom-color:#334155; }
+body[data-theme="dark"] .insight-table td { border-bottom-color:#334155; color:#cbd5e1; }
+body[data-theme="dark"] .insight-table tbody tr:hover { background:#334155; }
+
+/* ══ COLLAPSED SIDEBAR LOGO ══════════════════════════════════ */
+body.sb-collapsed #topbarLogoImg { display: none !important; }
+body.sb-collapsed #topbarLogoText { display: inline !important; }
+
+/* ══ CANDIDATE ROLE — view-only mode ═════════════════════════ */
+.role-banner {
+  display:flex; align-items:center; gap:10px; padding:10px 16px;
+  background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:10px;
+  color:#92400e; font-size:13px; font-weight:600; margin-bottom:16px;
+  border-left:4px solid #f59e0b;
+}
 </style>
 </head>
 <body>
@@ -748,7 +849,8 @@ body.sb-collapsed .topbar-logo-area { width: var(--sidebar-w-collapsed); }
   <div id="topbar">
     <div class="topbar-logo-area">
       <div class="topbar-logo-box">
-        <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA" onerror="this.src='icon-192.png'" style="height:28px;width:auto;">
+        <img src="https://ishasteels.com/assets/images/logo.png" alt="ISHA" onerror="this.src='icon-192.png'" style="height:28px;width:auto;" id="topbarLogoImg">
+        <span id="topbarLogoText" style="display:none;font-size:15px;font-weight:900;color:#e31e24;letter-spacing:0.04em;font-family:inherit;">ISE</span>
       </div>
     </div>
     <button class="sb-toggle-btn" onclick="toggleSidebar()" id="sbToggleBtn" title="Toggle Sidebar">
@@ -759,13 +861,33 @@ body.sb-collapsed .topbar-logo-area { width: var(--sidebar-w-collapsed); }
       <button class="topbar-btn" onclick="_refresh()" title="Refresh Data">
         <i class="fa-solid fa-rotate-right"></i>
       </button>
-      <div class="user-chip" onclick="_signOut()" title="Sign Out">
-        <div class="user-av" id="sbAvatar">U</div>
-        <div class="user-chip-info">
-          <div class="user-chip-name" id="sbUserName">User</div>
-          <div class="user-chip-role" id="sbUserRole">Role</div>
+      <button class="topbar-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode" id="themeBtn">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+      <div style="position:relative;">
+        <div class="user-chip" onclick="toggleUserMenu(event)" id="userChip" style="cursor:pointer;user-select:none;">
+          <div class="user-av" id="sbAvatar">U</div>
+          <div class="user-chip-info">
+            <div class="user-chip-name" id="sbUserName">User</div>
+            <div class="user-chip-role" id="sbUserRole">Role</div>
+            <span id="sbUserEmail" style="display:none"></span>
+          </div>
+          <i class="fa-solid fa-chevron-down" id="userChevron" style="font-size:10px;color:#94a3b8;margin-left:4px;transition:transform .2s;"></i>
         </div>
-        <i class="fa-solid fa-chevron-down" style="font-size:10px;color:#94a3b8;margin-left:2px;"></i>
+        <div id="userDropdown" class="user-dropdown" style="display:none;">
+          <div class="user-dd-header">
+            <div class="user-dd-av" id="ddAvatar">U</div>
+            <div>
+              <div class="user-dd-name" id="ddName">—</div>
+              <div class="user-dd-email" id="ddEmail">—</div>
+              <span class="user-dd-badge" id="ddRole">—</span>
+            </div>
+          </div>
+          <div class="user-dd-divider"></div>
+          <button class="user-dd-item danger" onclick="_signOut()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+          </button>
+        </div>
       </div>
     </div>
     <!-- Mobile hamburger -->
