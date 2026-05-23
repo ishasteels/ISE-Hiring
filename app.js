@@ -33,9 +33,23 @@ function _api(action, data, ok, err) {
 
 // ─── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  // Restore theme
+  try {
+    var savedTheme = localStorage.getItem('isha_theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.innerHTML = savedTheme === 'dark'
+      ? '<i class="fa-solid fa-sun"></i>'
+      : '<i class="fa-solid fa-moon"></i>';
+  } catch(e) {}
+  // Restore session
   try {
     var stored = localStorage.getItem('isha_hiring_v3');
-    if (stored) { var s = JSON.parse(stored); _U = s.user; _TOKEN = s.token; _showApp(); _loadData(); return; }
+    if (stored) {
+      var s = JSON.parse(stored);
+      _U = s.user; _TOKEN = s.token;
+      _showApp(); _loadData(); return;
+    }
   } catch(e) {}
   _showLogin();
 });
@@ -94,10 +108,18 @@ function _showLogin() {
 function _showApp() {
   _el('sLogin').style.display = 'none';
   _el('sApp').style.display   = 'block';
-  _el('sbUserName').textContent  = _U.name;
-  _el('sbUserEmail').textContent = _U.email;
-  _el('sbUserRole').textContent  = _U.role.charAt(0).toUpperCase() + _U.role.slice(1);
-  _el('sbAvatar').textContent    = (_U.name || 'U').charAt(0).toUpperCase();
+  var av = (_U.name || 'U').charAt(0).toUpperCase();
+  var roleCap = _U.role.charAt(0).toUpperCase() + _U.role.slice(1);
+  // Topbar user chip
+  if (_el('sbUserName'))  _el('sbUserName').textContent  = _U.name;
+  if (_el('sbUserRole'))  _el('sbUserRole').textContent  = roleCap;
+  if (_el('sbUserEmail')) _el('sbUserEmail').textContent = _U.email;
+  if (_el('sbAvatar'))    _el('sbAvatar').textContent    = av;
+  // Dropdown
+  if (_el('ddAvatar')) _el('ddAvatar').textContent = av;
+  if (_el('ddName'))   _el('ddName').textContent   = _U.name;
+  if (_el('ddEmail'))  _el('ddEmail').textContent  = _U.email;
+  if (_el('ddRole'))   _el('ddRole').textContent   = roleCap;
   // Role visibility
   document.querySelectorAll('.hr-only').forEach(function(el) {
     el.style.display = _hasWrite() ? '' : 'none';
@@ -105,9 +127,19 @@ function _showApp() {
   document.querySelectorAll('.admin-only').forEach(function(el) {
     el.style.display = _isAdmin() ? '' : 'none';
   });
+  // Candidate role — show readonly banner
+  if (_U.role === 'candidate') {
+    document.querySelectorAll('[data-v="candidates"],[data-v="offers"]').forEach(function(el){
+      el.style.display = 'none';
+    });
+  }
 }
 
 function _lv(v) {
+  // Candidate role — restrict to jobs and home only
+  if (_U && _U.role === 'candidate' && ['offers'].indexOf(v) >= 0) {
+    _toast('Access restricted for your role.', 'warning'); return;
+  }
   _V = v;
   document.querySelectorAll('.view').forEach(function(el) { el.style.display = 'none'; });
   var el = _el('v-' + v); if (el) el.style.display = 'block';
@@ -121,11 +153,9 @@ function _lv(v) {
   _el('tbTitle').textContent = titles[v] || 'ISHA Hiring';
   var renderers = { home: _renderHome, jobs: _renderJobs, candidates: _renderCandidates, interviews: _renderInterviews, offers: _renderOffers };
   if (renderers[v]) renderers[v]();
-  // Close mobile sidebar
   document.body.classList.remove('sb-open');
 }
 
-function toggleSidebar() { document.body.classList.toggle('sb-collapsed'); }
 function openMobileSb()  { document.body.classList.add('sb-open'); }
 function closeMobileSb() { document.body.classList.remove('sb-open'); }
 
@@ -139,6 +169,41 @@ function _el(id)   { return document.getElementById(id); }
 function _val(id)  { var e = _el(id); return e ? e.value.trim() : ''; }
 function _hasWrite(){ return _U && (_U.role === 'hr' || _U.role === 'admin'); }
 function _isAdmin() { return _U && _U.role === 'admin'; }
+function _canView()  { return _U && ['admin','hr','viewer','candidate'].indexOf(_U.role) >= 0; }
+
+// ── USER DROPDOWN ─────────────────────────────────────────────
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  var dd  = _el('userDropdown');
+  var chv = _el('userChevron');
+  var isOpen = dd.style.display !== 'none';
+  dd.style.display  = isOpen ? 'none' : 'block';
+  if (chv) chv.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+document.addEventListener('click', function(e) {
+  var dd = _el('userDropdown');
+  if (dd && !dd.contains(e.target) && e.target !== _el('userChip') && !(_el('userChip') && _el('userChip').contains(e.target))) {
+    dd.style.display = 'none';
+    var chv = _el('userChevron'); if (chv) chv.style.transform = '';
+  }
+});
+
+// ── DARK / LIGHT MODE ─────────────────────────────────────────
+function toggleTheme() {
+  var cur = document.body.getAttribute('data-theme') || 'light';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', next);
+  try { localStorage.setItem('isha_theme', next); } catch(e) {}
+  var btn = _el('themeBtn');
+  if (btn) btn.innerHTML = next === 'dark'
+    ? '<i class="fa-solid fa-sun"></i>'
+    : '<i class="fa-solid fa-moon"></i>';
+}
+
+// ── COLLAPSED SIDEBAR LOGO ────────────────────────────────────
+function toggleSidebar() {
+  document.body.classList.toggle('sb-collapsed');
+}
 
 function _destroyChart(key) {
   if (_charts[key]) { try { _charts[key].destroy(); } catch(e) {} _charts[key] = null; }
@@ -466,35 +531,52 @@ function _stageClass(stage) {
 // ─── JOB OPENINGS ─────────────────────────────────────────────
 function _renderJobs() {
   var jobs   = _D.jobs || [];
-  var filter = _el('jobFilter')  ? _el('jobFilter').value  : 'all';
-  var search = _el('jobSearch')  ? _el('jobSearch').value.toLowerCase()  : '';
-  var cands  = _D.candidates || [];
+  var filter  = _el('jobFilter')  ? _el('jobFilter').value  : 'all';
+  var deptF   = _el('jobDeptFilter') ? _el('jobDeptFilter').value : 'all';
+  var locF    = _el('jobLocFilter')  ? _el('jobLocFilter').value  : 'all';
+  var search  = _el('jobSearch')  ? _el('jobSearch').value.toLowerCase()  : '';
+  var cands   = _D.candidates || [];
+
+  // Build department and location options from data
+  var allDepts = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
+  var allLocs  = ['all'].concat([...new Set(jobs.map(function(j){return j['Location']||'';}).filter(Boolean))]);
 
   var visible = jobs.filter(function(j) {
     if (filter !== 'all' && j['Status'] !== filter) return false;
-    if (search && !(j['Title']||'').toLowerCase().includes(search) && !(j['Department']||'').toLowerCase().includes(search)) return false;
+    if (deptF !== 'all' && j['Department'] !== deptF) return false;
+    if (locF  !== 'all' && j['Location']   !== locF)  return false;
+    if (search && !(j['Title']||'').toLowerCase().includes(search) &&
+                  !(j['Department']||'').toLowerCase().includes(search) &&
+                  !(j['Location']||'').toLowerCase().includes(search) &&
+                  !(j['Job ID']||'').toLowerCase().includes(search)) return false;
     return true;
   });
+
+  var deptOptHtml = allDepts.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
+  var locOptHtml  = allLocs.map(function(l){ return '<option value="'+l+'" '+(locF===l?'selected':'')+'>'+(l==='all'?'All Locations':l)+'</option>'; }).join('');
 
   var html = `
   <div class="view-toolbar">
     <div class="toolbar-left">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="jobSearch" type="text" placeholder="Search jobs..." value="${search}" oninput="_renderJobs()">
+        <input id="jobSearch" type="text" placeholder="Search by title, dept, location..." value="${search}" oninput="_renderJobs()">
       </div>
       <select id="jobFilter" class="filter-select" onchange="_renderJobs()">
         <option value="all" ${filter==='all'?'selected':''}>All Status</option>
-        <option value="Open" ${filter==='Open'?'selected':''}>Open</option>
-        <option value="Closed" ${filter==='Closed'?'selected':''}>Closed</option>
-        <option value="On Hold" ${filter==='On Hold'?'selected':''}>On Hold</option>
+        <option value="Open" ${filter==='Open'?'selected':''}>🟢 Open</option>
+        <option value="Closed" ${filter==='Closed'?'selected':''}>🔴 Closed</option>
+        <option value="On Hold" ${filter==='On Hold'?'selected':''}>🟡 On Hold</option>
       </select>
+      <select id="jobDeptFilter" class="filter-select" onchange="_renderJobs()">${deptOptHtml}</select>
+      <select id="jobLocFilter" class="filter-select" onchange="_renderJobs()">${locOptHtml}</select>
     </div>
     <div class="toolbar-right">
-      <span class="result-count">${visible.length} job(s)</span>
+      <span class="result-count">${visible.length} of ${jobs.length} job(s)</span>
       ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openJobModal()"><i class="fa-solid fa-plus mr-1"></i>Add Job</button>' : ''}
     </div>
   </div>
+  ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only</div>' : ''}
 
   <div class="table-card">
     <table class="data-table">
@@ -631,37 +713,70 @@ function _viewJobCands(jobId) {
 function _renderCandidates() {
   var cands  = _D.candidates || [];
   var jobs   = _D.jobs       || [];
-  var search = _el('cndSearch')    ? _el('cndSearch').value.toLowerCase()    : '';
-  var stgF   = _el('cndStageFilter') ? _el('cndStageFilter').value           : 'all';
-  var jobF   = _el('cndJobFilter')   ? _el('cndJobFilter').value             : 'all';
+  var search  = _el('cndSearch')       ? _el('cndSearch').value.toLowerCase()       : '';
+  var stgF    = _el('cndStageFilter')  ? _el('cndStageFilter').value                : 'all';
+  var jobF    = _el('cndJobFilter')    ? _el('cndJobFilter').value                  : 'all';
+  var srcF    = _el('cndSrcFilter')    ? _el('cndSrcFilter').value                  : 'all';
+  var expF    = _el('cndExpFilter')    ? _el('cndExpFilter').value                  : 'all';
+  var deptF   = _el('cndDeptFilter')   ? _el('cndDeptFilter').value                 : 'all';
+
+  var allSources = ['all'].concat([...new Set(cands.map(function(c){return c['Source']||'';}).filter(Boolean))]);
+  var allDepts2  = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
 
   var visible = cands.filter(function(c) {
     if (stgF !== 'all' && c['Stage'] !== stgF) return false;
     if (jobF !== 'all' && c['Job ID'] !== jobF) return false;
-    if (search && !(c['Full Name']||'').toLowerCase().includes(search) && !(c['Email']||'').toLowerCase().includes(search) && !(c['Phone']||'').toLowerCase().includes(search)) return false;
+    if (srcF !== 'all' && c['Source'] !== srcF) return false;
+    if (deptF !== 'all') {
+      var cJob = jobs.find(function(j){return j['Job ID']===c['Job ID'];});
+      if (!cJob || cJob['Department'] !== deptF) return false;
+    }
+    if (expF !== 'all') {
+      var exp = parseFloat(c['Experience (Yrs)']||0);
+      if (expF === '0-2'  && exp > 2)  return false;
+      if (expF === '2-5'  && (exp < 2 || exp > 5))  return false;
+      if (expF === '5-10' && (exp < 5 || exp > 10)) return false;
+      if (expF === '10+'  && exp < 10) return false;
+    }
+    if (search && !(c['Full Name']||'').toLowerCase().includes(search) &&
+                  !(c['Email']||'').toLowerCase().includes(search) &&
+                  !(c['Phone']||'').toLowerCase().includes(search) &&
+                  !(c['Current Company']||'').toLowerCase().includes(search)) return false;
     return true;
   });
 
-  var jobOpts = '<option value="all">All Jobs</option>' + jobs.map(function(j){ return `<option value="${j['Job ID']}" ${jobF===j['Job ID']?'selected':''}>${j['Title']}</option>`; }).join('');
+  var jobOpts  = '<option value="all">All Jobs</option>' + jobs.map(function(j){ return '<option value="'+j['Job ID']+'" '+(jobF===j['Job ID']?'selected':'')+'>'+j['Title']+'</option>'; }).join('');
+  var srcOpts  = allSources.map(function(s){ return '<option value="'+s+'" '+(srcF===s?'selected':'')+'>'+(s==='all'?'All Sources':s)+'</option>'; }).join('');
+  var deptOpts = allDepts2.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
 
   var html = `
-  <div class="view-toolbar">
-    <div class="toolbar-left">
+  <div class="view-toolbar" style="flex-wrap:wrap;gap:10px;">
+    <div class="toolbar-left" style="flex-wrap:wrap;">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="cndSearch" type="text" placeholder="Search candidates..." value="${search}" oninput="_renderCandidates()">
+        <input id="cndSearch" type="text" placeholder="Name, email, phone, company..." value="${search}" oninput="_renderCandidates()">
       </div>
       <select id="cndStageFilter" class="filter-select" onchange="_renderCandidates()">
         <option value="all" ${stgF==='all'?'selected':''}>All Stages</option>
-        ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){ return `<option ${stgF===s?'selected':''}>${s}</option>`; }).join('')}
+        ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){ return '<option value="'+s+'" '+(stgF===s?'selected':'')+'>'+s+'</option>'; }).join('')}
       </select>
       <select id="cndJobFilter" class="filter-select" onchange="_renderCandidates()">${jobOpts}</select>
+      <select id="cndDeptFilter" class="filter-select" onchange="_renderCandidates()">${deptOpts}</select>
+      <select id="cndSrcFilter" class="filter-select" onchange="_renderCandidates()">${srcOpts}</select>
+      <select id="cndExpFilter" class="filter-select" onchange="_renderCandidates()">
+        <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
+        <option value="0-2" ${expF==='0-2'?'selected':''}>0–2 years</option>
+        <option value="2-5" ${expF==='2-5'?'selected':''}>2–5 years</option>
+        <option value="5-10" ${expF==='5-10'?'selected':''}>5–10 years</option>
+        <option value="10+" ${expF==='10+'?'selected':''}>10+ years</option>
+      </select>
     </div>
     <div class="toolbar-right">
-      <span class="result-count">${visible.length} candidate(s)</span>
+      <span class="result-count">${visible.length} of ${cands.length}</span>
       ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openCndModal()"><i class="fa-solid fa-user-plus mr-1"></i>Add Candidate</button>' : ''}
     </div>
   </div>
+  ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only Mode</div>' : ''}
 
   <div class="table-card">
     <table class="data-table">
@@ -874,12 +989,31 @@ function _renderInterviews() {
     return true;
   }).sort(function(a,b){ return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||''); });
 
+  var allTypes = ['all'].concat([...new Set(ints.map(function(i){return i['Type']||'';}).filter(Boolean))]);
+  var allModes = ['all'].concat([...new Set(ints.map(function(i){return i['Mode']||'';}).filter(Boolean))]);
+  var typeF = _el('intTypeFilter') ? _el('intTypeFilter').value : 'all';
+  var modeF = _el('intModeFilter') ? _el('intModeFilter').value : 'all';
+  var roundF = _el('intRoundFilter') ? _el('intRoundFilter').value : 'all';
+  var resultF = _el('intResultFilter') ? _el('intResultFilter').value : 'all';
+
+  // re-filter with extra filters
+  visible = visible.filter(function(i){
+    if (typeF !== 'all'   && i['Type']   !== typeF)   return false;
+    if (modeF !== 'all'   && i['Mode']   !== modeF)   return false;
+    if (roundF !== 'all'  && String(i['Round']) !== roundF) return false;
+    if (resultF !== 'all' && i['Result']  !== resultF) return false;
+    return true;
+  });
+
+  var typeOpts = allTypes.map(function(t){ return '<option value="'+t+'" '+(typeF===t?'selected':'')+'>'+(t==='all'?'All Types':t)+'</option>'; }).join('');
+  var modeOpts = allModes.map(function(m){ return '<option value="'+m+'" '+(modeF===m?'selected':'')+'>'+(m==='all'?'All Modes':m)+'</option>'; }).join('');
+
   var html = `
-  <div class="view-toolbar">
-    <div class="toolbar-left">
+  <div class="view-toolbar" style="flex-wrap:wrap;gap:10px;">
+    <div class="toolbar-left" style="flex-wrap:wrap;">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="intSearch" type="text" placeholder="Search by candidate..." value="${search}" oninput="_renderInterviews()">
+        <input id="intSearch" type="text" placeholder="Search by candidate name..." value="${search}" oninput="_renderInterviews()">
       </div>
       <select id="intFilter" class="filter-select" onchange="_renderInterviews()">
         <option value="all" ${filter==='all'?'selected':''}>All Status</option>
@@ -887,9 +1021,23 @@ function _renderInterviews() {
         <option value="Done" ${filter==='Done'?'selected':''}>Done</option>
         <option value="Cancelled" ${filter==='Cancelled'?'selected':''}>Cancelled</option>
       </select>
+      <select id="intTypeFilter" class="filter-select" onchange="_renderInterviews()">${typeOpts}</select>
+      <select id="intModeFilter" class="filter-select" onchange="_renderInterviews()">${modeOpts}</select>
+      <select id="intRoundFilter" class="filter-select" onchange="_renderInterviews()">
+        <option value="all" ${roundF==='all'?'selected':''}>All Rounds</option>
+        <option value="1" ${roundF==='1'?'selected':''}>Round 1</option>
+        <option value="2" ${roundF==='2'?'selected':''}>Round 2</option>
+        <option value="3" ${roundF==='3'?'selected':''}>Round 3</option>
+      </select>
+      <select id="intResultFilter" class="filter-select" onchange="_renderInterviews()">
+        <option value="all" ${resultF==='all'?'selected':''}>All Results</option>
+        <option value="Pass" ${resultF==='Pass'?'selected':''}>✅ Pass</option>
+        <option value="Fail" ${resultF==='Fail'?'selected':''}>❌ Fail</option>
+        <option value="Hold" ${resultF==='Hold'?'selected':''}>⏸ Hold</option>
+      </select>
     </div>
     <div class="toolbar-right">
-      <span class="result-count">${visible.length} interview(s)</span>
+      <span class="result-count">${visible.length} of ${ints.length}</span>
       ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>' : ''}
     </div>
   </div>
@@ -1062,18 +1210,35 @@ function _renderOffers() {
 
   var visible = offs.filter(function(o){ return filter==='all' || o['Offer Status']===filter; });
 
+  var offSearch = _el('offSearch') ? _el('offSearch').value.toLowerCase() : '';
+  visible = visible.filter(function(o){
+    if (!offSearch) return true;
+    var c = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
+    return c && (c['Full Name']||'').toLowerCase().includes(offSearch);
+  });
   var html = `
   <div class="view-toolbar">
     <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="offSearch" type="text" placeholder="Search by candidate..." value="${offSearch}" oninput="_renderOffers()">
+      </div>
       <select id="offFilter" class="filter-select" onchange="_renderOffers()">
         <option value="all" ${filter==='all'?'selected':''}>All Offers</option>
-        <option value="Sent" ${filter==='Sent'?'selected':''}>Sent</option>
-        <option value="Accepted" ${filter==='Accepted'?'selected':''}>Accepted</option>
-        <option value="Declined" ${filter==='Declined'?'selected':''}>Declined</option>
+        <option value="Sent" ${filter==='Sent'?'selected':''}>📤 Sent</option>
+        <option value="Accepted" ${filter==='Accepted'?'selected':''}>✅ Accepted</option>
+        <option value="Declined" ${filter==='Declined'?'selected':''}>❌ Declined</option>
+        <option value="Expired" ${filter==='Expired'?'selected':''}>⏰ Expired</option>
+      </select>
+      <select id="offMonthFilter" class="filter-select" onchange="_renderOffers()">
+        <option value="all">All Time</option>
+        <option value="this_month">This Month</option>
+        <option value="last_month">Last Month</option>
+        <option value="this_year">This Year</option>
       </select>
     </div>
     <div class="toolbar-right">
-      <span class="result-count">${visible.length} offer(s)</span>
+      <span class="result-count">${visible.length} of ${offs.length}</span>
       ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openOfferModal()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>' : ''}
     </div>
   </div>
