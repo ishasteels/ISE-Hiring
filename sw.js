@@ -1,4 +1,4 @@
-var CACHE = 'ise-hiring-v1';
+var CACHE = 'ise-hiring-v3-1';
 var SHELL = ['./', './index.html', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function(e) {
