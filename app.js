@@ -10,6 +10,54 @@ var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
 var _charts = {};
 
+// ─── PAGINATION STATE ─────────────────────────────────────────
+var _PG = { jobs:1, candidates:1, interviews:1, offers:1, agencies:1 };
+var _FS = {}; // filter state cache
+
+function _fsave(id) { var el=document.getElementById(id); if(el) _FS[id]=el.value; }
+function _fload(id, def) { 
+  var el=document.getElementById(id); 
+  if(!el) return _FS[id]||def||'all'; 
+  if(_FS[id]!==undefined) el.value=_FS[id]; 
+  return el.value||def||'all'; 
+}
+function _fval(id, def) { var el=document.getElementById(id); return el?el.value:(def||'all'); }
+var _ROWS = 15;
+
+function _paginate(arr, view) {
+  var pg = _PG[view] || 1;
+  var pages = Math.max(1, Math.ceil(arr.length / _ROWS));
+  if (pg > pages) { _PG[view] = 1; pg = 1; }
+  var s = (pg-1)*_ROWS;
+  return { slice:arr.slice(s,s+_ROWS), pg:pg, pages:pages, total:arr.length, start:s+1, end:Math.min(s+_ROWS,arr.length) };
+}
+
+function _pgBtnS(active) {
+  return 'min-width:32px;height:32px;padding:0 8px;border-radius:8px;border:1.5px solid '+(active?'var(--brand)':'var(--bdr)')+';background:'+(active?'var(--brand)':'var(--surf)')+';color:'+(active?'#fff':'var(--t2)')+';font-size:12px;font-weight:'+(active?700:500)+';cursor:pointer;font-family:inherit;';
+}
+
+function _pagerHtml(view, pag) {
+  if (pag.pages <= 1) return '';
+  var b = '';
+  b += '<button onclick="_pgGo(\'' +view+ '\',' +(pag.pg-1)+ ')" ' +(pag.pg<=1?'disabled':'')+ ' style="'+_pgBtnS(false)+'"><i class="fa-solid fa-chevron-left" style="font-size:10px;"></i></button>';
+  var s2=Math.max(1,pag.pg-2), e2=Math.min(pag.pages,s2+4);
+  if(s2>1) b+='<span style="color:var(--t4);padding:0 2px;">…</span>';
+  for(var i=s2;i<=e2;i++) b+='<button onclick="_pgGo(\'' +view+ '\',' +i+ ')" style="'+_pgBtnS(i===pag.pg)+'">'+i+'</button>';
+  if(e2<pag.pages) b+='<span style="color:var(--t4);padding:0 2px;">…</span>';
+  b += '<button onclick="_pgGo(\'' +view+ '\',' +(pag.pg+1)+ ')" ' +(pag.pg>=pag.pages?'disabled':'')+ ' style="'+_pgBtnS(false)+'"><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i></button>';
+  return '<div style="padding:12px 20px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'
+    +'<span style="font-size:12px;color:var(--t3);">Showing <strong style="color:var(--t1)">'+pag.start+'–'+pag.end+'</strong> of <strong style="color:var(--t1)">'+pag.total+'</strong></span>'
+    +'<div style="display:flex;align-items:center;gap:4px;">'+b+'</div></div>';
+}
+
+function _pgGo(view, pg) {
+  _PG[view] = pg;
+  var r={jobs:_renderJobs,candidates:_renderCandidates,interviews:_renderInterviews,offers:_renderOffers,agencies:_renderAgencies};
+  if(r[view]) r[view]();
+  var el=document.getElementById('v-'+view);
+  if(el){ el.scrollTop=0; var tc=el.querySelector('.table-card'); if(tc) tc.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
 // ─── JSONP ENGINE ─────────────────────────────────────────────
 function _api(action, data, ok, err) {
   var cb = '_gcb' + (++_cbIdx), t;
@@ -614,6 +662,9 @@ function _renderJobs() {
   var deptOpts = allDepts.map(function(d){return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>';}).join('');
   var locOpts  = allLocs.map(function(l){return '<option value="'+l+'" '+(locF===l?'selected':'')+'>'+(l==='all'?'All Locations':l)+'</option>';}).join('');
 
+  var _pag = _paginate(visible, 'jobs');
+  var _slice = _pag.slice;
+
   var html = `
   <!-- Status summary pills -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
@@ -633,19 +684,19 @@ function _renderJobs() {
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
       <div class="search-box" style="max-width:280px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="jobSearch" type="text" placeholder="Title, dept, location, ID..." value="${search}" oninput="_renderJobs()">
+        <input id="jobSearch" type="text" placeholder="Title, dept, location, ID..." value="${search}" oninput="_PG.jobs=1;_renderJobs()">
         ${search?'<button onclick="_el(\'jobSearch\').value=\'\';_renderJobs()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
       </div>
-      <select id="jobDeptFilter" class="f-select" onchange="_renderJobs()">${deptOpts}</select>
-      <select id="jobLocFilter"  class="f-select" onchange="_renderJobs()">${locOpts}</select>
-      <select id="jobExpFilter"  class="f-select" onchange="_renderJobs()">
+      <select id="jobDeptFilter" class="f-select" onchange="_PG.jobs=1;_renderJobs()">${deptOpts}</select>
+      <select id="jobLocFilter"  class="f-select" onchange="_PG.jobs=1;_renderJobs()">${locOpts}</select>
+      <select id="jobExpFilter"  class="f-select" onchange="_PG.jobs=1;_renderJobs()">
         <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
         <option value="0"   ${expF==='0'?'selected':''}>Fresher (0 yrs)</option>
         <option value="1-3" ${expF==='1-3'?'selected':''}>1–3 yrs</option>
         <option value="3-6" ${expF==='3-6'?'selected':''}>3–6 yrs</option>
         <option value="6+"  ${expF==='6+'?'selected':''}>6+ yrs</option>
       </select>
-      <select id="jobSort" class="f-select" onchange="_renderJobs()">
+      <select id="jobSort" class="f-select" onchange="_PG.jobs=1;_renderJobs()">
         <option value="newest"   ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
         <option value="oldest"   ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
         <option value="title"    ${sortF==='title'?'selected':''}>🔤 Title A–Z</option>
@@ -663,7 +714,7 @@ function _renderJobs() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:900px;">
+      <table class="data-tbl" style="min-width:700px;">
         <thead>
           <tr>
             <th>Job</th>
@@ -681,7 +732,7 @@ function _renderJobs() {
           </tr>
         </thead>
         <tbody>
-          ${visible.length ? visible.map(function(j) {
+          ${visible.length ? _slice.map(function(j) {
             var cnt  = cands.filter(function(c){return c['Job ID']===j['Job ID'];}).length;
             var iCnt = ints.filter(function(i){return i['Job ID']===j['Job ID']&&i['Status']==='Scheduled';}).length;
             var sel  = cands.filter(function(c){return c['Job ID']===j['Job ID']&&(c['Stage']==='Selected'||c['Stage']==='Offered'||c['Stage']==='Joined');}).length;
@@ -734,13 +785,16 @@ function _renderJobs() {
   </div>`;
 
   _el('v-jobs').innerHTML = html;
+  // Inject pager into html string
+  html = html.replace(/<\/div>\s*$/, _pagerHtml('jobs',_pag)+'</div>');
+
 }
 
 var _today = new Date().toISOString().slice(0,10);
 
 function _jobStatusQuick(st) {
-  var el = _el('jobFilter');
-  if (el) { el.value = st; _renderJobs(); }
+  _PG.jobs=1; var el=_el('jobFilter');
+  if(el){el.value=st;_renderJobs();}
 }
 
 function _reopenJob(jobId) {
@@ -811,6 +865,9 @@ function _renderInterviews() {
   var typeOpts = allTypes.map(function(t){return '<option value="'+t+'" '+(typeF===t?'selected':'')+'>'+(t==='all'?'All Types':t)+'</option>';}).join('');
   var modeOpts = allModes.map(function(m){return '<option value="'+m+'" '+(modeF===m?'selected':'')+'>'+(m==='all'?'All Modes':m)+'</option>';}).join('');
 
+  var _pag = _paginate(visible, 'interviews');
+  var _slice = _pag.slice;
+
   var html = `
   <!-- Status summary pills -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
@@ -828,30 +885,30 @@ function _renderInterviews() {
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
       <div class="search-box" style="max-width:280px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="intSearch" type="text" placeholder="Candidate, job, interviewer..." value="${search}" oninput="_renderInterviews()">
+        <input id="intSearch" type="text" placeholder="Candidate, job, interviewer..." value="${search}" oninput="_PG.interviews=1;_renderInterviews()">
         ${search?'<button onclick="_el(\'intSearch\').value=\'\';_renderInterviews()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
       </div>
-      <select id="intTypeFilter"   class="f-select" onchange="_renderInterviews()">${typeOpts}</select>
-      <select id="intModeFilter"   class="f-select" onchange="_renderInterviews()">${modeOpts}</select>
-      <select id="intRoundFilter"  class="f-select" onchange="_renderInterviews()">
+      <select id="intTypeFilter"   class="f-select" onchange="_PG.interviews=1;_renderInterviews()">${typeOpts}</select>
+      <select id="intModeFilter"   class="f-select" onchange="_PG.interviews=1;_renderInterviews()">${modeOpts}</select>
+      <select id="intRoundFilter"  class="f-select" onchange="_PG.interviews=1;_renderInterviews()">
         <option value="all" ${roundF==='all'?'selected':''}>All Rounds</option>
         <option value="1"   ${roundF==='1'?'selected':''}>Round 1</option>
         <option value="2"   ${roundF==='2'?'selected':''}>Round 2</option>
         <option value="3"   ${roundF==='3'?'selected':''}>Round 3</option>
       </select>
-      <select id="intResultFilter" class="f-select" onchange="_renderInterviews()">
+      <select id="intResultFilter" class="f-select" onchange="_PG.interviews=1;_renderInterviews()">
         <option value="all"  ${resultF==='all'?'selected':''}>All Results</option>
         <option value="Pass" ${resultF==='Pass'?'selected':''}>✅ Pass</option>
         <option value="Fail" ${resultF==='Fail'?'selected':''}>❌ Fail</option>
         <option value="Hold" ${resultF==='Hold'?'selected':''}>⏸ Hold</option>
       </select>
-      <select id="intDateFilter"   class="f-select" onchange="_renderInterviews()">
+      <select id="intDateFilter"   class="f-select" onchange="_PG.interviews=1;_renderInterviews()">
         <option value="all"   ${dateF==='all'?'selected':''}>All Dates</option>
         <option value="today" ${dateF==='today'?'selected':''}>📅 Today</option>
         <option value="week"  ${dateF==='week'?'selected':''}>📆 This Week</option>
         <option value="past"  ${dateF==='past'?'selected':''}>⏮ Past</option>
       </select>
-      <select id="intSort"         class="f-select" onchange="_renderInterviews()">
+      <select id="intSort"         class="f-select" onchange="_PG.interviews=1;_renderInterviews()">
         <option value="date-asc"  ${sortF==='date-asc'?'selected':''}>⬆ Date (earliest)</option>
         <option value="date-desc" ${sortF==='date-desc'?'selected':''}>⬇ Date (latest)</option>
         <option value="round"     ${sortF==='round'?'selected':''}>🔢 Round</option>
@@ -866,7 +923,7 @@ function _renderInterviews() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:960px;">
+      <table class="data-tbl" style="min-width:720px;">
         <thead>
           <tr>
             <th>Candidate</th>
@@ -883,7 +940,7 @@ function _renderInterviews() {
           </tr>
         </thead>
         <tbody>
-          ${visible.length ? visible.map(function(i) {
+          ${visible.length ? _slice.map(function(i) {
             var c   = cands.find(function(x){return x['Candidate ID']===i['Candidate ID'];});
             var j   = jobs.find(function(x){return x['Job ID']===i['Job ID'];});
             var isToday  = (i['Scheduled On']||'').slice(0,10)===today;
@@ -940,11 +997,14 @@ function _renderInterviews() {
   </div>`;
 
   _el('v-interviews').innerHTML = html;
+  // Inject pager into html string
+  html = html.replace(/<\/div>\s*$/, _pagerHtml('interviews',_pag)+'</div>');
+
 }
 
 function _intStatusQuick(st) {
-  var el = _el('intFilter');
-  if (el) { el.value = st; _renderInterviews(); }
+  _PG.interviews=1; var el=_el('intFilter');
+  if(el){el.value=st;_renderInterviews();}
 }
 
 function _rescheduleInterview(interviewId) {
@@ -1030,6 +1090,9 @@ function _renderOffers() {
     .reduce(function(s,o){return s+parseFloat(o['Offered CTC']||0);},0);
   var avgCTC = acceptedCount>0 ? (acceptedCTC/acceptedCount).toFixed(1) : '—';
 
+  var _pag = _paginate(visible, 'offers');
+  var _slice = _pag.slice;
+
   var html = `
   <!-- KPI strip -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
@@ -1064,17 +1127,17 @@ function _renderOffers() {
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
       <div class="search-box" style="max-width:260px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="offSearch" type="text" placeholder="Candidate name or email..." value="${search}" oninput="_renderOffers()">
+        <input id="offSearch" type="text" placeholder="Candidate name or email..." value="${search}" oninput="_PG.offers=1;_renderOffers()">
         ${search?'<button onclick="_el(\'offSearch\').value=\'\';_renderOffers()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
       </div>
-      <select id="offDeptFilter"  class="f-select" onchange="_renderOffers()">${deptOpts}</select>
-      <select id="offMonthFilter" class="f-select" onchange="_renderOffers()">
+      <select id="offDeptFilter"  class="f-select" onchange="_PG.offers=1;_renderOffers()">${deptOpts}</select>
+      <select id="offMonthFilter" class="f-select" onchange="_PG.offers=1;_renderOffers()">
         <option value="all"        ${monthF==='all'?'selected':''}>All Time</option>
         <option value="this_month" ${monthF==='this_month'?'selected':''}>This Month</option>
         <option value="last_month" ${monthF==='last_month'?'selected':''}>Last Month</option>
         <option value="this_year"  ${monthF==='this_year'?'selected':''}>This Year</option>
       </select>
-      <select id="offSort" class="f-select" onchange="_renderOffers()">
+      <select id="offSort" class="f-select" onchange="_PG.offers=1;_renderOffers()">
         <option value="newest"  ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
         <option value="oldest"  ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
         <option value="ctc-hi"  ${sortF==='ctc-hi'?'selected':''}>💰 CTC High–Low</option>
@@ -1090,7 +1153,7 @@ function _renderOffers() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:860px;">
+      <table class="data-tbl" style="min-width:680px;">
         <thead>
           <tr>
             <th>Candidate</th>
@@ -1105,7 +1168,7 @@ function _renderOffers() {
           </tr>
         </thead>
         <tbody>
-          ${visible.length ? visible.map(function(o) {
+          ${visible.length ? _slice.map(function(o) {
             var c   = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
             var j   = jobs.find(function(x){return x['Job ID']===o['Job ID'];});
             var dept= j?j['Department']||'—':'—';
@@ -1167,11 +1230,14 @@ function _renderOffers() {
   </div>`;
 
   _el('v-offers').innerHTML = html;
+  // Inject pager into html string
+  html = html.replace(/<\/div>\s*$/, _pagerHtml('offers',_pag)+'</div>');
+
 }
 
 function _offStatusQuick(st) {
-  var el = _el('offFilter');
-  if (el) { el.value = st; _renderOffers(); }
+  _PG.offers=1; var el=_el('offFilter');
+  if(el){el.value=st;_renderOffers();}
 }
 
 function _openJobModal(job) {
@@ -1342,6 +1408,9 @@ function _renderCandidates() {
       + s + ' <span style="background:'+(active?'rgba(255,255,255,.3)':'var(--surf2)')+';color:'+(active?'#fff':'var(--t3)')+';padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;">'+stageCounts[s]+'</span></button>';
   }).join('');
 
+  var _pag = _paginate(visible, 'candidates');
+  var _slice = _pag.slice;
+
   var html = `
   <!-- Stage quick-filter pills -->
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--surf);border-radius:var(--r-md);border:1px solid var(--bdr);box-shadow:var(--shadow-xs);">
@@ -1357,28 +1426,28 @@ function _renderCandidates() {
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
       <div class="search-box" style="min-width:240px;max-width:320px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="cndSearch" type="text" placeholder="Name, email, phone, company, ID..." value="${search}" oninput="_renderCandidates()">
+        <input id="cndSearch" type="text" placeholder="Name, email, phone, company, ID..." value="${search}" oninput="_PG.candidates=1;_renderCandidates()">
         ${search ? '<button onclick="_el(\'cndSearch\').value=\'\';_renderCandidates()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
       </div>
-      <select id="cndJobFilter"   class="f-select" onchange="_renderCandidates()">${jobOpts}</select>
-      <select id="cndDeptFilter"  class="f-select" onchange="_renderCandidates()">${deptOpts}</select>
-      <select id="cndSrcFilter"   class="f-select" onchange="_renderCandidates()">${srcOpts}</select>
-      <select id="cndAgyFilter"   class="f-select" onchange="_renderCandidates()">${agyOpts}</select>
-      <select id="cndExpFilter"   class="f-select" onchange="_renderCandidates()">
+      <select id="cndJobFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${jobOpts}</select>
+      <select id="cndDeptFilter"  class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${deptOpts}</select>
+      <select id="cndSrcFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${srcOpts}</select>
+      <select id="cndAgyFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${agyOpts}</select>
+      <select id="cndExpFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">
         <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
         <option value="0-2"  ${expF==='0-2'?'selected':''}>0–2 yrs</option>
         <option value="2-5"  ${expF==='2-5'?'selected':''}>2–5 yrs</option>
         <option value="5-10" ${expF==='5-10'?'selected':''}>5–10 yrs</option>
         <option value="10+"  ${expF==='10+'?'selected':''}>10+ yrs</option>
       </select>
-      <select id="cndCtcFilter"   class="f-select" onchange="_renderCandidates()">
+      <select id="cndCtcFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">
         <option value="all"  ${ctcF==='all'?'selected':''}>All CTC</option>
         <option value="0-3"  ${ctcF==='0-3'?'selected':''}>Exp. ≤ 3 LPA</option>
         <option value="3-6"  ${ctcF==='3-6'?'selected':''}>Exp. 3–6 LPA</option>
         <option value="6-10" ${ctcF==='6-10'?'selected':''}>Exp. 6–10 LPA</option>
         <option value="10+"  ${ctcF==='10+'?'selected':''}>Exp. 10+ LPA</option>
       </select>
-      <select id="cndSort" class="f-select" onchange="_renderCandidates()">
+      <select id="cndSort" class="f-select" onchange="_PG.candidates=1;_renderCandidates()">
         <option value="newest"  ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
         <option value="oldest"  ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
         <option value="name"    ${sortF==='name'?'selected':''}>🔤 Name A–Z</option>
@@ -1401,7 +1470,7 @@ function _renderCandidates() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:1400px;">
+      <table class="data-tbl" style="min-width:700px;">
         <thead>
           <tr>
             <th style="width:36px;"></th>
@@ -1423,7 +1492,7 @@ function _renderCandidates() {
           </tr>
         </thead>
         <tbody>
-          ${visible.length ? visible.map(function(c) {
+          ${visible.length ? _slice.map(function(c) {
             var job     = jobs.find(function(j){ return j['Job ID']===c['Job ID']; });
             var nextStg = _stageNext(c['Stage']);
             var prevStg = _stagePrev(c['Stage']);
@@ -1439,7 +1508,7 @@ function _renderCandidates() {
             if (c['Stage']==='Rejected') rowBg = 'background:rgba(239,68,68,.03)';
             if (c['Stage']==='Offered')  rowBg = 'background:rgba(139,92,246,.04)';
 
-            return `<tr style="${rowBg}">
+            return `<tr style="${rowBg};cursor:pointer;" onclick="if(event.target.closest('.ic-btn'))return;_openCndDetail('${c['Candidate ID']}')">
               <td style="padding:8px 10px;">
                 <div style="width:8px;height:8px;border-radius:50%;background:${
                   c['Stage']==='Applied'?'#3b82f6':c['Stage']==='Interview'?'#f59e0b':c['Stage']==='Selected'?'#8b5cf6':c['Stage']==='Offered'?'#ec4899':c['Stage']==='Joined'?'#10b981':'#ef4444'
@@ -1517,6 +1586,9 @@ function _renderCandidates() {
   </div>`;
 
   _el('v-candidates').innerHTML = html;
+  // Inject pager into html string
+  html = html.replace(/<\/div>\s*$/, _pagerHtml('candidates',_pag)+'</div>');
+
 }
 
 // Helper: avatar gradient based on name
@@ -1537,8 +1609,8 @@ function _avatarGrad(name) {
 
 // Stage quick filter helper
 function _cndStageQuick(stage) {
-  var el = _el('cndStageFilter');
-  if (el) { el.value = stage; _renderCandidates(); }
+  _PG.candidates=1; var el=_el('cndStageFilter');
+  if(el){el.value=stage;_renderCandidates();}
 }
 
 // Quick stage change — no confirm dialog for forward movement, confirm for reject
@@ -1669,6 +1741,9 @@ function _renderAgencies() {
   var topAgency    = agys.slice().sort(function(a,b){ return b._placements-a._placements; })[0];
   var totalCommEst = agys.reduce(function(s,a){ return s+a._estCommission; },0);
 
+  var _pag = _paginate(visible, 'agencies');
+  var _slice = _pag.slice;
+
   var html = `
   <!-- Agency Summary KPIs -->
   <div class="kpi-grid" style="margin-bottom:16px;">
@@ -1683,17 +1758,17 @@ function _renderAgencies() {
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="agySearch" type="text" placeholder="Search by name, person, email, phone..." value="${search}" oninput="_renderAgencies()">
+        <input id="agySearch" type="text" placeholder="Search by name, person, email, phone..." value="${search}" oninput="_PG.agencies=1;_renderAgencies()">
         ${search ? '<button onclick="_el(\'agySearch\').value=\'\';_renderAgencies()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
       </div>
-      <select id="agyFilter" class="f-select" onchange="_renderAgencies()">
+      <select id="agyFilter" class="f-select" onchange="_PG.agencies=1;_renderAgencies()">
         <option value="all"       ${filter==='all'?'selected':''}>All Agencies</option>
         <option value="Active"    ${filter==='Active'?'selected':''}>🟢 Active Only</option>
         <option value="Inactive"  ${filter==='Inactive'?'selected':''}>🔴 Inactive Only</option>
         <option value="has-cands" ${filter==='has-cands'?'selected':''}>📁 Has Candidates</option>
         <option value="top"       ${filter==='top'?'selected':''}>⭐ Has Placements</option>
       </select>
-      <select id="agySort" class="f-select" onchange="_renderAgencies()">
+      <select id="agySort" class="f-select" onchange="_PG.agencies=1;_renderAgencies()">
         <option value="name"    ${sortA==='name'?'selected':''}>🔤 Name A–Z</option>
         <option value="cands"   ${sortA==='cands'?'selected':''}>👥 Most Candidates</option>
         <option value="placed"  ${sortA==='placed'?'selected':''}>✅ Most Placements</option>
@@ -1711,7 +1786,7 @@ function _renderAgencies() {
   <!-- Agencies Table -->
   <div class="table-card" style="margin-bottom:16px;">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:1200px;">
+      <table class="data-tbl" style="min-width:800px;">
         <thead>
           <tr>
             <th>Agency</th>
@@ -1732,10 +1807,10 @@ function _renderAgencies() {
           </tr>
         </thead>
         <tbody>
-          ${visible.length ? visible.map(function(a) {
+          ${visible.length ? _slice.map(function(a) {
             var isActive = a['Status']==='Active';
             var convColor = a._convRate>=50?'#10b981':a._convRate>=25?'#f59e0b':'#ef4444';
-            return `<tr style="${isActive?'':'opacity:.7'}">
+            return `<tr style="${isActive?'':'opacity:.7'};cursor:pointer;" onclick="_openAgencyDetail('${a['Agency ID']}')">
               <td>
                 <div class="name-cell">
                   <div class="n-av" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);flex-shrink:0;">
@@ -1839,6 +1914,150 @@ function _renderAgencies() {
   `;
 
   _el('v-agencies').innerHTML = html;
+  // Inject pager into html string
+  html = html.replace(/<\/div>\s*$/, _pagerHtml('agencies',_pag)+'</div>');
+
+}
+
+function _openAgencyDetail(agencyId) {
+  var a = (_D.agencies||[]).find(function(x){return x['Agency ID']===agencyId;});
+  if(!a) return;
+  var cands = (_D.candidates||[]).filter(function(c){return c['Agency Name']===a['Agency Name'];});
+  var jobs  = _D.jobs   || [];
+  var ints  = _D.interviews || [];
+  var offs  = _D.offers || [];
+
+  // Compute stats
+  var byStage = {};
+  ['Applied','Interview','Selected','Offered','Joined','Rejected'].forEach(function(s){
+    byStage[s]=cands.filter(function(c){return c['Stage']===s;}).length;
+  });
+  var placed   = byStage['Joined']||0;
+  var pipeline = (byStage['Applied']||0)+(byStage['Interview']||0)+(byStage['Selected']||0)+(byStage['Offered']||0);
+  var convRate = cands.length>0 ? Math.round(placed/cands.length*100) : 0;
+  var convCol  = convRate>=50?'#10b981':convRate>=25?'#f59e0b':'#ef4444';
+
+  // Recent candidates (last 5)
+  var recent = cands.slice().sort(function(a,b){return (b['Applied On']||'').localeCompare(a['Applied On']||'');}).slice(0,5);
+
+  // Active interviews
+  var activeInts = ints.filter(function(i){
+    return cands.some(function(c){return c['Candidate ID']===i['Candidate ID']&&i['Status']==='Scheduled';});
+  });
+
+  // Pending offers
+  var pendOffs = offs.filter(function(o){
+    return cands.some(function(c){return c['Candidate ID']===o['Candidate ID']&&o['Offer Status']==='Sent';});
+  });
+
+  // Top jobs
+  var jobMap={};
+  cands.forEach(function(c){var j=jobs.find(function(x){return x['Job ID']===c['Job ID'];});var t=j?j['Title']:'Unknown';jobMap[t]=(jobMap[t]||0)+1;});
+  var topJobs=Object.keys(jobMap).sort(function(a,b){return jobMap[b]-jobMap[a];}).slice(0,4);
+
+  // Estimated commission
+  var estComm = cands.filter(function(c){return c['Stage']==='Joined';})
+    .reduce(function(s,c){return s+(parseFloat(c['Expected CTC']||0)*100000*parseFloat(a['Commission (%)']||0)/100);},0);
+
+  var isActive = a['Status']==='Active';
+
+  _showModal(a['Agency Name']+' — Agency Profile',
+    // Header card
+    '<div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(236,72,153,.07));border-radius:14px;padding:18px;margin-bottom:16px;border:1px solid rgba(139,92,246,.2);">'
+      +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">'
+        +'<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+          +'<i class="fa-solid fa-handshake" style="color:#fff;font-size:20px;"></i>'
+        +'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            +'<span class="'+(isActive?'badge b-active':'badge b-inactive')+'">'+a['Status']+'</span>'
+            +'<span style="font-size:12px;color:var(--t3);">Since: '+(a['Created On']||'—')+'</span>'
+            +'<span style="background:rgba(139,92,246,.12);color:#7c3aed;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+( a['Commission (%)']||0)+'% Commission</span>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      // KPI mini row
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
+        +[['Total',cands.length,'var(--t1)'],['Pipeline',pipeline,'#f59e0b'],['Placed',placed,'#10b981'],['Conversion',convRate+'%',convCol]]
+          .map(function(x){return '<div style="background:var(--surf);border-radius:9px;padding:10px 8px;text-align:center;border:1px solid var(--bdr);">'
+            +'<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:'+x[2]+';">'+x[1]+'</div>'
+            +'<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;">'+x[0]+'</div>'
+          +'</div>';}).join('')
+      +'</div>'
+    +'</div>'
+
+    // Contact info
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'
+      +'<div class="det-field"><label>Contact Person</label><span>'+(a['Contact Person']||'—')+'</span></div>'
+      +'<div class="det-field"><label>Phone</label><span>'+(a['Phone']?'<a href="tel:'+a['Phone']+'" style="color:var(--brand);font-weight:600;text-decoration:none;">'+a['Phone']+'</a>':'—')+'</span></div>'
+      +'<div class="det-field"><label>Email</label><span>'+(a['Email']?'<a href="mailto:'+a['Email']+'" style="color:var(--brand);text-decoration:none;font-size:12px;">'+a['Email']+'</a>':'—')+'</span></div>'
+      +'<div class="det-field"><label>Address</label><span style="font-size:12px;">'+(a['Address']||'—')+'</span></div>'
+      +(estComm>0?'<div class="det-field" style="grid-column:1/-1;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);"><label style="color:#7c3aed;">Est. Commission Earned</label><span style="font-size:16px;font-weight:800;color:#7c3aed;">₹'+Math.round(estComm).toLocaleString('en-IN')+'</span></div>':'')
+    +'</div>'
+
+    // Stage breakdown
+    +'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);">'
+      +'<i class="fa-solid fa-chart-bar" style="margin-right:6px;color:#8b5cf6;"></i>Stage Breakdown'
+    +'</div>'
+    +(cands.length>0
+      ?'<div style="margin-bottom:14px;">'
+        +['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){
+          var col=s==='Applied'?'#3b82f6':s==='Interview'?'#f59e0b':s==='Selected'?'#8b5cf6':s==='Offered'?'#ec4899':s==='Joined'?'#10b981':'#ef4444';
+          var pct=cands.length>0?Math.round((byStage[s]||0)/cands.length*100):0;
+          return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">'
+            +'<span style="font-size:11.5px;color:var(--t2);min-width:70px;font-weight:500;">'+s+'</span>'
+            +'<div style="flex:1;height:7px;border-radius:4px;background:var(--surf2);overflow:hidden;">'
+              +'<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .5s;"></div></div>'
+            +'<span style="font-size:12px;font-weight:700;color:var(--t1);min-width:24px;text-align:right;">'+(byStage[s]||0)+'</span>'
+          +'</div>';
+        }).join('')
+      +'</div>'
+      :'<div style="text-align:center;padding:12px;color:var(--t4);font-size:13px;">No candidates yet.</div>'
+    )
+
+    // Top jobs
+    +(topJobs.length
+      ?'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--bdr);"><i class="fa-solid fa-briefcase" style="margin-right:6px;color:#3b82f6;"></i>Top Applied Roles</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
+          +topJobs.map(function(t){return '<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;">'
+            +'<span style="font-size:12px;color:var(--t1);font-weight:500;">'+t+'</span>'
+            +'<span style="font-size:12px;font-weight:800;color:var(--brand);">'+jobMap[t]+'</span>'
+          +'</div>';}).join('')
+        +'</div>'
+      :''
+    )
+
+    // Recent candidates
+    +(recent.length
+      ?'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);">'
+        +'<i class="fa-solid fa-users" style="margin-right:6px;color:#10b981;"></i>Recent Candidates</div>'
+        +'<div style="display:flex;flex-direction:column;gap:0;">'
+          +recent.map(function(c){
+            var j=jobs.find(function(x){return x['Job ID']===c['Job ID'];});
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr2);">'
+              +'<div style="width:32px;height:32px;border-radius:50%;background:'+_avatarGrad(c['Full Name'])+';color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+c['Full Name'].charAt(0).toUpperCase()+'</div>'
+              +'<div style="flex:1;min-width:0;">'
+                +'<div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c['Full Name']+'</div>'
+                +'<div style="font-size:11px;color:var(--t4);">'+(j?j['Title']:'—')+' · '+(c['Applied On']||'—')+'</div>'
+              +'</div>'
+              +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
+              +'<button onclick="_openCndDetail(''+c['Candidate ID']+'');_closeModal()" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr);background:var(--surf);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;flex-shrink:0;"><i class="fa-solid fa-eye"></i></button>'
+            +'</div>';
+          }).join('')
+        +'</div>'
+      :''
+    )
+
+    ,
+    // Footer
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
+      +(_hasWrite()?'<button class="mbtn-s" onclick="_editAgency(''+agencyId+'');_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit Agency</button>':'')
+      +(cands.length>0?'<button class="mbtn-p" onclick="_viewAgencyCands(''+a['Agency Name']+'');_closeModal()"><i class="fa-solid fa-users" style="margin-right:6px;"></i>View All Candidates</button>':'')
+      +(_hasWrite()?'<button class="mbtn-p" style="background:#8b5cf6;" onclick="_showAgencyReport(''+agencyId+'');_closeModal()"><i class="fa-solid fa-chart-column" style="margin-right:6px;"></i>Performance</button>':'')
+      +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
+    +'</div>'
+  );
 }
 
 function _viewAgencyCands(agencyName) {
@@ -2063,82 +2282,111 @@ function _submitCandidate(existingId) {
 }
 
 function _openCndDetail(candidateId) {
-  var c     = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===candidateId; }); if (!c) return;
-  var job   = (_D.jobs||[]).find(function(j){ return j['Job ID']===c['Job ID']; });
-  var cInts = (_D.interviews||[]).filter(function(i){ return i['Candidate ID']===candidateId; });
-  var offer = (_D.offers||[]).find(function(o){ return o['Candidate ID']===candidateId; });
-  var agy   = c['Agency Name'] ? (_D.agencies||[]).find(function(a){ return a['Agency Name']===c['Agency Name']; }) : null;
+  var c    = (_D.candidates||[]).find(function(x){return x['Candidate ID']===candidateId;});
+  if(!c) return;
+  var job  = (_D.jobs||[]).find(function(j){return j['Job ID']===c['Job ID'];});
+  var ints = (_D.interviews||[]).filter(function(i){return i['Candidate ID']===candidateId;}).sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
+  var offs = (_D.offers||[]).filter(function(o){return o['Candidate ID']===candidateId;});
+  var agy  = c['Agency Name'] ? (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency Name'];}) : null;
 
-  var intHtml = cInts.length ? cInts.map(function(i){
-    var rc = i['Result']==='Pass' ? 'b-joined badge' : i['Result']==='Fail' ? 'b-rejected badge' : 'b-interview badge';
-    return `<div class="tl-item">
-      <div class="timeline-dot ${i['Result']==='Pass'?'tl-g':i['Result']==='Fail'?'tl-r':'tl-a'}"></div>
-      <div class="tl-body">
-        <div class="tl-head">Round ${i['Round']} — ${i['Type']} <span class="${rc} ml-2">${i['Result']||i['Status']}</span></div>
-        <div class="tl-sub">${i['Scheduled On']} · ${i['Interviewer']} · ${i['Mode']}</div>
-        ${i['Feedback'] ? `<div class="tl-fb">"${i['Feedback']}"</div>` : ''}
-        ${_hasWrite() && i['Status']==='Scheduled' ? `<button class="link-btn mt-1" onclick="_markInterviewResult('${i['Interview ID']}','${candidateId}')"><i class="fa-solid fa-pen style="margin-right:4px;"></i>Mark Result</button>` : ''}
-      </div>
-    </div>`;
-  }).join('') : '<div class="text-slate-400 text-sm py-2">No interviews scheduled yet.</div>';
+  var stageColor = c['Stage']==='Applied'?'#3b82f6':c['Stage']==='Interview'?'#f59e0b':c['Stage']==='Selected'?'#8b5cf6':c['Stage']==='Offered'?'#ec4899':c['Stage']==='Joined'?'#10b981':'#ef4444';
 
-  var offerHtml = offer ? `
-    <div class="offer-card">
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold text-slate-700">Offer Letter</div>
-        <span class="${offer['Offer Status']==='Accepted'?'badge b-accepted':offer['Offer Status']==='Declined'?'badge b-declined':'badge b-sent'}">${offer['Offer Status']}</span>
-      </div>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <div><span class="text-slate-400">CTC:</span> <strong class="text-green-700">${offer['Offered CTC']} LPA</strong></div>
-        <div><span class="text-slate-400">Joining:</span> ${offer['Joining Date']}</div>
-      </div>
-      ${_hasWrite() && offer['Offer Status']==='Sent' ? `
-        <div class="flex gap-2 mt-3">
-          <button class="mbtn-p sm" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Accepted');_closeModal()"><i class="fa-solid fa-check style="margin-right:4px;"></i>Mark Accepted</button>
-          <button class="modal-btn-danger small" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Declined');_closeModal()">Mark Declined</button>
-        </div>` : ''}
-      ${_hasWrite() && offer['Offer Status']==='Accepted' ? `
-        <button class="mbtn-p sm mt-3" onclick="_confirmJoining('${offer['Offer ID']}','${candidateId}');"><i class="fa-solid fa-flag-checkered style="margin-right:4px;"></i>Confirm Joining</button>` : ''}
-    </div>` : '';
+  // Interview timeline
+  var intHtml = ints.length ? ints.map(function(i){
+    var dotCls = i['Result']==='Pass'?'tl-g':i['Result']==='Fail'?'tl-r':'tl-a';
+    var resCls = i['Result']==='Pass'?'badge b-joined':i['Result']==='Fail'?'badge b-rejected':i['Result']==='Hold'?'badge b-offered':'badge b-scheduled';
+    return '<div class="tl-item">'
+      +'<div class="tl-dot '+dotCls+'"></div>'
+      +'<div class="tl-body">'
+        +'<div class="tl-head">Round '+i['Round']+' — '+i['Type']
+          +(i['Result']?' <span class="'+resCls+'" style="margin-left:8px;">'+i['Result']+'</span>':' <span class="badge b-scheduled" style="margin-left:8px;">'+i['Status']+'</span>')
+        +'</div>'
+        +'<div class="tl-sub" style="margin-bottom:4px;">'+((i['Scheduled On']||'').replace('T',' ').slice(0,16)||'—')+' · '+(i['Interviewer']||'—')+' · '+(i['Mode']||'—')+'</div>'
+        +(i['Meeting Link']?'<a href="'+i['Meeting Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6;margin-bottom:4px;"><i class="fa-solid fa-video" style="font-size:9px;"></i>Join Meeting</a><br>':'')
+        +(i['Feedback']?'<div class="tl-fb" style="margin-top:4px;">"'+i['Feedback']+'"</div>':'')
+        +(_hasWrite()&&i['Status']==='Scheduled'?'<button onclick="_markInterviewResult(''+i['Interview ID']+'',''+candidateId+'')" class="lnk-btn" style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-check-to-slot" style="font-size:10px;"></i>Mark Result</button>':'')
+      +'</div></div>';
+  }).join('')
+  : '<div style="text-align:center;padding:20px;color:var(--t4);font-size:13px;">No interviews scheduled yet.</div>';
 
-  var agyHtml = agy ? `
-    <div class="det-field" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
-      <label style="color:#7c3aed"><i class="fa-solid fa-handshake style="margin-right:4px;"></i>Agency</label>
-      <span style="color:#6d28d9;font-weight:700">${agy['Agency Name']}</span>
-      <div class="text-xs text-slate-500 mt-1">Contact: ${agy['Contact Person']||'—'} · Commission: ${agy['Commission (%)']||0}%</div>
-    </div>` : '';
+  // All offers
+  var offHtml = offs.length ? offs.map(function(o){
+    var oStCls = o['Offer Status']==='Accepted'?'badge b-accepted':o['Offer Status']==='Declined'?'badge b-declined':'badge b-sent';
+    return '<div class="offer-card" style="margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+        +'<div style="font-weight:700;color:var(--t1);font-size:13px;"><i class="fa-solid fa-file-signature" style="color:#ec4899;margin-right:6px;font-size:11px;"></i>'+o['Offer ID']+'</div>'
+        +'<span class="'+oStCls+'">'+o['Offer Status']+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
+        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;">Offered CTC</div><div style="font-size:16px;font-weight:800;color:#059669;">'+o['Offered CTC']+' LPA</div></div>'
+        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;">Joining Date</div><div style="font-size:14px;font-weight:700;color:var(--t1);">'+(o['Joining Date']||'—')+'</div></div>'
+      +'</div>'
+      +(_hasWrite()&&o['Offer Status']==='Sent'
+        ?'<div style="display:flex;gap:8px;">'
+          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(''+o['Offer ID']+'',''+candidateId+'','Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
+          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(''+o['Offer ID']+'',''+candidateId+'','Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
+        +'</div>':''
+      )
+      +(_hasWrite()&&o['Offer Status']==='Accepted'
+        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining(''+o['Offer ID']+'',''+candidateId+'')"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
+      )
+    +'</div>';
+  }).join('') : '';
 
-  _showModal(`${c['Full Name']} — Profile`, `
-    <div class="det-hd">
-      <div class="det-av">${(c['Full Name']||'?').charAt(0)}</div>
-      <div>
-        <div class="det-name">${c['Full Name']}</div>
-        <div class="det-meta">${c['Email']||''} · ${c['Phone']||''}</div>
-        <span class="${_stageClass(c['Stage'])}">${c['Stage']}</span>
-      </div>
-    </div>
-    <div class="det-grid">
-      <div class="det-field"><label>Job Applied</label><span>${job ? job['Title'] : '—'}</span></div>
-      <div class="det-field"><label>Department</label><span>${job ? job['Department']||'—' : '—'}</span></div>
-      <div class="det-field"><label>Current Company</label><span>${c['Current Company']||'—'}</span></div>
-      <div class="det-field"><label>Experience</label><span>${c['Experience (Yrs)']||0} years</span></div>
-      <div class="det-field"><label>Current CTC</label><span>${c['Current CTC']||'—'}</span></div>
-      <div class="det-field"><label>Expected CTC</label><span class="text-green-700 font-semibold">${c['Expected CTC']||'—'}</span></div>
-      <div class="det-field"><label>Source</label><span>${c['Source']||'—'}</span></div>
-      <div class="det-field"><label>Applied On</label><span>${c['Applied On']||'—'}</span></div>
-      ${agyHtml}
-      ${c['Resume Link'] ? `<div class="det-field full"><label>Resume</label><a href="${c['Resume Link']}" target="_blank" class="lnk-btn">View Resume <i class="fa-solid fa-external-link ml-1"></i></a></div>` : ''}
-    </div>
-    <div class="det-sec-title">Interview History</div>
-    <div class="timeline">${intHtml}</div>
-    ${offerHtml}`,
-    `<div class="flex gap-2 flex-wrap">
-      <button class="mbtn-s" onclick="_editCnd('${candidateId}');_closeModal()"><i class="fa-solid fa-pen style="margin-right:4px;"></i>Edit</button>
-      ${_hasWrite() && c['Stage']==='Applied' ? `<button class="mbtn-p" onclick="_scheduleInterviewFrom('${candidateId}')"><i class="fa-solid fa-calendar-plus style="margin-right:4px;"></i>Schedule Interview</button>` : ''}
-      ${_hasWrite() && c['Stage']==='Selected' ? `<button class="mbtn-p" onclick="_createOfferFrom('${candidateId}')"><i class="fa-solid fa-file-signature style="margin-right:4px;"></i>Create Offer</button>` : ''}
-      ${_hasWrite() && _stageNext(c['Stage']) ? `<button class="mbtn-g" onclick="_quickStageChange('${candidateId}','${_stageNext(c['Stage'])}');_closeModal()"><i class="fa-solid fa-forward style="margin-right:4px;"></i>Move to ${_stageNext(c['Stage'])}</button>` : ''}
-      <button class="modal-btn-secondary ml-auto" onclick="_closeModal()">Close</button>
-    </div>`
+  // Agency block
+  var agyHtml = agy
+    ?'<div style="grid-column:1/-1;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(236,72,153,.06));border-radius:10px;padding:12px 14px;border:1px solid rgba(139,92,246,.2);">'
+      +'<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;"><i class="fa-solid fa-handshake" style="margin-right:5px;"></i>Recruiting Agency</div>'
+      +'<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:4px;">'+agy['Agency Name']+'</div>'
+      +'<div style="font-size:12px;color:var(--t3);">Contact: '+(agy['Contact Person']||'—')+' · '+( agy['Phone']?'<a href="tel:'+agy['Phone']+'" style="color:var(--brand);">'+agy['Phone']+'</a>':'—')+' · Commission: <strong style="color:#7c3aed">'+( agy['Commission (%)']||0)+'%</strong></div>'
+    +'</div>'
+    :'';
+
+  _showModal(c['Full Name']+' — Full Profile', 
+    // Header
+    '<div style="background:linear-gradient(135deg,'+stageColor+'18,'+stageColor+'08);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid '+stageColor+'30;">'
+      +'<div style="display:flex;align-items:center;gap:14px;">'
+        +'<div style="width:56px;height:56px;border-radius:50%;background:'+_avatarGrad(c['Full Name'])+';color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+c['Full Name'].charAt(0).toUpperCase()+'</div>'
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
+          +'<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">'+(c['Email']||'')+(c['Phone']?' · '+c['Phone']:'')+'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
+            +(job?'<span class="src-tag">'+job['Title']+'</span>':'')
+            +(job&&job['Department']?'<span class="src-tag">'+job['Department']+'</span>':'')
+          +'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+    // Details grid
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">'
+      +'<div class="det-field"><label>Candidate ID</label><span style="font-family:monospace;font-size:11px;color:var(--t3);">'+c['Candidate ID']+'</span></div>'
+      +'<div class="det-field"><label>Applied On</label><span>'+(c['Applied On']||'—')+'</span></div>'
+      +'<div class="det-field"><label>Current Company</label><span>'+(c['Current Company']||'—')+'</span></div>'
+      +'<div class="det-field"><label>Experience</label><span>'+(c['Experience (Yrs)']||0)+' years</span></div>'
+      +'<div class="det-field"><label>Current CTC</label><span>'+(c['Current CTC']?c['Current CTC']+' LPA':'—')+'</span></div>'
+      +'<div class="det-field"><label>Expected CTC</label><span style="font-weight:700;color:#059669;">'+(c['Expected CTC']?c['Expected CTC']+' LPA':'—')+'</span></div>'
+      +'<div class="det-field"><label>Source</label><span>'+(c['Source']||'—')+'</span></div>'
+      +'<div class="det-field"><label>Last Modified</label><span style="font-size:11px;">'+(c['Last Modified']?c['Last Modified'].slice(0,16):'—')+'</span></div>'
+      +agyHtml
+      +(c['Resume Link']?'<div class="det-field" style="grid-column:1/-1;"><label>Resume</label><a href="'+c['Resume Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(59,130,246,.1);color:#3b82f6;border-radius:8px;font-size:12.5px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,.25);"><i class="fa-solid fa-file-pdf"></i>View Resume</a></div>':'')
+    +'</div>'
+    // Interview section
+    +'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);">'
+      +'<i class="fa-solid fa-calendar-days" style="margin-right:6px;color:#f59e0b;"></i>Interview History ('+ints.length+')'
+    +'</div>'
+    +'<div class="tl" style="margin-bottom:16px;">'+intHtml+'</div>'
+    // Offers section
+    +(offs.length?'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);"><i class="fa-solid fa-file-signature" style="margin-right:6px;color:#ec4899;"></i>Offer Letters ('+offs.length+')</div>'+offHtml:'')
+    ,
+    // Footer buttons
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
+      +'<button class="mbtn-s" onclick="_editCnd(''+candidateId+'');_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
+      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom(''+candidateId+'')"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
+      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom(''+candidateId+'')"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
+      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange(''+candidateId+'',''+_stageNext(c['Stage'])+'');_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
+      +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
+    +'</div>'
   );
 }
 
