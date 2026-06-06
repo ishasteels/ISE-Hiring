@@ -1000,6 +1000,109 @@ body.sb-collapsed .tb-logo-abbr{display:block}
 .view{display:none;animation:viewIn .25s ease}
 @keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
+
+/* ══════════════════════════════════════════════════════════
+   TABLE COLUMNS — auto-adjustable, no forced min-width overflow
+══════════════════════════════════════════════════════════ */
+.data-tbl { table-layout:auto; width:100%; }
+.data-tbl thead th {
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:180px;
+}
+.data-tbl tbody td {
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:200px;
+}
+/* Name column — allow wrapping */
+.data-tbl .name-cell { white-space:normal; min-width:140px; }
+/* Action column — don't shrink */
+.data-tbl .act-btns { white-space:nowrap; }
+
+/* Table scroll container — hide scrollbar on mobile but keep functional */
+.tbl-scroll {
+  overflow-x:auto;
+  overflow-y:visible;
+  position:relative;
+  border-radius:0;
+}
+.tbl-scroll::-webkit-scrollbar { height:4px; }
+.tbl-scroll::-webkit-scrollbar-track { background:var(--surf2); }
+.tbl-scroll::-webkit-scrollbar-thumb { background:var(--bdr); border-radius:2px; }
+
+/* Remove the gradient overlay from previous CSS that was hiding content */
+.tbl-scroll::after { display:none !important; }
+
+/* ── PAGINATION CONTROLS ─────────────────────────────── */
+.pg-bar {
+  padding:12px 20px;
+  border-top:1px solid var(--bdr);
+  background:var(--surf2);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+  border-radius:0 0 var(--r-md) var(--r-md);
+}
+.pg-bar button:disabled {
+  opacity:.35;
+  cursor:not-allowed;
+}
+.pg-bar button:not(:disabled):hover {
+  border-color:var(--brand) !important;
+  color:var(--brand) !important;
+}
+
+/* ── CANDIDATE / AGENCY ROW CLICK HIGHLIGHT ─────────── */
+.data-tbl tbody tr[onclick]:hover {
+  background:var(--surf2);
+  outline:1px solid var(--bdr);
+}
+.data-tbl tbody tr[onclick]:active {
+  background:var(--surf3);
+}
+
+/* ── FILTER TOOLBAR — pills row on mobile ────────────── */
+.status-pills {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+@media(max-width:767px){
+  .status-pills {
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+  }
+  .status-pills::-webkit-scrollbar { display:none; }
+}
+
+/* ── DETAIL MODAL — full width on mobile ─────────────── */
+@media(max-width:767px){
+  .det-grid { grid-template-columns:1fr !important; }
+  #modal .fg2 { grid-template-columns:1fr !important; }
+  /* Modal wider on tablet */
+}
+@media(min-width:768px){
+  #modal { max-width:680px; }
+}
+
+/* ── KPI mini strip in agency detail ─────────────────── */
+@media(max-width:480px){
+  #modal [style*="grid-template-columns:repeat(4"] {
+    grid-template-columns:repeat(2,1fr) !important;
+  }
+}
+
+/* Timeline fix */
+.tl { display:flex; flex-direction:column; }
+.tl-item { display:flex; gap:12px; padding-bottom:14px; position:relative; }
+.tl-item::before { content:''; position:absolute; left:11px; top:24px; bottom:0; width:1px; background:var(--bdr); }
+.tl-item:last-child::before { display:none; }
+
 </style>
 <base target="_blank">
 </head>
