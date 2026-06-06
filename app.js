@@ -561,104 +561,618 @@ function _stagePrev(stage) {
 
 
 // ─── JOB OPENINGS ─────────────────────────────────────────────
-function _renderJobs() {
-  var jobs   = _D.jobs || [];
-  var filter  = _el('jobFilter')  ? _el('jobFilter').value  : 'all';
-  var deptF   = _el('jobDeptFilter') ? _el('jobDeptFilter').value : 'all';
-  var locF    = _el('jobLocFilter')  ? _el('jobLocFilter').value  : 'all';
-  var search  = _el('jobSearch')  ? _el('jobSearch').value.toLowerCase()  : '';
-  var cands   = _D.candidates || [];
 
-  // Build department and location options from data
+// ─── JOB OPENINGS ─────────────────────────────────────────────
+function _renderJobs() {
+  var jobs  = _D.jobs        || [];
+  var cands = _D.candidates  || [];
+  var ints  = _D.interviews  || [];
+
+  var search  = _el('jobSearch')     ? _el('jobSearch').value.toLowerCase()  : '';
+  var stF     = _el('jobFilter')     ? _el('jobFilter').value                 : 'all';
+  var deptF   = _el('jobDeptFilter') ? _el('jobDeptFilter').value             : 'all';
+  var locF    = _el('jobLocFilter')  ? _el('jobLocFilter').value              : 'all';
+  var sortF   = _el('jobSort')       ? _el('jobSort').value                   : 'newest';
+  var expF    = _el('jobExpFilter')  ? _el('jobExpFilter').value              : 'all';
+
   var allDepts = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
   var allLocs  = ['all'].concat([...new Set(jobs.map(function(j){return j['Location']||'';}).filter(Boolean))]);
 
+  // Count cards
+  var openCount   = jobs.filter(function(j){return j['Status']==='Open';}).length;
+  var closedCount = jobs.filter(function(j){return j['Status']==='Closed';}).length;
+  var holdCount   = jobs.filter(function(j){return j['Status']==='On Hold';}).length;
+
   var visible = jobs.filter(function(j) {
-    if (filter !== 'all' && j['Status'] !== filter) return false;
+    if (stF   !== 'all' && j['Status']     !== stF)   return false;
     if (deptF !== 'all' && j['Department'] !== deptF) return false;
     if (locF  !== 'all' && j['Location']   !== locF)  return false;
+    if (expF  !== 'all') {
+      var me = parseFloat(j['Min Experience']||0);
+      if (expF==='0'  && me>0)           return false;
+      if (expF==='1-3'&& (me<1||me>3))  return false;
+      if (expF==='3-6'&& (me<3||me>6))  return false;
+      if (expF==='6+' && me<6)           return false;
+    }
     if (search && !(j['Title']||'').toLowerCase().includes(search) &&
                   !(j['Department']||'').toLowerCase().includes(search) &&
                   !(j['Location']||'').toLowerCase().includes(search) &&
-                  !(j['Job ID']||'').toLowerCase().includes(search)) return false;
+                  !(j['Job ID']||'').toLowerCase().includes(search) &&
+                  !(j['Description']||'').toLowerCase().includes(search)) return false;
     return true;
   });
 
-  var deptOptHtml = allDepts.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
-  var locOptHtml  = allLocs.map(function(l){ return '<option value="'+l+'" '+(locF===l?'selected':'')+'>'+(l==='all'?'All Locations':l)+'</option>'; }).join('');
+  if (sortF==='newest') visible.sort(function(a,b){return (b['Posted On']||'').localeCompare(a['Posted On']||'');});
+  if (sortF==='oldest') visible.sort(function(a,b){return (a['Posted On']||'').localeCompare(b['Posted On']||'');});
+  if (sortF==='title')  visible.sort(function(a,b){return (a['Title']||'').localeCompare(b['Title']||'');});
+  if (sortF==='apps-hi')visible.sort(function(a,b){
+    return cands.filter(function(c){return c['Job ID']===b['Job ID'];}).length
+          -cands.filter(function(c){return c['Job ID']===a['Job ID'];}).length;
+  });
+  if (sortF==='deadline')visible.sort(function(a,b){return (a['Deadline']||'9').localeCompare(b['Deadline']||'9');});
+
+  var deptOpts = allDepts.map(function(d){return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>';}).join('');
+  var locOpts  = allLocs.map(function(l){return '<option value="'+l+'" '+(locF===l?'selected':'')+'>'+(l==='all'?'All Locations':l)+'</option>';}).join('');
 
   var html = `
-  <div class="view-bar">
-    <div class="vb-left">
-      <div class="search-box">
+  <!-- Status summary pills -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    ${[['all','All Jobs',jobs.length,'var(--t1)','var(--surf)','var(--bdr)'],
+       ['Open','Open',openCount,'#059669','rgba(16,185,129,.1)','rgba(16,185,129,.3)'],
+       ['Closed','Closed',closedCount,'#dc2626','rgba(239,68,68,.1)','rgba(239,68,68,.3)'],
+       ['On Hold','On Hold',holdCount,'#d97706','rgba(245,158,11,.1)','rgba(245,158,11,.3)']
+    ].map(function(x){
+      var active = stF===x[0];
+      return '<button onclick="_jobStatusQuick(\''+x[0]+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:50px;border:1.5px solid '+(active?'transparent':x[5])+';background:'+(active?x[3]:x[4])+';color:'+(active?'#fff':x[3])+';font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;">'
+        +x[1]+' <span style="background:'+(active?'rgba(255,255,255,.25)':'var(--surf)')+';color:'+(active?'#fff':x[3])+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:800;">'+x[2]+'</span></button>';
+    }).join('')}
+  </div>
+
+  <!-- Toolbar -->
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;align-items:flex-start;">
+    <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box" style="max-width:280px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="jobSearch" type="text" placeholder="Search by title, dept, location..." value="${search}" oninput="_renderJobs()">
+        <input id="jobSearch" type="text" placeholder="Title, dept, location, ID..." value="${search}" oninput="_renderJobs()">
+        ${search?'<button onclick="_el(\'jobSearch\').value=\'\';_renderJobs()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
       </div>
-      <select id="jobFilter" class="f-select" onchange="_renderJobs()">
-        <option value="all" ${filter==='all'?'selected':''}>All Status</option>
-        <option value="Open" ${filter==='Open'?'selected':''}>🟢 Open</option>
-        <option value="Closed" ${filter==='Closed'?'selected':''}>🔴 Closed</option>
-        <option value="On Hold" ${filter==='On Hold'?'selected':''}>🟡 On Hold</option>
+      <select id="jobDeptFilter" class="f-select" onchange="_renderJobs()">${deptOpts}</select>
+      <select id="jobLocFilter"  class="f-select" onchange="_renderJobs()">${locOpts}</select>
+      <select id="jobExpFilter"  class="f-select" onchange="_renderJobs()">
+        <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
+        <option value="0"   ${expF==='0'?'selected':''}>Fresher (0 yrs)</option>
+        <option value="1-3" ${expF==='1-3'?'selected':''}>1–3 yrs</option>
+        <option value="3-6" ${expF==='3-6'?'selected':''}>3–6 yrs</option>
+        <option value="6+"  ${expF==='6+'?'selected':''}>6+ yrs</option>
       </select>
-      <select id="jobDeptFilter" class="f-select" onchange="_renderJobs()">${deptOptHtml}</select>
-      <select id="jobLocFilter" class="f-select" onchange="_renderJobs()">${locOptHtml}</select>
+      <select id="jobSort" class="f-select" onchange="_renderJobs()">
+        <option value="newest"   ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
+        <option value="oldest"   ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
+        <option value="title"    ${sortF==='title'?'selected':''}>🔤 Title A–Z</option>
+        <option value="apps-hi"  ${sortF==='apps-hi'?'selected':''}>👥 Most Applicants</option>
+        <option value="deadline" ${sortF==='deadline'?'selected':''}>⏰ Deadline Soon</option>
+      </select>
     </div>
-    <div class="vb-right">
-      <span class="res-count">${visible.length} of ${jobs.length} job(s)</span>
-      ${_hasWrite() ? '<button class="btn-add" onclick="_openJobModal()"><i class="fa-solid fa-plus mr-1"></i>Add Job</button>' : ''}
+    <div class="vb-right" style="gap:8px;">
+      <span class="res-count">${visible.length} of ${jobs.length}</span>
+      ${_hasWrite()?'<button class="btn-add" onclick="_openJobModal()"><i class="fa-solid fa-plus" style="margin-right:6px"></i>Post Job</button>':''}
     </div>
   </div>
-  ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only</div>' : ''}
+
+  ${_U&&_U.role==='candidate'?'<div class="role-banner"><i class="fa-solid fa-eye" style="margin-right:8px"></i>Viewing as Candidate — Read Only</div>':''}
 
   <div class="table-card">
-    <table class="data-tbl">
-      <thead>
-        <tr>
-          <th>Job ID</th>
-          <th>Title</th>
-          <th>Department</th>
-          <th>Location</th>
-          <th>Salary Range</th>
-          <th>Openings</th>
-          <th>Applicants</th>
-          <th>Deadline</th>
-          <th>Status</th>
-          ${_hasWrite() ? '<th>Actions</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-        ${visible.length ? visible.map(function(j) {
-          var cnt = cands.filter(function(c){ return c['Job ID']===j['Job ID']; }).length;
-          var stCls = j['Status']==='Open' ? 'b-joined badge' : j['Status']==='Closed' ? 'b-rejected badge' : 'b-applied badge';
-          return `<tr>
-            <td class="id-cell">${j['Job ID']}</td>
-            <td class="font-semibold text-slate-800">${j['Title']}</td>
-            <td>${j['Department']||'—'}</td>
-            <td><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${j['Location']||'—'}</td>
-            <td class="text-green-700 font-medium">${j['Salary Range']||'—'}</td>
-            <td class="text-center">${j['Openings']||1}</td>
-            <td class="text-center">
-              <button class="lnk-btn" onclick="_viewJobCands('${j['Job ID']}')">${cnt}</button>
-            </td>
-            <td class="${j['Deadline'] && j['Deadline'] < today ? 'text-red-500' : ''}">${j['Deadline']||'—'}</td>
-            <td><span class="${stCls}">${j['Status']}</span></td>
-            ${_hasWrite() ? `<td>
-              <div class="act-btns">
-                <button class="ic-btn" title="Edit" onclick="_editJob('${j['Job ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                <button class="ic-btn" title="View Candidates" onclick="_viewJobCands('${j['Job ID']}')"><i class="fa-solid fa-users"></i></button>
-                ${_isAdmin() && j['Status']==='Open' ? `<button class="ic-btn dan" title="Close Job" onclick="_closeJob('${j['Job ID']}')"><i class="fa-solid fa-ban"></i></button>` : ''}
-              </div>
-            </td>` : ''}
-          </tr>`;
-        }).join('') : `<tr><td colspan="10" class="empty-row">No jobs found matching your filter.</td></tr>`}
-      </tbody>
-    </table>
+    <div class="tbl-scroll">
+      <table class="data-tbl" style="min-width:900px;">
+        <thead>
+          <tr>
+            <th>Job</th>
+            <th>Department</th>
+            <th>Location</th>
+            <th>Exp. Req.</th>
+            <th>Salary Range</th>
+            <th style="text-align:center;">Openings</th>
+            <th style="text-align:center;">Applied</th>
+            <th style="text-align:center;">Interviews</th>
+            <th>Deadline</th>
+            <th>Posted By</th>
+            <th>Status</th>
+            ${_hasWrite()?'<th style="min-width:130px;">Actions</th>':''}
+          </tr>
+        </thead>
+        <tbody>
+          ${visible.length ? visible.map(function(j) {
+            var cnt  = cands.filter(function(c){return c['Job ID']===j['Job ID'];}).length;
+            var iCnt = ints.filter(function(i){return i['Job ID']===j['Job ID']&&i['Status']==='Scheduled';}).length;
+            var sel  = cands.filter(function(c){return c['Job ID']===j['Job ID']&&(c['Stage']==='Selected'||c['Stage']==='Offered'||c['Stage']==='Joined');}).length;
+            var isExp = j['Deadline'] && j['Deadline'] < _today;
+            var fillPct = j['Openings'] > 0 ? Math.min(100, Math.round(sel/j['Openings']*100)) : 0;
+            return `<tr>
+              <td>
+                <div style="font-weight:700;color:var(--t1);font-size:13px;margin-bottom:2px;">${j['Title']}</div>
+                <div style="font-size:10.5px;color:var(--t4);font-family:'Courier New',monospace;">${j['Job ID']}</div>
+              </td>
+              <td><span class="src-tag">${j['Department']||'—'}</span></td>
+              <td style="font-size:12px;color:var(--t2);"><i class="fa-solid fa-location-dot" style="color:var(--brand);font-size:10px;margin-right:4px;"></i>${j['Location']||'—'}</td>
+              <td style="font-size:12px;color:var(--t2);text-align:center;">${j['Min Experience']?j['Min Experience']+' yrs':'—'}</td>
+              <td style="font-weight:600;color:#059669;font-size:12.5px;">${j['Salary Range']||'—'}</td>
+              <td style="text-align:center;">
+                <div style="font-weight:800;color:var(--t1);font-size:14px;">${j['Openings']||1}</div>
+                ${fillPct>0?'<div style="height:3px;border-radius:2px;background:var(--surf2);margin-top:4px;overflow:hidden;width:40px;margin-left:auto;margin-right:auto;"><div style="height:100%;width:'+fillPct+'%;background:#10b981;border-radius:2px;"></div></div>':''}
+              </td>
+              <td style="text-align:center;">
+                <button class="lnk-btn" onclick="_viewJobCands('${j['Job ID']}')" style="font-size:14px;font-weight:800;">${cnt}</button>
+              </td>
+              <td style="text-align:center;">
+                ${iCnt>0?'<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,.1);color:#d97706;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;">'+iCnt+'</span>':'<span style="color:var(--t4);font-size:12px;">—</span>'}
+              </td>
+              <td style="font-size:12px;${isExp?'color:#dc2626;font-weight:600;':'color:var(--t2);'}">
+                ${isExp?'<i class="fa-solid fa-triangle-exclamation" style="font-size:10px;margin-right:4px;"></i>':''}${j['Deadline']||'—'}
+              </td>
+              <td style="font-size:12px;color:var(--t2);">${j['Posted By']||'—'}</td>
+              <td><span class="${j['Status']==='Open'?'badge b-open':j['Status']==='Closed'?'badge b-closed':'badge b-scheduled'}">${j['Status']}</span></td>
+              ${_hasWrite()?`<td>
+                <div class="act-btns">
+                  <button class="ic-btn" title="Edit Job" onclick="_editJob('${j['Job ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <button class="ic-btn" title="View Candidates" style="color:#3b82f6;border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07);" onclick="_viewJobCands('${j['Job ID']}')"><i class="fa-solid fa-users"></i></button>
+                  ${j['Status']==='Open'?`<button class="ic-btn" title="Schedule Interview for this Job" style="color:#f59e0b;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07);" onclick="_openInterviewModal(null,null,'${j['Job ID']}')"><i class="fa-solid fa-calendar-plus"></i></button>`:''}
+                  ${_isAdmin()&&j['Status']==='Open'?`<button class="ic-btn rej" title="Close Job" onclick="_closeJob('${j['Job ID']}')"><i class="fa-solid fa-ban"></i></button>`:''}
+                  ${_isAdmin()&&j['Status']==='Closed'?`<button class="ic-btn fwd" title="Reopen Job" onclick="_reopenJob('${j['Job ID']}')"><i class="fa-solid fa-rotate-left"></i></button>`:''}
+                </div>
+              </td>`:''}
+            </tr>`;
+          }).join('') : `<tr><td colspan="12" class="empty-row"><i class="fa-solid fa-briefcase" style="font-size:28px;display:block;margin-bottom:10px;opacity:.3"></i>No jobs match your filters.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+      <span>Showing <strong style="color:var(--t1)">${visible.length}</strong> of <strong style="color:var(--t1)">${jobs.length}</strong> jobs</span>
+      <span>Open: <strong style="color:#10b981">${openCount}</strong></span>
+      <span>Closed: <strong style="color:#ef4444">${closedCount}</strong></span>
+      <span>On Hold: <strong style="color:#f59e0b">${holdCount}</strong></span>
+    </div>`:''}
   </div>`;
 
   _el('v-jobs').innerHTML = html;
 }
 
-var today = new Date().toISOString().slice(0,10);
+var _today = new Date().toISOString().slice(0,10);
+
+function _jobStatusQuick(st) {
+  var el = _el('jobFilter');
+  if (el) { el.value = st; _renderJobs(); }
+}
+
+function _reopenJob(jobId) {
+  if (!confirm('Reopen this job opening?')) return;
+  _api('updateJob', { jobId: jobId, status: 'Open' }, function(r) {
+    if (r.success) { _toast('Job reopened.', 'success'); _loadData(); }
+    else _toast(r.error, 'error');
+  });
+}
+
+// ─── INTERVIEWS ───────────────────────────────────────────────
+function _renderInterviews() {
+  var ints  = _D.interviews || [];
+  var cands = _D.candidates || [];
+  var jobs  = _D.jobs       || [];
+
+  var search  = _el('intSearch')      ? _el('intSearch').value.toLowerCase()  : '';
+  var stF     = _el('intFilter')      ? _el('intFilter').value                 : 'all';
+  var typeF   = _el('intTypeFilter')  ? _el('intTypeFilter').value             : 'all';
+  var modeF   = _el('intModeFilter')  ? _el('intModeFilter').value             : 'all';
+  var roundF  = _el('intRoundFilter') ? _el('intRoundFilter').value            : 'all';
+  var resultF = _el('intResultFilter')? _el('intResultFilter').value           : 'all';
+  var sortF   = _el('intSort')        ? _el('intSort').value                   : 'date-asc';
+  var dateF   = _el('intDateFilter')  ? _el('intDateFilter').value             : 'all';
+
+  var allTypes = ['all'].concat([...new Set(ints.map(function(i){return i['Type']||'';}).filter(Boolean))]);
+  var allModes = ['all'].concat([...new Set(ints.map(function(i){return i['Mode']||'';}).filter(Boolean))]);
+
+  // Count by status
+  var scheduled = ints.filter(function(i){return i['Status']==='Scheduled';}).length;
+  var done      = ints.filter(function(i){return i['Status']==='Done';}).length;
+  var cancelled = ints.filter(function(i){return i['Status']==='Cancelled';}).length;
+  var today     = _today;
+  var todayInts = ints.filter(function(i){return (i['Scheduled On']||'').slice(0,10)===today&&i['Status']==='Scheduled';}).length;
+
+  var visible = ints.filter(function(i) {
+    if (stF    !=='all' && i['Status']!==stF)               return false;
+    if (typeF  !=='all' && i['Type']  !==typeF)             return false;
+    if (modeF  !=='all' && i['Mode']  !==modeF)             return false;
+    if (roundF !=='all' && String(i['Round'])!==roundF)     return false;
+    if (resultF!=='all' && i['Result'] !==resultF)          return false;
+    if (dateF==='today')    { if ((i['Scheduled On']||'').slice(0,10)!==today)  return false; }
+    if (dateF==='week') {
+      var d = new Date(today); d.setDate(d.getDate()+7);
+      var wEnd = d.toISOString().slice(0,10);
+      if (!i['Scheduled On']||(i['Scheduled On']<today||i['Scheduled On']>wEnd)) return false;
+    }
+    if (dateF==='past') { if ((i['Scheduled On']||'')>=today) return false; }
+    if (search) {
+      var c = cands.find(function(x){return x['Candidate ID']===i['Candidate ID'];});
+      var j = jobs.find(function(x){return x['Job ID']===i['Job ID'];});
+      if (!(c&&(c['Full Name']||'').toLowerCase().includes(search)) &&
+          !(j&&(j['Title']||'').toLowerCase().includes(search)) &&
+          !(i['Interviewer']||'').toLowerCase().includes(search)) return false;
+    }
+    return true;
+  });
+
+  if (sortF==='date-asc')  visible.sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
+  if (sortF==='date-desc') visible.sort(function(a,b){return (b['Scheduled On']||'').localeCompare(a['Scheduled On']||'');});
+  if (sortF==='round')     visible.sort(function(a,b){return (a['Round']||1)-(b['Round']||1);});
+  if (sortF==='name')      visible.sort(function(a,b){
+    var ca=cands.find(function(x){return x['Candidate ID']===a['Candidate ID'];})||{};
+    var cb=cands.find(function(x){return x['Candidate ID']===b['Candidate ID'];})||{};
+    return (ca['Full Name']||'').localeCompare(cb['Full Name']||'');
+  });
+
+  var typeOpts = allTypes.map(function(t){return '<option value="'+t+'" '+(typeF===t?'selected':'')+'>'+(t==='all'?'All Types':t)+'</option>';}).join('');
+  var modeOpts = allModes.map(function(m){return '<option value="'+m+'" '+(modeF===m?'selected':'')+'>'+(m==='all'?'All Modes':m)+'</option>';}).join('');
+
+  var html = `
+  <!-- Status summary pills -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    ${[['all','All',ints.length],['Scheduled','Scheduled',scheduled],['Done','Done',done],['Cancelled','Cancelled',cancelled]].map(function(x){
+      var ac=stF===x[0];
+      var col=x[0]==='Scheduled'?'#d97706':x[0]==='Done'?'#059669':x[0]==='Cancelled'?'#dc2626':'var(--t1)';
+      return '<button onclick="_intStatusQuick(\''+x[0]+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:50px;border:1.5px solid '+(ac?'transparent':col==='var(--t1)'?'var(--bdr)':col.replace('#','rgba(').replace(/^rgba\((.*)\)$/,function(m,p){return 'rgba('+p+', .3)'}))+';background:'+(ac?col:col==='var(--t1)'?'var(--surf)':col.replace('#','rgba(').replace(/^rgba\((.*)\)$/,function(m,p){return 'rgba('+p+', .1)'}))+';color:'+(ac?'#fff':col)+';font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;">'
+        +x[1]+' <span style="background:'+(ac?'rgba(255,255,255,.25)':'var(--surf)')+';color:'+(ac?'#fff':col)+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:800;">'+x[2]+'</span></button>';
+    }).join('')}
+    ${todayInts>0?'<span style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:50px;background:rgba(227,30,36,.08);border:1.5px solid rgba(227,30,36,.25);color:var(--brand);font-size:12px;font-weight:700;"><i class="fa-solid fa-clock" style="font-size:10px;"></i>'+todayInts+' Today</span>':''}
+  </div>
+
+  <!-- Toolbar -->
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;align-items:flex-start;">
+    <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box" style="max-width:280px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="intSearch" type="text" placeholder="Candidate, job, interviewer..." value="${search}" oninput="_renderInterviews()">
+        ${search?'<button onclick="_el(\'intSearch\').value=\'\';_renderInterviews()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
+      </div>
+      <select id="intTypeFilter"   class="f-select" onchange="_renderInterviews()">${typeOpts}</select>
+      <select id="intModeFilter"   class="f-select" onchange="_renderInterviews()">${modeOpts}</select>
+      <select id="intRoundFilter"  class="f-select" onchange="_renderInterviews()">
+        <option value="all" ${roundF==='all'?'selected':''}>All Rounds</option>
+        <option value="1"   ${roundF==='1'?'selected':''}>Round 1</option>
+        <option value="2"   ${roundF==='2'?'selected':''}>Round 2</option>
+        <option value="3"   ${roundF==='3'?'selected':''}>Round 3</option>
+      </select>
+      <select id="intResultFilter" class="f-select" onchange="_renderInterviews()">
+        <option value="all"  ${resultF==='all'?'selected':''}>All Results</option>
+        <option value="Pass" ${resultF==='Pass'?'selected':''}>✅ Pass</option>
+        <option value="Fail" ${resultF==='Fail'?'selected':''}>❌ Fail</option>
+        <option value="Hold" ${resultF==='Hold'?'selected':''}>⏸ Hold</option>
+      </select>
+      <select id="intDateFilter"   class="f-select" onchange="_renderInterviews()">
+        <option value="all"   ${dateF==='all'?'selected':''}>All Dates</option>
+        <option value="today" ${dateF==='today'?'selected':''}>📅 Today</option>
+        <option value="week"  ${dateF==='week'?'selected':''}>📆 This Week</option>
+        <option value="past"  ${dateF==='past'?'selected':''}>⏮ Past</option>
+      </select>
+      <select id="intSort"         class="f-select" onchange="_renderInterviews()">
+        <option value="date-asc"  ${sortF==='date-asc'?'selected':''}>⬆ Date (earliest)</option>
+        <option value="date-desc" ${sortF==='date-desc'?'selected':''}>⬇ Date (latest)</option>
+        <option value="round"     ${sortF==='round'?'selected':''}>🔢 Round</option>
+        <option value="name"      ${sortF==='name'?'selected':''}>🔤 Name A–Z</option>
+      </select>
+    </div>
+    <div class="vb-right" style="gap:8px;">
+      <span class="res-count">${visible.length} of ${ints.length}</span>
+      ${_hasWrite()?'<button class="btn-add" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus" style="margin-right:6px"></i>Schedule</button>':''}
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="tbl-scroll">
+      <table class="data-tbl" style="min-width:960px;">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Job Role</th>
+            <th style="text-align:center;">Round</th>
+            <th>Type</th>
+            <th>Mode</th>
+            <th>Scheduled On</th>
+            <th>Interviewer</th>
+            <th>Status</th>
+            <th>Result</th>
+            <th>Feedback</th>
+            ${_hasWrite()?'<th style="min-width:120px;">Actions</th>':''}
+          </tr>
+        </thead>
+        <tbody>
+          ${visible.length ? visible.map(function(i) {
+            var c   = cands.find(function(x){return x['Candidate ID']===i['Candidate ID'];});
+            var j   = jobs.find(function(x){return x['Job ID']===i['Job ID'];});
+            var isToday  = (i['Scheduled On']||'').slice(0,10)===today;
+            var isPast   = i['Status']==='Scheduled' && (i['Scheduled On']||'')< today;
+            var stCls    = i['Status']==='Done'?'badge b-done':i['Status']==='Cancelled'?'badge b-cancelled':'badge b-scheduled';
+            var resCls   = i['Result']==='Pass'?'badge b-joined':i['Result']==='Fail'?'badge b-rejected':i['Result']==='Hold'?'badge b-offered':'';
+            return `<tr style="${isToday&&i['Status']==='Scheduled'?'background:rgba(245,158,11,.04);':isPast?'opacity:.75;':''}">
+              <td>
+                <div class="name-cell">
+                  <div class="n-av sm" style="background:${_avatarGrad(c?c['Full Name']:'')}">${c?(c['Full Name']||'?').charAt(0).toUpperCase():'?'}</div>
+                  <div>
+                    <div class="n-name">${c?c['Full Name']:'—'}</div>
+                    <div class="n-email" style="font-family:'Courier New',monospace;">${i['Candidate ID']}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-size:12.5px;color:var(--t2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${j?j['Title']:'—'}</td>
+              <td style="text-align:center;"><span class="round-b" style="font-size:11px;">R${i['Round']||1}</span></td>
+              <td style="font-size:12px;color:var(--t2);">${i['Type']||'—'}</td>
+              <td>
+                ${i['Meeting Link']
+                  ?'<a href="'+i['Meeting Link']+'" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;text-decoration:none;border:1px solid #bfdbfe;"><i class="fa-solid fa-video" style="font-size:9px;"></i>'+i['Mode']+'</a>'
+                  :'<span class="src-tag" style="font-size:11px;">'+i['Mode']+'</span>'}
+              </td>
+              <td>
+                <div style="font-size:12.5px;color:var(--t1);font-weight:${isToday?'700':'400'};">${(i['Scheduled On']||'').replace('T',' ').slice(0,16)||'—'}</div>
+                ${isToday&&i['Status']==='Scheduled'?'<div style="font-size:10px;color:var(--brand);font-weight:700;">TODAY</div>':''}
+                ${isPast?'<div style="font-size:10px;color:#dc2626;font-weight:600;">OVERDUE</div>':''}
+              </td>
+              <td style="font-size:12px;color:var(--t2);">${i['Interviewer']||'—'}</td>
+              <td><span class="${stCls}">${i['Status']}</span></td>
+              <td>${i['Result']?'<span class="'+resCls+'">'+i['Result']+'</span>':'<span style="color:var(--t4);font-size:12px;">—</span>'}</td>
+              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--t3);" title="${i['Feedback']||''}">${i['Feedback']?'<i class="fa-solid fa-comment-dots" style="color:#8b5cf6;margin-right:4px;font-size:10px;"></i>'+i['Feedback'].slice(0,40)+(i['Feedback'].length>40?'…':''):'—'}</td>
+              ${_hasWrite()?`<td>
+                <div class="act-btns">
+                  ${i['Status']==='Scheduled'?`
+                    <button class="ic-btn fwd" title="Mark Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>
+                    <button class="ic-btn" title="Reschedule" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.07);" onclick="_rescheduleInterview('${i['Interview ID']}')"><i class="fa-solid fa-calendar-pen"></i></button>
+                    <button class="ic-btn rej" title="Cancel Interview" onclick="_cancelInterview('${i['Interview ID']}')"><i class="fa-solid fa-xmark"></i></button>
+                  `:''}
+                  ${i['Status']==='Done'&&!i['Result']?`<button class="ic-btn" title="Add Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-pen"></i></button>`:''}
+                  <button class="ic-btn" title="View Candidate" onclick="_openCndDetail('${i['Candidate ID']}')"><i class="fa-solid fa-user"></i></button>
+                </div>
+              </td>`:''}
+            </tr>`;
+          }).join('') : `<tr><td colspan="11" class="empty-row"><i class="fa-solid fa-calendar-xmark" style="font-size:28px;display:block;margin-bottom:10px;opacity:.3"></i>No interviews found.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+      <span>Showing <strong style="color:var(--t1)">${visible.length}</strong> interviews</span>
+      ${todayInts>0?'<span style="color:var(--brand);font-weight:700;"><i class="fa-solid fa-clock" style="margin-right:4px;font-size:10px;"></i>'+todayInts+' scheduled today</span>':''}
+    </div>`:''}
+  </div>`;
+
+  _el('v-interviews').innerHTML = html;
+}
+
+function _intStatusQuick(st) {
+  var el = _el('intFilter');
+  if (el) { el.value = st; _renderInterviews(); }
+}
+
+function _rescheduleInterview(interviewId) {
+  var i = (_D.interviews||[]).find(function(x){return x['Interview ID']===interviewId;});
+  if (!i) return;
+  _showModal('Reschedule Interview', `
+    <div class="fg1">
+      <div class="fg">
+        <label>New Date & Time <span class="req">*</span></label>
+        <input id="rs_sched" type="datetime-local" value="${i['Scheduled On']||''}">
+      </div>
+      <div class="fg">
+        <label>Interviewer</label>
+        <input id="rs_iname" value="${i['Interviewer']||''}">
+      </div>
+      <div class="fg">
+        <label>Meeting Link (optional)</label>
+        <input id="rs_link" value="${i['Meeting Link']||''}" placeholder="https://meet.google.com/...">
+      </div>
+    </div>`,
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitReschedule('${interviewId}')"><i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i>Reschedule</button>`
+  );
+}
+function _submitReschedule(interviewId) {
+  var sched = _val('rs_sched');
+  if (!sched) { _toast('Please select a date.','error'); return; }
+  _api('updateInterview', { interviewId: interviewId, status: 'Scheduled', scheduledOn: sched, interviewer: _val('rs_iname'), meetingLink: _val('rs_link') }, function(r) {
+    if (r.success) { _closeModal(); _toast('Interview rescheduled.','success'); _loadData(); }
+    else _toast(r.error,'error');
+  });
+}
+
+// ─── OFFER LETTERS ────────────────────────────────────────────
+function _renderOffers() {
+  var offs  = _D.offers     || [];
+  var cands = _D.candidates || [];
+  var jobs  = _D.jobs       || [];
+
+  var search  = _el('offSearch')       ? _el('offSearch').value.toLowerCase()  : '';
+  var stF     = _el('offFilter')       ? _el('offFilter').value                 : 'all';
+  var monthF  = _el('offMonthFilter')  ? _el('offMonthFilter').value            : 'all';
+  var sortF   = _el('offSort')         ? _el('offSort').value                   : 'newest';
+  var deptF   = _el('offDeptFilter')   ? _el('offDeptFilter').value             : 'all';
+
+  var allDepts = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
+  var deptOpts = allDepts.map(function(d){return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>';}).join('');
+
+  // Status counts
+  var sentCount     = offs.filter(function(o){return o['Offer Status']==='Sent';}).length;
+  var acceptedCount = offs.filter(function(o){return o['Offer Status']==='Accepted';}).length;
+  var declinedCount = offs.filter(function(o){return o['Offer Status']==='Declined';}).length;
+
+  var today = _today;
+  var thisMonth = today.slice(0,7);
+  var lastMonth = new Date(new Date().getFullYear(), new Date().getMonth()-1, 1).toISOString().slice(0,7);
+
+  var visible = offs.filter(function(o) {
+    if (stF!=='all' && o['Offer Status']!==stF) return false;
+    if (monthF==='this_month' && (o['Sent On']||'').slice(0,7)!==thisMonth) return false;
+    if (monthF==='last_month' && (o['Sent On']||'').slice(0,7)!==lastMonth) return false;
+    if (monthF==='this_year'  && (o['Sent On']||'').slice(0,4)!==today.slice(0,4)) return false;
+    if (deptF!=='all') {
+      var c = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
+      var j = c ? jobs.find(function(x){return x['Job ID']===c['Job ID'];}) : null;
+      if (!j || j['Department']!==deptF) return false;
+    }
+    if (search) {
+      var c2 = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
+      if (!c2||(!(c2['Full Name']||'').toLowerCase().includes(search)&&!(c2['Email']||'').toLowerCase().includes(search))) return false;
+    }
+    return true;
+  });
+
+  if (sortF==='newest')  visible.sort(function(a,b){return (b['Sent On']||'').localeCompare(a['Sent On']||'');});
+  if (sortF==='oldest')  visible.sort(function(a,b){return (a['Sent On']||'').localeCompare(b['Sent On']||'');});
+  if (sortF==='ctc-hi')  visible.sort(function(a,b){return parseFloat(b['Offered CTC']||0)-parseFloat(a['Offered CTC']||0);});
+  if (sortF==='ctc-lo')  visible.sort(function(a,b){return parseFloat(a['Offered CTC']||0)-parseFloat(b['Offered CTC']||0);});
+  if (sortF==='joining') visible.sort(function(a,b){return (a['Joining Date']||'9').localeCompare(b['Joining Date']||'9');});
+
+  // CTC stats
+  var acceptedCTC = offs.filter(function(o){return o['Offer Status']==='Accepted';})
+    .reduce(function(s,o){return s+parseFloat(o['Offered CTC']||0);},0);
+  var avgCTC = acceptedCount>0 ? (acceptedCTC/acceptedCount).toFixed(1) : '—';
+
+  var html = `
+  <!-- KPI strip -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+    ${[
+      ['fa-file-signature','Total Offers',offs.length,'var(--brand)','rgba(227,30,36,.08)'],
+      ['fa-paper-plane','Pending',sentCount,'#d97706','rgba(245,158,11,.08)'],
+      ['fa-circle-check','Accepted',acceptedCount,'#059669','rgba(16,185,129,.08)'],
+      ['fa-circle-xmark','Declined',declinedCount,'#dc2626','rgba(239,68,68,.08)'],
+      ['fa-indian-rupee-sign','Avg CTC',avgCTC+' LPA','#7c3aed','rgba(139,92,246,.08)'],
+    ].map(function(x){
+      return '<div style="background:var(--surf);border-radius:var(--r-md);padding:14px 16px;border:1px solid var(--bdr);box-shadow:var(--shadow-xs);">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+        +'<div style="width:30px;height:30px;border-radius:8px;background:'+x[4]+';display:flex;align-items:center;justify-content:center;font-size:12px;color:'+x[3]+';"><i class="fa-solid '+x[0]+'"></i></div>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--t3);">'+x[1]+'</span></div>'
+        +'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
+        +'</div>';
+    }).join('')}
+  </div>
+
+  <!-- Status pills -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    ${[['all','All',offs.length],['Sent','Pending',sentCount],['Accepted','Accepted',acceptedCount],['Declined','Declined',declinedCount]].map(function(x){
+      var ac=stF===x[0];
+      var col=x[0]==='Sent'?'#d97706':x[0]==='Accepted'?'#059669':x[0]==='Declined'?'#dc2626':'var(--t1)';
+      return '<button onclick="_offStatusQuick(\''+x[0]+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:50px;border:1.5px solid '+(ac?'transparent':col==='var(--t1)'?'var(--bdr)':'rgba(0,0,0,.12)')+';background:'+(ac?col:col==='var(--t1)'?'var(--surf)':'var(--surf)')+';color:'+(ac?'#fff':col)+';font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;">'
+        +x[1]+' <span style="background:'+(ac?'rgba(255,255,255,.25)':'var(--surf2)')+';color:'+(ac?'#fff':col)+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:800;">'+x[2]+'</span></button>';
+    }).join('')}
+  </div>
+
+  <!-- Toolbar -->
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;align-items:flex-start;">
+    <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box" style="max-width:260px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="offSearch" type="text" placeholder="Candidate name or email..." value="${search}" oninput="_renderOffers()">
+        ${search?'<button onclick="_el(\'offSearch\').value=\'\';_renderOffers()" style="background:none;border:none;cursor:pointer;color:var(--t4);padding:0 4px;font-size:11px;">✕</button>':''}
+      </div>
+      <select id="offDeptFilter"  class="f-select" onchange="_renderOffers()">${deptOpts}</select>
+      <select id="offMonthFilter" class="f-select" onchange="_renderOffers()">
+        <option value="all"        ${monthF==='all'?'selected':''}>All Time</option>
+        <option value="this_month" ${monthF==='this_month'?'selected':''}>This Month</option>
+        <option value="last_month" ${monthF==='last_month'?'selected':''}>Last Month</option>
+        <option value="this_year"  ${monthF==='this_year'?'selected':''}>This Year</option>
+      </select>
+      <select id="offSort" class="f-select" onchange="_renderOffers()">
+        <option value="newest"  ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
+        <option value="oldest"  ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
+        <option value="ctc-hi"  ${sortF==='ctc-hi'?'selected':''}>💰 CTC High–Low</option>
+        <option value="ctc-lo"  ${sortF==='ctc-lo'?'selected':''}>💰 CTC Low–High</option>
+        <option value="joining" ${sortF==='joining'?'selected':''}>📅 Joining Soon</option>
+      </select>
+    </div>
+    <div class="vb-right" style="gap:8px;">
+      <span class="res-count">${visible.length} of ${offs.length}</span>
+      ${_hasWrite()?'<button class="btn-add" onclick="_openOfferModal()"><i class="fa-solid fa-file-signature" style="margin-right:6px"></i>Create Offer</button>':''}
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="tbl-scroll">
+      <table class="data-tbl" style="min-width:860px;">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Department</th>
+            <th>Job Role</th>
+            <th>Offered CTC</th>
+            <th>Joining Date</th>
+            <th>Sent On</th>
+            <th>Status</th>
+            <th>Days Since</th>
+            ${_hasWrite()?'<th style="min-width:140px;">Actions</th>':''}
+          </tr>
+        </thead>
+        <tbody>
+          ${visible.length ? visible.map(function(o) {
+            var c   = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
+            var j   = jobs.find(function(x){return x['Job ID']===o['Job ID'];});
+            var dept= j?j['Department']||'—':'—';
+            var stCls = o['Offer Status']==='Accepted'?'badge b-accepted':o['Offer Status']==='Declined'?'badge b-declined':'badge b-sent';
+            var daysSince = o['Sent On'] ? Math.floor((new Date()-new Date(o['Sent On']))/(1000*60*60*24)) : '—';
+            var isUrgent = o['Offer Status']==='Sent' && typeof daysSince==='number' && daysSince>=7;
+            var joiningIsNear = o['Joining Date'] && o['Joining Date']<=new Date(Date.now()+7*864e5).toISOString().slice(0,10) && o['Joining Date']>=today;
+            return `<tr style="${isUrgent?'background:rgba(245,158,11,.04);':''}">
+              <td>
+                <div class="name-cell">
+                  <div class="n-av sm" style="background:${_avatarGrad(c?c['Full Name']:'')};">${c?(c['Full Name']||'?').charAt(0).toUpperCase():'?'}</div>
+                  <div>
+                    <div class="n-name">${c?c['Full Name']:'—'}</div>
+                    <div class="n-email">${c?c['Email']||'':'—'}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="src-tag" style="font-size:11px;">${dept}</span></td>
+              <td style="font-size:12.5px;color:var(--t2);">${j?j['Title']:'—'}</td>
+              <td style="font-weight:800;color:#059669;font-size:15px;">${o['Offered CTC']?o['Offered CTC']+' LPA':'—'}</td>
+              <td style="font-size:12.5px;${joiningIsNear?'color:#e31e24;font-weight:700;':'color:var(--t2);'}">
+                ${joiningIsNear?'<i class="fa-solid fa-triangle-exclamation" style="font-size:10px;margin-right:4px;"></i>':''}${o['Joining Date']||'—'}
+              </td>
+              <td style="font-size:11.5px;color:var(--t4);">${o['Sent On']||'—'}</td>
+              <td>
+                <span class="${stCls}">${o['Offer Status']}</span>
+                ${isUrgent?'<div style="font-size:9.5px;color:#d97706;font-weight:700;margin-top:2px;">⚠ Awaiting '+daysSince+'d</div>':''}
+              </td>
+              <td style="font-size:12px;${isUrgent?'color:#d97706;font-weight:700;':'color:var(--t4);'}">
+                ${typeof daysSince==='number'?daysSince+'d':'—'}
+              </td>
+              ${_hasWrite()?`<td>
+                <div class="act-btns">
+                  <button class="ic-btn" title="View Candidate Profile" onclick="_openCndDetail('${o['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
+                  ${o['Offer Status']==='Sent'?`
+                    <button class="ic-btn fwd" title="Mark Accepted" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')"><i class="fa-solid fa-check"></i></button>
+                    <button class="ic-btn rej" title="Mark Declined" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Declined')"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="ic-btn" title="Mark Expired" style="color:#64748b;border-color:rgba(100,116,139,.3);" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Expired')"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                  `:''}
+                  ${o['Offer Status']==='Accepted'?`
+                    <button class="ic-btn fwd" title="Confirm Joining" onclick="_confirmJoining('${o['Offer ID']}','${o['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>
+                  `:''}
+                  ${o['Offer Status']==='Declined'?`
+                    <button class="ic-btn" title="Re-send Offer (reset to Sent)" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Sent')"><i class="fa-solid fa-rotate-right"></i></button>
+                  `:''}
+                </div>
+              </td>`:''}
+            </tr>`;
+          }).join('') : `<tr><td colspan="9" class="empty-row"><i class="fa-solid fa-file-circle-xmark" style="font-size:28px;display:block;margin-bottom:10px;opacity:.3"></i>No offer letters found.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+      <span>Pending: <strong style="color:#d97706">${sentCount}</strong></span>
+      <span>Accepted: <strong style="color:#10b981">${acceptedCount}</strong></span>
+      <span>Declined: <strong style="color:#ef4444">${declinedCount}</strong></span>
+      ${avgCTC!=='—'?'<span>Avg CTC: <strong style="color:#7c3aed">'+avgCTC+' LPA</strong></span>':''}
+    </div>`:''}
+  </div>`;
+
+  _el('v-offers').innerHTML = html;
+}
+
+function _offStatusQuick(st) {
+  var el = _el('offFilter');
+  if (el) { el.value = st; _renderOffers(); }
+}
 
 function _openJobModal(job) {
   var j = job || {};
@@ -699,7 +1213,7 @@ function _openJobModal(job) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Job</button>`
+     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Job</button>`
   );
 }
 
@@ -742,7 +1256,6 @@ function _viewJobCands(jobId) {
 }
 
 
-// ─── CANDIDATES ───────────────────────────────────────────────
 
 // ─── CANDIDATES ───────────────────────────────────────────────
 function _renderCandidates() {
@@ -1466,7 +1979,6 @@ function _toggleAgencyStatus(agencyId, currentStatus) {
     else _toast(r.error, 'error');
   });
 }
-
 function _openCndModal(cnd) {
   var c = cnd || {};
   var jobs = _D.jobs || [];
@@ -1523,7 +2035,7 @@ function _openCndModal(cnd) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Candidate</button>`
+     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Candidate</button>`
   );
 }
 
@@ -1565,7 +2077,7 @@ function _openCndDetail(candidateId) {
         <div class="tl-head">Round ${i['Round']} — ${i['Type']} <span class="${rc} ml-2">${i['Result']||i['Status']}</span></div>
         <div class="tl-sub">${i['Scheduled On']} · ${i['Interviewer']} · ${i['Mode']}</div>
         ${i['Feedback'] ? `<div class="tl-fb">"${i['Feedback']}"</div>` : ''}
-        ${_hasWrite() && i['Status']==='Scheduled' ? `<button class="link-btn mt-1" onclick="_markInterviewResult('${i['Interview ID']}','${candidateId}')"><i class="fa-solid fa-pen mr-1"></i>Mark Result</button>` : ''}
+        ${_hasWrite() && i['Status']==='Scheduled' ? `<button class="link-btn mt-1" onclick="_markInterviewResult('${i['Interview ID']}','${candidateId}')"><i class="fa-solid fa-pen style="margin-right:4px;"></i>Mark Result</button>` : ''}
       </div>
     </div>`;
   }).join('') : '<div class="text-slate-400 text-sm py-2">No interviews scheduled yet.</div>';
@@ -1582,16 +2094,16 @@ function _openCndDetail(candidateId) {
       </div>
       ${_hasWrite() && offer['Offer Status']==='Sent' ? `
         <div class="flex gap-2 mt-3">
-          <button class="mbtn-p sm" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Accepted');_closeModal()"><i class="fa-solid fa-check mr-1"></i>Mark Accepted</button>
+          <button class="mbtn-p sm" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Accepted');_closeModal()"><i class="fa-solid fa-check style="margin-right:4px;"></i>Mark Accepted</button>
           <button class="modal-btn-danger small" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Declined');_closeModal()">Mark Declined</button>
         </div>` : ''}
       ${_hasWrite() && offer['Offer Status']==='Accepted' ? `
-        <button class="mbtn-p sm mt-3" onclick="_confirmJoining('${offer['Offer ID']}','${candidateId}');"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>` : ''}
+        <button class="mbtn-p sm mt-3" onclick="_confirmJoining('${offer['Offer ID']}','${candidateId}');"><i class="fa-solid fa-flag-checkered style="margin-right:4px;"></i>Confirm Joining</button>` : ''}
     </div>` : '';
 
   var agyHtml = agy ? `
     <div class="det-field" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
-      <label style="color:#7c3aed"><i class="fa-solid fa-handshake mr-1"></i>Agency</label>
+      <label style="color:#7c3aed"><i class="fa-solid fa-handshake style="margin-right:4px;"></i>Agency</label>
       <span style="color:#6d28d9;font-weight:700">${agy['Agency Name']}</span>
       <div class="text-xs text-slate-500 mt-1">Contact: ${agy['Contact Person']||'—'} · Commission: ${agy['Commission (%)']||0}%</div>
     </div>` : '';
@@ -1621,10 +2133,10 @@ function _openCndDetail(candidateId) {
     <div class="timeline">${intHtml}</div>
     ${offerHtml}`,
     `<div class="flex gap-2 flex-wrap">
-      <button class="mbtn-s" onclick="_editCnd('${candidateId}');_closeModal()"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-      ${_hasWrite() && c['Stage']==='Applied' ? `<button class="mbtn-p" onclick="_scheduleInterviewFrom('${candidateId}')"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>` : ''}
-      ${_hasWrite() && c['Stage']==='Selected' ? `<button class="mbtn-p" onclick="_createOfferFrom('${candidateId}')"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>` : ''}
-      ${_hasWrite() && _stageNext(c['Stage']) ? `<button class="mbtn-g" onclick="_quickStageChange('${candidateId}','${_stageNext(c['Stage'])}');_closeModal()"><i class="fa-solid fa-forward mr-1"></i>Move to ${_stageNext(c['Stage'])}</button>` : ''}
+      <button class="mbtn-s" onclick="_editCnd('${candidateId}');_closeModal()"><i class="fa-solid fa-pen style="margin-right:4px;"></i>Edit</button>
+      ${_hasWrite() && c['Stage']==='Applied' ? `<button class="mbtn-p" onclick="_scheduleInterviewFrom('${candidateId}')"><i class="fa-solid fa-calendar-plus style="margin-right:4px;"></i>Schedule Interview</button>` : ''}
+      ${_hasWrite() && c['Stage']==='Selected' ? `<button class="mbtn-p" onclick="_createOfferFrom('${candidateId}')"><i class="fa-solid fa-file-signature style="margin-right:4px;"></i>Create Offer</button>` : ''}
+      ${_hasWrite() && _stageNext(c['Stage']) ? `<button class="mbtn-g" onclick="_quickStageChange('${candidateId}','${_stageNext(c['Stage'])}');_closeModal()"><i class="fa-solid fa-forward style="margin-right:4px;"></i>Move to ${_stageNext(c['Stage'])}</button>` : ''}
       <button class="modal-btn-secondary ml-auto" onclick="_closeModal()">Close</button>
     </div>`
   );
@@ -1634,125 +2146,10 @@ function _scheduleInterviewFrom(cid) { _closeModal(); setTimeout(function() { _o
 function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _openOfferModal(null, cid); }, 250); }
 
 
-// ─── INTERVIEWS ───────────────────────────────────────────────
-function _renderInterviews() {
-  var ints   = _D.interviews || [];
-  var cands  = _D.candidates || [];
-  var filter = _el('intFilter')  ? _el('intFilter').value  : 'all';
-  var search = _el('intSearch')  ? _el('intSearch').value.toLowerCase()  : '';
-
-  var visible = ints.filter(function(i) {
-    if (filter !== 'all' && i['Status'] !== filter) return false;
-    var c = cands.find(function(x){ return x['Candidate ID']===i['Candidate ID']; });
-    if (search && !(c && (c['Full Name']||'').toLowerCase().includes(search))) return false;
-    return true;
-  }).sort(function(a,b){ return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||''); });
-
-  var allTypes = ['all'].concat([...new Set(ints.map(function(i){return i['Type']||'';}).filter(Boolean))]);
-  var allModes = ['all'].concat([...new Set(ints.map(function(i){return i['Mode']||'';}).filter(Boolean))]);
-  var typeF = _el('intTypeFilter') ? _el('intTypeFilter').value : 'all';
-  var modeF = _el('intModeFilter') ? _el('intModeFilter').value : 'all';
-  var roundF = _el('intRoundFilter') ? _el('intRoundFilter').value : 'all';
-  var resultF = _el('intResultFilter') ? _el('intResultFilter').value : 'all';
-
-  // re-filter with extra filters
-  visible = visible.filter(function(i){
-    if (typeF !== 'all'   && i['Type']   !== typeF)   return false;
-    if (modeF !== 'all'   && i['Mode']   !== modeF)   return false;
-    if (roundF !== 'all'  && String(i['Round']) !== roundF) return false;
-    if (resultF !== 'all' && i['Result']  !== resultF) return false;
-    return true;
-  });
-
-  var typeOpts = allTypes.map(function(t){ return '<option value="'+t+'" '+(typeF===t?'selected':'')+'>'+(t==='all'?'All Types':t)+'</option>'; }).join('');
-  var modeOpts = allModes.map(function(m){ return '<option value="'+m+'" '+(modeF===m?'selected':'')+'>'+(m==='all'?'All Modes':m)+'</option>'; }).join('');
-
-  var html = `
-  <div class="view-bar" style="flex-wrap:wrap;gap:10px;">
-    <div class="vb-left" style="flex-wrap:wrap;">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="intSearch" type="text" placeholder="Search by candidate name..." value="${search}" oninput="_renderInterviews()">
-      </div>
-      <select id="intFilter" class="f-select" onchange="_renderInterviews()">
-        <option value="all" ${filter==='all'?'selected':''}>All Status</option>
-        <option value="Scheduled" ${filter==='Scheduled'?'selected':''}>Scheduled</option>
-        <option value="Done" ${filter==='Done'?'selected':''}>Done</option>
-        <option value="Cancelled" ${filter==='Cancelled'?'selected':''}>Cancelled</option>
-      </select>
-      <select id="intTypeFilter" class="f-select" onchange="_renderInterviews()">${typeOpts}</select>
-      <select id="intModeFilter" class="f-select" onchange="_renderInterviews()">${modeOpts}</select>
-      <select id="intRoundFilter" class="f-select" onchange="_renderInterviews()">
-        <option value="all" ${roundF==='all'?'selected':''}>All Rounds</option>
-        <option value="1" ${roundF==='1'?'selected':''}>Round 1</option>
-        <option value="2" ${roundF==='2'?'selected':''}>Round 2</option>
-        <option value="3" ${roundF==='3'?'selected':''}>Round 3</option>
-      </select>
-      <select id="intResultFilter" class="f-select" onchange="_renderInterviews()">
-        <option value="all" ${resultF==='all'?'selected':''}>All Results</option>
-        <option value="Pass" ${resultF==='Pass'?'selected':''}>✅ Pass</option>
-        <option value="Fail" ${resultF==='Fail'?'selected':''}>❌ Fail</option>
-        <option value="Hold" ${resultF==='Hold'?'selected':''}>⏸ Hold</option>
-      </select>
-    </div>
-    <div class="vb-right">
-      <span class="res-count">${visible.length} of ${ints.length}</span>
-      ${_hasWrite() ? '<button class="btn-add" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>' : ''}
-    </div>
-  </div>
-
-  <div class="table-card">
-    <table class="data-tbl">
-      <thead>
-        <tr>
-          <th>ID</th><th>Candidate</th><th>Job Role</th><th>Round</th><th>Type</th>
-          <th>Scheduled On</th><th>Interviewer</th><th>Mode</th><th>Status</th><th>Result</th>
-          ${_hasWrite() ? '<th>Actions</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-        ${visible.length ? visible.map(function(i) {
-          var c   = cands.find(function(x){ return x['Candidate ID']===i['Candidate ID']; });
-          var job = (_D.jobs||[]).find(function(j){ return j['Job ID']===i['Job ID']; });
-          var stCls = i['Status']==='Done' ? 'b-joined badge' : i['Status']==='Cancelled' ? 'b-rejected badge' : 'b-interview badge';
-          var resCls = i['Result']==='Pass' ? 'b-joined badge' : i['Result']==='Fail' ? 'b-rejected badge' : i['Result']==='Hold' ? 'b-offered badge' : '';
-          return `<tr>
-            <td class="id-cell">${i['Interview ID']}</td>
-            <td>
-              <div class="name-cell">
-                <div class="n-av sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
-                <span class="font-medium text-slate-700">${c ? c['Full Name'] : '—'}</span>
-              </div>
-            </td>
-            <td class="text-slate-600">${job ? job['Title'] : '—'}</td>
-            <td class="text-center"><span class="round-b">R${i['Round']||1}</span></td>
-            <td>${i['Type']||'—'}</td>
-            <td>${i['Scheduled On']||'—'}</td>
-            <td>${i['Interviewer']||'—'}</td>
-            <td>
-              ${i['Meeting Link'] ? `<a href="${i['Meeting Link']}" target="_blank" class="lnk-btn"><i class="fa-solid fa-video mr-1"></i>${i['Mode']||'Online'}</a>` : (i['Mode']||'—')}
-            </td>
-            <td><span class="${stCls}">${i['Status']}</span></td>
-            <td>${i['Result'] ? `<span class="${resCls}">${i['Result']}</span>` : '<span class="text-slate-300">—</span>'}</td>
-            ${_hasWrite() ? `<td>
-              <div class="act-btns">
-                ${i['Status']==='Scheduled' ? `<button class="ic-btn suc" title="Mark Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>` : ''}
-                ${i['Status']==='Scheduled' ? `<button class="ic-btn dan" title="Cancel" onclick="_cancelInterview('${i['Interview ID']}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
-                ${i['Feedback'] ? `<button class="ic-btn" title="Feedback: ${i['Feedback']}"><i class="fa-solid fa-comment-dots"></i></button>` : ''}
-              </div>
-            </td>` : ''}
-          </tr>`;
-        }).join('') : `<tr><td colspan="11" class="empty-row">No interviews found.</td></tr>`}
-      </tbody>
-    </table>
-  </div>`;
-
-  _el('v-interviews').innerHTML = html;
-}
-
-function _openInterviewModal(interview, preCandidateId) {
+function _openInterviewModal(interview, preCandidateId, preJobId) {
   var eligibleCands = (_D.candidates||[]).filter(function(c){ return ['Applied','Interview','Selected'].indexOf(c['Stage']) >= 0; });
-  var cndOpts = eligibleCands.map(function(c){ return `<option value="${c['Candidate ID']}" ${preCandidateId===c['Candidate ID']?'selected':''}>${c['Full Name']}</option>`; }).join('');
+  if (preJobId) { eligibleCands = eligibleCands.filter(function(c){return c['Job ID']===preJobId;}).concat(eligibleCands.filter(function(c){return c['Job ID']!==preJobId;})); }
+  var cndOpts = eligibleCands.map(function(c){ return '<option value="'+c['Candidate ID']+'" '+(preCandidateId===c['Candidate ID']?'selected':'')+'>'+(c['Full Name'])+' — '+(c['Stage'])+'</option>'; }).join('');
   if (!cndOpts) { _toast('No eligible candidates (Applied/Interview stage) found.', 'warning'); return; }
 
   _showModal('Schedule Interview', `
@@ -1795,7 +2192,7 @@ function _openInterviewModal(interview, preCandidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check mr-1"></i>Schedule</button>`
+     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check style="margin-right:4px;"></i>Schedule</button>`
   );
 }
 
@@ -1835,7 +2232,7 @@ function _markInterviewResult(interviewId, candidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Result</button>`
+     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Result</button>`
   );
 }
 
@@ -1858,93 +2255,6 @@ function _cancelInterview(interviewId) {
   _api('updateInterview', { interviewId: interviewId, status: 'Cancelled', result: '', feedback: '' },
     function(r) { if (r.success) { _toast('Interview cancelled.','success'); _loadData(); } else _toast(r.error,'error'); }
   );
-}
-
-// ─── OFFER LETTERS ────────────────────────────────────────────
-function _renderOffers() {
-  var offs  = _D.offers     || [];
-  var cands = _D.candidates || [];
-  var jobs  = _D.jobs       || [];
-  var filter = _el('offFilter') ? _el('offFilter').value : 'all';
-
-  var visible = offs.filter(function(o){ return filter==='all' || o['Offer Status']===filter; });
-
-  var offSearch = _el('offSearch') ? _el('offSearch').value.toLowerCase() : '';
-  visible = visible.filter(function(o){
-    if (!offSearch) return true;
-    var c = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
-    return c && (c['Full Name']||'').toLowerCase().includes(offSearch);
-  });
-  var html = `
-  <div class="view-bar">
-    <div class="vb-left">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="offSearch" type="text" placeholder="Search by candidate..." value="${offSearch}" oninput="_renderOffers()">
-      </div>
-      <select id="offFilter" class="f-select" onchange="_renderOffers()">
-        <option value="all" ${filter==='all'?'selected':''}>All Offers</option>
-        <option value="Sent" ${filter==='Sent'?'selected':''}>📤 Sent</option>
-        <option value="Accepted" ${filter==='Accepted'?'selected':''}>✅ Accepted</option>
-        <option value="Declined" ${filter==='Declined'?'selected':''}>❌ Declined</option>
-        <option value="Expired" ${filter==='Expired'?'selected':''}>⏰ Expired</option>
-      </select>
-      <select id="offMonthFilter" class="f-select" onchange="_renderOffers()">
-        <option value="all">All Time</option>
-        <option value="this_month">This Month</option>
-        <option value="last_month">Last Month</option>
-        <option value="this_year">This Year</option>
-      </select>
-    </div>
-    <div class="vb-right">
-      <span class="res-count">${visible.length} of ${offs.length}</span>
-      ${_hasWrite() ? '<button class="btn-add" onclick="_openOfferModal()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>' : ''}
-    </div>
-  </div>
-
-  <div class="table-card">
-    <table class="data-tbl">
-      <thead>
-        <tr>
-          <th>Offer ID</th><th>Candidate</th><th>Job Role</th>
-          <th>Offered CTC</th><th>Joining Date</th><th>Sent On</th>
-          <th>Status</th>${_hasWrite() ? '<th>Actions</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-        ${visible.length ? visible.map(function(o) {
-          var c   = cands.find(function(x){ return x['Candidate ID']===o['Candidate ID']; });
-          var job = jobs.find(function(j){ return j['Job ID']===o['Job ID']; });
-          var stCls = o['Offer Status']==='Accepted' ? 'b-joined badge' : o['Offer Status']==='Declined' ? 'b-rejected badge' : 'b-offered badge';
-          return `<tr>
-            <td class="id-cell">${o['Offer ID']}</td>
-            <td>
-              <div class="name-cell">
-                <div class="n-av sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
-                <span class="font-medium text-slate-700">${c ? c['Full Name'] : '—'}</span>
-              </div>
-            </td>
-            <td class="text-slate-600">${job ? job['Title'] : '—'}</td>
-            <td class="text-green-700 font-bold">${o['Offered CTC']} LPA</td>
-            <td>${o['Joining Date']||'—'}</td>
-            <td class="text-slate-400 text-xs">${o['Sent On']||'—'}</td>
-            <td><span class="${stCls}">${o['Offer Status']}</span></td>
-            ${_hasWrite() ? `<td>
-              <div class="act-btns">
-                ${o['Offer Status']==='Sent' ? `
-                  <button class="ic-btn suc" title="Mark Accepted" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')"><i class="fa-solid fa-check"></i></button>
-                  <button class="ic-btn dan" title="Mark Declined" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Declined')"><i class="fa-solid fa-xmark"></i></button>` : ''}
-                ${o['Offer Status']==='Accepted' ? `
-                  <button class="ic-btn suc" title="Confirm Joining" onclick="_confirmJoining('${o['Offer ID']}','${o['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
-              </div>
-            </td>` : ''}
-          </tr>`;
-        }).join('') : `<tr><td colspan="8" class="empty-row">No offer letters found.</td></tr>`}
-      </tbody>
-    </table>
-  </div>`;
-
-  _el('v-offers').innerHTML = html;
 }
 
 function _openOfferModal(offer, preCandidateId) {
@@ -1972,7 +2282,7 @@ function _openOfferModal(offer, preCandidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>`
+     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature style="margin-right:4px;"></i>Create Offer</button>`
   );
 }
 
@@ -2027,9 +2337,9 @@ function _confirmJoining(offerId, candidateId) {
         <input id="j_mgr" placeholder="Manager name">
       </div>
     </div>
-    <div class="info-note"><i class="fa-solid fa-circle-info mr-1"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
+    <div class="info-note"><i class="fa-solid fa-circle-info style="margin-right:4px;"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>`
+     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered style="margin-right:4px;"></i>Confirm Joining</button>`
   );
 }
 
@@ -2083,6 +2393,6 @@ function _setBtnLoading(cls, loading, label) {
   var btns = document.querySelectorAll('.' + cls);
   btns.forEach(function(b) {
     b.disabled = loading;
-    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>' + label;
+    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin style="margin-right:4px;"></i>' + label;
   });
 }
