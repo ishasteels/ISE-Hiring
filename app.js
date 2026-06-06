@@ -1107,7 +1107,7 @@ function _renderOffers() {
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
         +'<div style="width:30px;height:30px;border-radius:8px;background:'+x[4]+';display:flex;align-items:center;justify-content:center;font-size:12px;color:'+x[3]+';"><i class="fa-solid '+x[0]+'"></i></div>'
         +'<span style="font-size:11px;font-weight:700;color:var(--t3);">'+x[1]+'</span></div>'
-        +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
+        +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
         +'</div>';
     }).join('')}
   </div>
@@ -1279,7 +1279,7 @@ function _openJobModal(job) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Job</button>`
+     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Job</button>`
   );
 }
 
@@ -1969,7 +1969,7 @@ function _openAgencyDetail(agencyId) {
           +'<i class="fa-solid fa-handshake" style="color:#fff;font-size:20px;"></i>'
         +'</div>'
         +'<div style="flex:1;">'
-          +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
+          +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+(isActive?'badge b-active':'badge b-inactive')+'">'+a['Status']+'</span>'
             +'<span style="font-size:12px;color:var(--t3);">Since: '+(a['Created On']||'—')+'</span>'
@@ -1981,7 +1981,7 @@ function _openAgencyDetail(agencyId) {
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
         +[['Total',cands.length,'var(--t1)'],['Pipeline',pipeline,'#f59e0b'],['Placed',placed,'#10b981'],['Conversion',convRate+'%',convCol]]
           .map(function(x){return '<div style="background:var(--surf);border-radius:9px;padding:10px 8px;text-align:center;border:1px solid var(--bdr);">'
-            +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:20px;font-weight:800;color:'+x[2]+';">'+x[1]+'</div>'
+            +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:20px;font-weight:800;color:'+x[2]+';">'+x[1]+'</div>'
             +'<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;">'+x[0]+'</div>'
           +'</div>';}).join('')
       +'</div>'
@@ -2042,20 +2042,25 @@ function _openAgencyDetail(agencyId) {
                 +'<div style="font-size:11px;color:var(--t4);">'+(j?j['Title']:'—')+' · '+(c['Applied On']||'—')+'</div>'
               +'</div>'
               +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
-+'<<button onclick="_openCndDetail(\''+c['Candidate ID']+'\');_closeModal()" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr);background:var(--surf);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;flex-shrink:0;"><i class="fa-solid fa-eye"></i></button>'            +'</div>';
+              +'<button onclick="(function(){_openCndDetail(\"'+c['Candidate ID']+'\")})()" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr);background:var(--surf);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;flex-shrink:0;"><i class="fa-solid fa-eye"></i></button>'
+            +'</div>';
           }).join('')
         +'</div>'
       :''
     )
 
+
     ,
-    // Footer
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
-      +(_hasWrite()?'<button class="mbtn-s" onclick="_editAgency('"+agencyId+"');_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit Agency</button>':'')
-      +(cands.length>0?'<button class="mbtn-p" onclick="_viewAgencyCands('"+a['Agency Name']+"');_closeModal()"><i class="fa-solid fa-users" style="margin-right:6px;"></i>View All Candidates</button>':'')
-      +(_hasWrite()?'<button class="mbtn-p" style="background:#8b5cf6;" onclick="_showAgencyReport('"+agencyId+"');_closeModal()"><i class="fa-solid fa-chart-column" style="margin-right:6px;"></i>Performance</button>':'')
-      +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
-    +'</div>'
+    // Footer — use pre-stored agencyName to avoid quote issues
+    (function(){
+      var _aN = a['Agency Name'];
+      return '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
+        +(_hasWrite()?'<button class="mbtn-s" onclick="_editAgency(\''+agencyId+'\');_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>':'')
+        +(cands.length>0?'<button class="mbtn-p" onclick="_viewAgencyCands(\''+_aN.replace(/\'/g,"\\'")+'\');_closeModal()"><i class="fa-solid fa-users" style="margin-right:6px;"></i>View Candidates</button>':'')
+        +(_hasWrite()?'<button class="mbtn-p" style="background:#8b5cf6;" onclick="_showAgencyReport(\''+agencyId+'\');_closeModal()"><i class="fa-solid fa-chart-column" style="margin-right:6px;"></i>Performance</button>':'')
+        +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
+        +'</div>';
+    })()
   );
 }
 
@@ -2253,7 +2258,7 @@ function _openCndModal(cnd) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Candidate</button>`
+     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Candidate</button>`
   );
 }
 
@@ -2303,7 +2308,7 @@ function _openCndDetail(candidateId) {
         +'<div class="tl-sub" style="margin-bottom:4px;">'+((i['Scheduled On']||'').replace('T',' ').slice(0,16)||'—')+' · '+(i['Interviewer']||'—')+' · '+(i['Mode']||'—')+'</div>'
         +(i['Meeting Link']?'<a href="'+i['Meeting Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6;margin-bottom:4px;"><i class="fa-solid fa-video" style="font-size:9px;"></i>Join Meeting</a><br>':'')
         +(i['Feedback']?'<div class="tl-fb" style="margin-top:4px;">"'+i['Feedback']+'"</div>':'')
-        +(_hasWrite()&&i['Status']==='Scheduled'?'<button onclick="_markInterviewResult('"+i['Interview ID']+'',''+candidateId+"')" class="lnk-btn" style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-check-to-slot" style="font-size:10px;"></i>Mark Result</button>':'')
+        +(_hasWrite()&&i['Status']==='Scheduled'?('<button data-iid="'+i['Interview ID']+'" data-cid="'+candidateId+'" onclick="var el=this;_markInterviewResult(el.getAttribute(String.fromCharCode(100,97,116,97,45,105,105,100)),el.getAttribute(String.fromCharCode(100,97,116,97,45,99,105,100)))" class="lnk-btn" style="margin-top:6px;">Mark Result</button>'):'' )
       +'</div></div>';
   }).join('')
   : '<div style="text-align:center;padding:20px;color:var(--t4);font-size:13px;">No interviews scheduled yet.</div>';
@@ -2322,12 +2327,12 @@ function _openCndDetail(candidateId) {
       +'</div>'
       +(_hasWrite()&&o['Offer Status']==='Sent'
         ?'<div style="display:flex;gap:8px;">'
-          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus('"+o['Offer ID']+'',''+candidateId+'','Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
-          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus('"+o['Offer ID']+'',''+candidateId+'','Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
+          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
+          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
         +'</div>':''
       )
       +(_hasWrite()&&o['Offer Status']==='Accepted'
-        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining('"+o['Offer ID']+'',''+candidateId+"')"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
+        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\")"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
       )
     +'</div>';
   }).join('') : '';
@@ -2347,7 +2352,7 @@ function _openCndDetail(candidateId) {
       +'<div style="display:flex;align-items:center;gap:14px;">'
         +'<div style="width:56px;height:56px;border-radius:50%;background:'+_avatarGrad(c['Full Name'])+';color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+c['Full Name'].charAt(0).toUpperCase()+'</div>'
         +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
+          +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
           +'<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">'+(c['Email']||'')+(c['Phone']?' · '+c['Phone']:'')+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
@@ -2380,10 +2385,10 @@ function _openCndDetail(candidateId) {
     ,
     // Footer buttons
     '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
-      +'<button class="mbtn-s" onclick="_editCnd('"+candidateId+"');_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
-      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom('"+candidateId+"')"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
-      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom('"+candidateId+"')"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
-      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange('"+candidateId+'',''+_stageNext(c['Stage'])+"');_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
+      +'<button class="mbtn-s" onclick="_editCnd(\"+" + candidateId + "+\");_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
+      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
+      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
+      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange(\"+" + candidateId + "+\",\"+" + _stageNext(c['Stage']) + "+\");_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
       +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
     +'</div>'
   );
@@ -2439,7 +2444,7 @@ function _openInterviewModal(interview, preCandidateId, preJobId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check" style="margin-right:4px;"></i>Schedule</button>`
+     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check style="margin-right:4px;"></i>Schedule</button>`
   );
 }
 
@@ -2479,7 +2484,7 @@ function _markInterviewResult(interviewId, candidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Result</button>`
+     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Result</button>`
   );
 }
 
@@ -2529,7 +2534,7 @@ function _openOfferModal(offer, preCandidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature" style="margin-right:4px;"></i>Create Offer</button>`
+     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature style="margin-right:4px;"></i>Create Offer</button>`
   );
 }
 
@@ -2584,9 +2589,9 @@ function _confirmJoining(offerId, candidateId) {
         <input id="j_mgr" placeholder="Manager name">
       </div>
     </div>
-    <div class="info-note"><i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
+    <div class="info-note"><i class="fa-solid fa-circle-info style="margin-right:4px;"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered" style="margin-right:4px;"></i>Confirm Joining</button>`
+     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered style="margin-right:4px;"></i>Confirm Joining</button>`
   );
 }
 
@@ -2640,6 +2645,6 @@ function _setBtnLoading(cls, loading, label) {
   var btns = document.querySelectorAll('.' + cls);
   btns.forEach(function(b) {
     b.disabled = loading;
-    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i>' + label;
+    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin style="margin-right:4px;"></i>' + label;
   });
 }
