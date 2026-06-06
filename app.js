@@ -1969,7 +1969,7 @@ function _openAgencyDetail(agencyId) {
           +'<i class="fa-solid fa-handshake" style="color:#fff;font-size:20px;"></i>'
         +'</div>'
         +'<div style="flex:1;">'
-          +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
+          +'<div style="font-family:\"Bricolage Grotesque\",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+(isActive?'badge b-active':'badge b-inactive')+'">'+a['Status']+'</span>'
             +'<span style="font-size:12px;color:var(--t3);">Since: '+(a['Created On']||'—')+'</span>'
@@ -1981,7 +1981,7 @@ function _openAgencyDetail(agencyId) {
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
         +[['Total',cands.length,'var(--t1)'],['Pipeline',pipeline,'#f59e0b'],['Placed',placed,'#10b981'],['Conversion',convRate+'%',convCol]]
           .map(function(x){return '<div style="background:var(--surf);border-radius:9px;padding:10px 8px;text-align:center;border:1px solid var(--bdr);">'
-            +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:20px;font-weight:800;color:'+x[2]+';">'+x[1]+'</div>'
+            +'<div style="font-family:\"Bricolage Grotesque\",sans-serif;font-size:20px;font-weight:800;color:'+x[2]+';">'+x[1]+'</div>'
             +'<div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;">'+x[0]+'</div>'
           +'</div>';}).join('')
       +'</div>'
@@ -2348,7 +2348,7 @@ function _openCndDetail(candidateId) {
       +'<div style="display:flex;align-items:center;gap:14px;">'
         +'<div style="width:56px;height:56px;border-radius:50%;background:'+_avatarGrad(c['Full Name'])+';color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+c['Full Name'].charAt(0).toUpperCase()+'</div>'
         +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
+          +'<div style="font-family:\"Bricolage Grotesque\",sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
           +'<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">'+(c['Email']||'')+(c['Phone']?' · '+c['Phone']:'')+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
@@ -2641,6 +2641,6 @@ function _setBtnLoading(cls, loading, label) {
   var btns = document.querySelectorAll('.' + cls);
   btns.forEach(function(b) {
     b.disabled = loading;
-    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin style="margin-right:4px;"></i>' + label;
+    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i>' + label;
   });
 }
