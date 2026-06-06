@@ -2327,12 +2327,12 @@ function _openCndDetail(candidateId) {
       +'</div>'
       +(_hasWrite()&&o['Offer Status']==='Sent'
         ?'<div style="display:flex;gap:8px;">'
-          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
-          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
+          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick='_updateOfferStatus("'+o['Offer ID']+'","'+candidateId+'","Accepted")'><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
+          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick='_updateOfferStatus("'+o['Offer ID']+'","'+candidateId+'","Declined")'><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
         +'</div>':''
       )
       +(_hasWrite()&&o['Offer Status']==='Accepted'
-        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\")"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
+        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick='_confirmJoining("'+o['Offer ID']+'","'+candidateId+'")'><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
       )
     +'</div>';
   }).join('') : '';
@@ -2385,10 +2385,10 @@ function _openCndDetail(candidateId) {
     ,
     // Footer buttons
     '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
-      +'<button class="mbtn-s" onclick="_editCnd(\"+" + candidateId + "+\");_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
-      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
-      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
-      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange(\"+" + candidateId + "+\",\"+" + _stageNext(c['Stage']) + "+\");_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
+      +'<button class="mbtn-s" onclick='_editCnd("'+candidateId+'");_closeModal()'><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
+      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick='_scheduleInterviewFrom("'+candidateId+'")'><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
+      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick='_createOfferFrom("'+candidateId+'")'><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
+      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick='_quickStageChange("'+candidateId+'","'+_stageNext(c['Stage'])+'");_closeModal()'><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
       +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
     +'</div>'
   );
