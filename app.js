@@ -81,7 +81,7 @@ function _loginErr(msg) { _el('loginErr').textContent = msg; }
 function _signOut() {
   try { localStorage.removeItem('isha_hiring_v3'); } catch(e) {}
   _U = null; _TOKEN = null; _D = {};
-  document.body.classList.remove('sb-open');
+  document.body.classList.remove('sb-open','sb-collapsed');
   _showLogin();
 }
 
@@ -156,8 +156,16 @@ function _lv(v) {
   document.body.classList.remove('sb-open');
 }
 
-function openMobileSb()  { document.body.classList.add('sb-open'); }
-function closeMobileSb() { document.body.classList.remove('sb-open'); }
+function openMobileSb() {
+  document.body.classList.add('sb-open');
+  var ov = document.getElementById('sbOv');
+  if(ov) ov.classList.add('on');
+}
+function closeMobileSb() {
+  document.body.classList.remove('sb-open');
+  var ov = document.getElementById('sbOv');
+  if(ov) ov.classList.remove('on');
+}
 
 function _showPageLoader(show) {
   var l = _el('pageLoader');
@@ -298,7 +306,7 @@ function _renderHome() {
         ${_pipeBar('Rejected',     rejected,     totalCands, '#EF4444')}
       </div>
     </div>
-    <div class="pipeline-legend">
+    <div class="pipeline-leg">
       ${_pipeLeg('Applied',      applied,      '#3B82F6')}
       ${_pipeLeg('Interviewing', interviewing, '#F59E0B')}
       ${_pipeLeg('Selected',     selected,     '#8B5CF6')}
@@ -533,7 +541,7 @@ function _pipeBar(label, count, total, color) {
 }
 
 function _pipeLeg(label, count, color) {
-  return `<div class="pipe-legend-item"><span class="pipe-dot" style="background:${color}"></span><span class="pipe-lbl">${label}</span><span class="pipe-cnt">${count}</span></div>`;
+  return `<div class="pl-item"><span class="pl-dot" style="background:${color}"></span><span class="pl-lbl">${label}</span><span class="pl-cnt">${count}</span></div>`;
 }
 
 function _stageClass(stage) {
