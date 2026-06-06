@@ -2042,8 +2042,7 @@ function _openAgencyDetail(agencyId) {
                 +'<div style="font-size:11px;color:var(--t4);">'+(j?j['Title']:'—')+' · '+(c['Applied On']||'—')+'</div>'
               +'</div>'
               +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
-              +'<button onclick="_openCndDetail('"+c['Candidate ID']+"');_closeModal()" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr);background:var(--surf);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;flex-shrink:0;"><i class="fa-solid fa-eye"></i></button>'
-            +'</div>';
++'<<button onclick="_openCndDetail(\''+c['Candidate ID']+'\');_closeModal()" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr);background:var(--surf);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:11px;flex-shrink:0;"><i class="fa-solid fa-eye"></i></button>'            +'</div>';
           }).join('')
         +'</div>'
       :''
