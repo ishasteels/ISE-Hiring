@@ -875,6 +875,131 @@ body.sb-collapsed .tb-logo-abbr{display:block}
 /* Page enter animation */
 @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .view{animation:slideUp .3s ease forwards}
+
+/* ── RESPONSIVE FIXES — tables, toolbar, modal ─────────────── */
+
+/* View bar on mobile: stack + full-width search */
+@media(max-width:767px){
+  .view-bar{gap:8px}
+  .vb-left{gap:6px}
+  .search-box{min-width:0;max-width:100%!important;border-radius:10px}
+  .f-select{border-radius:10px;padding:8px 12px;font-size:12px}
+  .btn-add{padding:9px 14px;font-size:12px;border-radius:10px}
+  /* Table card: always scrollable */
+  .table-card{border-radius:12px}
+  .tbl-scroll{-webkit-overflow-scrolling:touch}
+  /* KPI strip on mobile */
+  .kpi-strip-mobile{display:flex;overflow-x:auto;gap:10px;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+  .kpi-strip-mobile::-webkit-scrollbar{display:none}
+  /* Modals on mobile: bottom sheet, extra padding for safe area */
+  .modal-bd{padding:16px 18px}
+  .modal-ft{padding:12px 18px;gap:8px}
+  .modal-ft .mbtn-p,.modal-ft .mbtn-s,.modal-ft .mbtn-g,.modal-ft .mbtn-d{padding:12px 20px;flex:1;justify-content:center}
+  /* fg2 -> single col on mobile already handled, but enforce */
+  .fg2{grid-template-columns:1fr!important}
+  .det-grid{grid-template-columns:1fr!important}
+  /* Status pills wrap cleanly */
+  .pills-row{display:flex;gap:8px;flex-wrap:wrap;overflow-x:auto;padding-bottom:2px}
+  .pills-row::-webkit-scrollbar{display:none}
+  /* Section card padding tighter */
+  .section-card{padding:14px}
+  /* Charts 2col -> 1col */
+  .charts-2{grid-template-columns:1fr!important}
+}
+
+/* Tablet specific */
+@media(min-width:768px) and (max-width:1023px){
+  .view-bar{flex-wrap:wrap}
+  .vb-left{flex-wrap:wrap}
+  .search-box{min-width:180px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Table horizontal scroll indicator */
+.tbl-scroll{position:relative}
+.tbl-scroll::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:24px;
+  background:linear-gradient(to right,transparent,rgba(255,255,255,.8));
+  pointer-events:none;border-radius:0 var(--r-md) var(--r-md) 0;
+}
+[data-theme="dark"] .tbl-scroll::after{
+  background:linear-gradient(to right,transparent,rgba(19,22,42,.8));
+}
+
+/* Action button touch targets on mobile */
+@media(max-width:767px){
+  .ic-btn{width:34px;height:34px;border-radius:9px}
+  .act-btns{gap:5px}
+  .n-av{width:32px;height:32px}
+  .n-av.sm{width:26px;height:26px}
+  /* Topbar - tighter */
+  #topbar{gap:6px}
+}
+
+/* f-select dark mode border */
+[data-theme="dark"] .f-select{
+  border-color:var(--bdr);
+  color:var(--t1);
+  background:var(--surf);
+}
+
+/* Search box dark mode */
+[data-theme="dark"] .search-box{
+  background:var(--surf);
+  border-color:var(--bdr);
+}
+[data-theme="dark"] .search-box input{color:var(--t1)}
+
+/* Table card dark mode */
+[data-theme="dark"] .table-card{background:var(--surf)}
+[data-theme="dark"] .data-tbl thead th{background:var(--surf2)}
+[data-theme="dark"] .data-tbl tbody tr:hover{background:var(--surf2)}
+
+/* Section card dark */
+[data-theme="dark"] .section-card{background:var(--surf)}
+[data-theme="dark"] .section-head h3{color:var(--t1)}
+
+/* KPI dark */
+[data-theme="dark"] .kpi-card{background:var(--surf);border-color:var(--bdr)}
+[data-theme="dark"] .kpi-val{color:var(--t1)}
+[data-theme="dark"] .kpi-lbl{color:var(--t2)}
+
+/* ins-table dark */
+[data-theme="dark"] .ins-table th{background:var(--surf2);border-bottom-color:var(--bdr)}
+[data-theme="dark"] .ins-table td{border-bottom-color:var(--bdr2);color:var(--t2)}
+[data-theme="dark"] .ins-table tbody tr:hover{background:var(--surf2)}
+
+/* Modal dark */
+[data-theme="dark"] #modal{background:var(--surf);border-color:var(--bdr)}
+[data-theme="dark"] .modal-hd{border-bottom-color:var(--bdr)}
+[data-theme="dark"] .modal-hd h3{color:var(--t1)}
+[data-theme="dark"] .modal-ft{border-top-color:var(--bdr)}
+[data-theme="dark"] .modal-close{background:var(--surf2);color:var(--t3)}
+[data-theme="dark"] .det-field{background:var(--surf2);border-color:var(--bdr)}
+[data-theme="dark"] .det-field label{color:var(--t4)}
+[data-theme="dark"] .det-field span{color:var(--t1)}
+[data-theme="dark"] .mbtn-s{background:var(--surf2);border-color:var(--bdr);color:var(--t2)}
+[data-theme="dark"] .tl-item::before{background:var(--bdr)}
+[data-theme="dark"] .tl-fb{background:var(--surf2)}
+[data-theme="dark"] .info-note{background:var(--surf2);color:var(--t3)}
+[data-theme="dark"] .act-row{border-bottom-color:var(--bdr2)}
+
+/* src-tag dark */
+[data-theme="dark"] .src-tag{background:var(--surf2);color:var(--t2);border-color:var(--bdr)}
+
+/* round-b */
+.round-b{width:24px;height:24px;font-size:10px}
+
+/* Offer card dark */
+[data-theme="dark"] .offer-card{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2)}
+
+/* Pipeline wrapper */
+.pipeline-bar-wrap{margin-bottom:10px}
+
+/* Transition for view switches */
+.view{display:none;animation:viewIn .25s ease}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
 </style>
 <base target="_blank">
 </head>
