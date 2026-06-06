@@ -283,8 +283,8 @@ function _renderHome() {
   </div>
 
   <!-- Pipeline Stage Bar -->
-  <div class="dash-section-card">
-    <div class="dash-section-header">
+  <div class="section-card">
+    <div class="section-head">
       <h3><i class="fa-solid fa-filter-circle-dollar mr-2 text-red-600"></i>Recruitment Pipeline</h3>
       <span class="text-sm text-slate-400">${totalCands} total candidates</span>
     </div>
@@ -309,103 +309,103 @@ function _renderHome() {
   </div>
 
   <!-- Charts Row 1 -->
-  <div class="charts-grid-2">
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+  <div class="charts-2">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-chart-pie mr-2 text-blue-600"></i>Candidate Stage Distribution</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cStage"></canvas></div>
+      <div class="chart-h-md"><canvas id="cStage"></canvas></div>
     </div>
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-building mr-2 text-violet-600"></i>Hiring by Department</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cDept"></canvas></div>
+      <div class="chart-h-md"><canvas id="cDept"></canvas></div>
     </div>
   </div>
 
   <!-- Charts Row 2 -->
-  <div class="charts-grid-2">
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+  <div class="charts-2">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-chart-line mr-2 text-green-600"></i>Joinings Trend (6 Months)</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cTrend"></canvas></div>
+      <div class="chart-h-md"><canvas id="cTrend"></canvas></div>
     </div>
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-satellite-dish mr-2 text-amber-600"></i>Candidate Source Mix</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cSource"></canvas></div>
+      <div class="chart-h-md"><canvas id="cSource"></canvas></div>
     </div>
   </div>
 
   <!-- Charts Row 3 -->
-  <div class="charts-grid-2">
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+  <div class="charts-2">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-ranking-star mr-2 text-red-600"></i>Top Jobs by Applications</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cTopJobs"></canvas></div>
+      <div class="chart-h-md"><canvas id="cTopJobs"></canvas></div>
     </div>
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-handshake mr-2 text-teal-600"></i>Top Agencies by Candidates</h3>
       </div>
-      <div class="chart-wrap-md"><canvas id="cAgency"></canvas></div>
+      <div class="chart-h-md"><canvas id="cAgency"></canvas></div>
     </div>
   </div>
 
   <!-- Bottom Grid: Activity + Upcoming -->
-  <div class="charts-grid-2">
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+  <div class="charts-2">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-bolt mr-2 text-amber-500"></i>Recent Applications</h3>
         <button class="text-xs text-red-600 font-semibold hover:underline" onclick="_lv('candidates')">View All →</button>
       </div>
-      <div class="activity-list">
+      <div class="act-list">
         ${recentCands.length ? recentCands.map(function(c){
           var job = (jobs||[]).find(function(j){return j['Job ID']===c['Job ID'];});
-          return `<div class="activity-row">
-            <div class="act-avatar">${(c['Full Name']||'?').charAt(0)}</div>
+          return `<div class="act-row">
+            <div class="act-av">${(c['Full Name']||'?').charAt(0)}</div>
             <div class="act-info">
               <div class="act-name">${c['Full Name']}</div>
               <div class="act-sub">${job ? job['Title'] : '—'} · ${c['Source']||'—'} ${c['Agency Name'] ? '· ' + c['Agency Name'] : ''}</div>
             </div>
-            <span class="badge-stage ${_stageClass(c['Stage'])}">${c['Stage']}</span>
+            <span class="${_stageClass(c['Stage'])}">${c['Stage']}</span>
           </div>`;
-        }).join('') : '<div class="empty-state-sm">No recent applications</div>'}
+        }).join('') : '<div class="empty-sm">No recent applications</div>'}
       </div>
     </div>
-    <div class="dash-section-card">
-      <div class="dash-section-header">
+    <div class="section-card">
+      <div class="section-head">
         <h3><i class="fa-solid fa-calendar-days mr-2 text-blue-500"></i>Upcoming Interviews</h3>
         <button class="text-xs text-red-600 font-semibold hover:underline" onclick="_lv('interviews')">View All →</button>
       </div>
-      <div class="activity-list">
+      <div class="act-list">
         ${recentInts.length ? recentInts.map(function(i){
           var c = (cands||[]).find(function(x){return x['Candidate ID']===i['Candidate ID'];});
-          return `<div class="activity-row">
-            <div class="act-icon-wrap"><i class="fa-solid fa-video text-blue-500"></i></div>
+          return `<div class="act-row">
+            <div class="act-ico-wrap"><i class="fa-solid fa-video text-blue-500"></i></div>
             <div class="act-info">
               <div class="act-name">${c ? c['Full Name'] : '—'}</div>
               <div class="act-sub">Round ${i['Round']} · ${i['Type']} · ${i['Mode']}</div>
             </div>
             <div class="act-date">${(i['Scheduled On']||'').slice(0,10)}</div>
           </div>`;
-        }).join('') : '<div class="empty-state-sm">No upcoming interviews</div>'}
+        }).join('') : '<div class="empty-sm">No upcoming interviews</div>'}
       </div>
     </div>
   </div>
 
   <!-- Job Status Summary Table -->
-  <div class="dash-section-card">
-    <div class="dash-section-header">
+  <div class="section-card">
+    <div class="section-head">
       <h3><i class="fa-solid fa-table-list mr-2 text-slate-600"></i>Job Opening Summary</h3>
       <button class="text-xs text-red-600 font-semibold hover:underline" onclick="_lv('jobs')">Manage Jobs →</button>
     </div>
-    <div class="overflow-x-auto">
-      <table class="insight-table">
+    <div class="tbl-scroll">
+      <table class="ins-table">
         <thead><tr><th>Job Title</th><th>Department</th><th>Openings</th><th>Applicants</th><th>Interviews</th><th>Selected</th><th>Status</th></tr></thead>
         <tbody>
           ${jobs.slice(0,8).map(function(j){
@@ -419,7 +419,7 @@ function _renderHome() {
               <td class="text-center">${jCands.length}</td>
               <td class="text-center">${jInts.length}</td>
               <td class="text-center">${jSel}</td>
-              <td><span class="badge-stage ${j['Status']==='Open'?'stage-joined':'stage-rejected'}">${j['Status']}</span></td>
+              <td><span class="${j['Status']==='Open'?'badge b-open':'badge b-closed'}">${j['Status']}</span></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -510,23 +510,18 @@ function _renderHome() {
 }
 
 function _kpiCard(icon, label, value, color, sub) {
-  var colorMap = {
-    red: 'bg-red-50 text-red-600', blue: 'bg-blue-50 text-blue-600',
-    amber: 'bg-amber-50 text-amber-600', violet: 'bg-violet-50 text-violet-600',
-    green: 'bg-green-50 text-green-600', teal: 'bg-teal-50 text-teal-600',
-    rose: 'bg-rose-50 text-rose-600', slate: 'bg-slate-100 text-slate-600'
-  };
+  var colorMap = { red:'', blue:'', amber:'', violet:'', green:'', teal:'', rose:'', slate:'' };
   var borderMap = {
-    red: 'border-t-red-500', blue: 'border-t-blue-500',
-    amber: 'border-t-amber-500', violet: 'border-t-violet-500',
-    green: 'border-t-green-500', teal: 'border-t-teal-500',
-    rose: 'border-t-rose-500', slate: 'border-t-slate-400'
+    red: 'kc-red', blue: 'kc-blue',
+    amber: 'kc-amber', violet: 'kc-violet',
+    green: 'kc-green', teal: 'kc-teal',
+    rose: 'kc-rose', slate: 'kc-slate'
   };
   return `<div class="kpi-card ${borderMap[color]||''}">
-    <div class="kpi-ico-wrap ${colorMap[color]||''}"><i class="fa-solid fa-${icon}"></i></div>
+    <div class="kpi-ico"><i class="fa-solid fa-${icon}"></i></div>
     <div class="kpi-body">
       <div class="kpi-val">${value}</div>
-      <div class="kpi-label">${label}</div>
+      <div class="kpi-lbl">${label}</div>
       <div class="kpi-sub">${sub}</div>
     </div>
   </div>`;
@@ -542,9 +537,8 @@ function _pipeLeg(label, count, color) {
 }
 
 function _stageClass(stage) {
-  var m = { Applied:'stage-applied', Interview:'stage-interview', Selected:'stage-selected',
-    Offered:'stage-offered', Joined:'stage-joined', Rejected:'stage-rejected' };
-  return m[stage] || 'stage-applied';
+  var m = { Applied:'badge b-applied', Interview:'badge b-interview', Selected:'badge b-selected', Offered:'badge b-offered', Joined:'badge b-joined', Rejected:'badge b-rejected' };
+  return m[stage] || 'badge b-applied';
 }
 
 function _stageNext(stage) {
@@ -586,30 +580,30 @@ function _renderJobs() {
   var locOptHtml  = allLocs.map(function(l){ return '<option value="'+l+'" '+(locF===l?'selected':'')+'>'+(l==='all'?'All Locations':l)+'</option>'; }).join('');
 
   var html = `
-  <div class="view-toolbar">
-    <div class="toolbar-left">
+  <div class="view-bar">
+    <div class="vb-left">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="jobSearch" type="text" placeholder="Search by title, dept, location..." value="${search}" oninput="_renderJobs()">
       </div>
-      <select id="jobFilter" class="filter-select" onchange="_renderJobs()">
+      <select id="jobFilter" class="f-select" onchange="_renderJobs()">
         <option value="all" ${filter==='all'?'selected':''}>All Status</option>
         <option value="Open" ${filter==='Open'?'selected':''}>🟢 Open</option>
         <option value="Closed" ${filter==='Closed'?'selected':''}>🔴 Closed</option>
         <option value="On Hold" ${filter==='On Hold'?'selected':''}>🟡 On Hold</option>
       </select>
-      <select id="jobDeptFilter" class="filter-select" onchange="_renderJobs()">${deptOptHtml}</select>
-      <select id="jobLocFilter" class="filter-select" onchange="_renderJobs()">${locOptHtml}</select>
+      <select id="jobDeptFilter" class="f-select" onchange="_renderJobs()">${deptOptHtml}</select>
+      <select id="jobLocFilter" class="f-select" onchange="_renderJobs()">${locOptHtml}</select>
     </div>
-    <div class="toolbar-right">
-      <span class="result-count">${visible.length} of ${jobs.length} job(s)</span>
-      ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openJobModal()"><i class="fa-solid fa-plus mr-1"></i>Add Job</button>' : ''}
+    <div class="vb-right">
+      <span class="res-count">${visible.length} of ${jobs.length} job(s)</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openJobModal()"><i class="fa-solid fa-plus mr-1"></i>Add Job</button>' : ''}
     </div>
   </div>
   ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only</div>' : ''}
 
   <div class="table-card">
-    <table class="data-table">
+    <table class="data-tbl">
       <thead>
         <tr>
           <th>Job ID</th>
@@ -627,7 +621,7 @@ function _renderJobs() {
       <tbody>
         ${visible.length ? visible.map(function(j) {
           var cnt = cands.filter(function(c){ return c['Job ID']===j['Job ID']; }).length;
-          var stCls = j['Status']==='Open' ? 'stage-joined' : j['Status']==='Closed' ? 'stage-rejected' : 'stage-applied';
+          var stCls = j['Status']==='Open' ? 'b-joined badge' : j['Status']==='Closed' ? 'b-rejected badge' : 'b-applied badge';
           return `<tr>
             <td class="id-cell">${j['Job ID']}</td>
             <td class="font-semibold text-slate-800">${j['Title']}</td>
@@ -636,15 +630,15 @@ function _renderJobs() {
             <td class="text-green-700 font-medium">${j['Salary Range']||'—'}</td>
             <td class="text-center">${j['Openings']||1}</td>
             <td class="text-center">
-              <button class="link-btn" onclick="_viewJobCands('${j['Job ID']}')">${cnt}</button>
+              <button class="lnk-btn" onclick="_viewJobCands('${j['Job ID']}')">${cnt}</button>
             </td>
             <td class="${j['Deadline'] && j['Deadline'] < today ? 'text-red-500' : ''}">${j['Deadline']||'—'}</td>
-            <td><span class="badge-stage ${stCls}">${j['Status']}</span></td>
+            <td><span class="${stCls}">${j['Status']}</span></td>
             ${_hasWrite() ? `<td>
-              <div class="action-btns">
-                <button class="icon-btn" title="Edit" onclick="_editJob('${j['Job ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                <button class="icon-btn" title="View Candidates" onclick="_viewJobCands('${j['Job ID']}')"><i class="fa-solid fa-users"></i></button>
-                ${_isAdmin() && j['Status']==='Open' ? `<button class="icon-btn danger" title="Close Job" onclick="_closeJob('${j['Job ID']}')"><i class="fa-solid fa-ban"></i></button>` : ''}
+              <div class="act-btns">
+                <button class="ic-btn" title="Edit" onclick="_editJob('${j['Job ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="ic-btn" title="View Candidates" onclick="_viewJobCands('${j['Job ID']}')"><i class="fa-solid fa-users"></i></button>
+                ${_isAdmin() && j['Status']==='Open' ? `<button class="ic-btn dan" title="Close Job" onclick="_closeJob('${j['Job ID']}')"><i class="fa-solid fa-ban"></i></button>` : ''}
               </div>
             </td>` : ''}
           </tr>`;
@@ -662,7 +656,7 @@ function _openJobModal(job) {
   var j = job || {};
   var depts = ['Production','Quality','Accounts','HR','Purchase','Sales','Admin','IT','Maintenance'];
   _showModal(j['Job ID'] ? 'Edit Job Opening' : 'New Job Opening', `
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg full">
         <label>Job Title <span class="req">*</span></label>
         <input id="f_title" value="${j['Title']||''}" placeholder="e.g. Production Supervisor">
@@ -696,8 +690,8 @@ function _openJobModal(job) {
         <textarea id="f_desc" rows="3" placeholder="Describe responsibilities, skills needed...">${j['Description']||''}</textarea>
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Job</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Job</button>`
   );
 }
 
@@ -715,9 +709,9 @@ function _submitJob(existingId) {
     deadline: _val('f_ddl'), description: _val('f_desc')
   };
   if (!data.title) { _toast('Job title is required.','error'); _submitting=false; return; }
-  _setBtnLoading('modal-btn-primary', true, 'Saving...');
+  _setBtnLoading('mbtn-p', true, 'Saving...');
   _api(existingId ? 'updateJob' : 'saveJob', data, function(r) {
-    _submitting = false; _setBtnLoading('modal-btn-primary', false, 'Save Job');
+    _submitting = false; _setBtnLoading('mbtn-p', false, 'Save Job');
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
     else _toast(r.error, 'error');
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
@@ -787,21 +781,21 @@ function _renderCandidates() {
   var deptOpts = allDepts2.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
 
   var html = `
-  <div class="view-toolbar" style="flex-wrap:wrap;gap:10px;">
-    <div class="toolbar-left" style="flex-wrap:wrap;">
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;">
+    <div class="vb-left" style="flex-wrap:wrap;">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="cndSearch" type="text" placeholder="Name, email, phone, company, agency..." value="${search}" oninput="_renderCandidates()">
       </div>
-      <select id="cndStageFilter" class="filter-select" onchange="_renderCandidates()">
+      <select id="cndStageFilter" class="f-select" onchange="_renderCandidates()">
         <option value="all" ${stgF==='all'?'selected':''}>All Stages</option>
         ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){ return '<option value="'+s+'" '+(stgF===s?'selected':'')+'>'+s+'</option>'; }).join('')}
       </select>
-      <select id="cndJobFilter" class="filter-select" onchange="_renderCandidates()">${jobOpts}</select>
-      <select id="cndDeptFilter" class="filter-select" onchange="_renderCandidates()">${deptOpts}</select>
-      <select id="cndSrcFilter" class="filter-select" onchange="_renderCandidates()">${srcOpts}</select>
-      <select id="cndAgyFilter" class="filter-select" onchange="_renderCandidates()">${agyOpts}</select>
-      <select id="cndExpFilter" class="filter-select" onchange="_renderCandidates()">
+      <select id="cndJobFilter" class="f-select" onchange="_renderCandidates()">${jobOpts}</select>
+      <select id="cndDeptFilter" class="f-select" onchange="_renderCandidates()">${deptOpts}</select>
+      <select id="cndSrcFilter" class="f-select" onchange="_renderCandidates()">${srcOpts}</select>
+      <select id="cndAgyFilter" class="f-select" onchange="_renderCandidates()">${agyOpts}</select>
+      <select id="cndExpFilter" class="f-select" onchange="_renderCandidates()">
         <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
         <option value="0-2" ${expF==='0-2'?'selected':''}>0–2 years</option>
         <option value="2-5" ${expF==='2-5'?'selected':''}>2–5 years</option>
@@ -809,16 +803,16 @@ function _renderCandidates() {
         <option value="10+" ${expF==='10+'?'selected':''}>10+ years</option>
       </select>
     </div>
-    <div class="toolbar-right">
-      <span class="result-count">${visible.length} of ${cands.length}</span>
-      ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openCndModal()"><i class="fa-solid fa-user-plus mr-1"></i>Add Candidate</button>' : ''}
+    <div class="vb-right">
+      <span class="res-count">${visible.length} of ${cands.length}</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openCndModal()"><i class="fa-solid fa-user-plus mr-1"></i>Add Candidate</button>' : ''}
     </div>
   </div>
   ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only Mode</div>' : ''}
 
   <div class="table-card">
-    <div class="overflow-x-auto">
-      <table class="data-table" style="min-width:1200px;">
+    <div class="tbl-scroll">
+      <table class="data-tbl" style="min-width:1200px;">
         <thead>
           <tr>
             <th>ID</th>
@@ -849,7 +843,7 @@ function _renderCandidates() {
               <td class="id-cell">${c['Candidate ID']}</td>
               <td>
                 <div class="name-cell">
-                  <div class="name-avatar">${(c['Full Name']||'?').charAt(0)}</div>
+                  <div class="n-av">${(c['Full Name']||'?').charAt(0)}</div>
                   <div>
                     <div class="font-semibold text-slate-800">${c['Full Name']}</div>
                     <div class="text-xs text-slate-400">${c['Email']||''}</div>
@@ -862,21 +856,21 @@ function _renderCandidates() {
               <td>${c['Current Company']||'—'}</td>
               <td class="text-center">${c['Experience (Yrs)']||0} yrs</td>
               <td class="text-sm">${c['Current CTC']||'—'} / <span class="text-green-700">${c['Expected CTC']||'—'}</span></td>
-              <td><span class="source-tag">${c['Source']||'—'}</span></td>
-              <td>${c['Agency Name'] ? '<span class="source-tag" style="background:#ede9fe;color:#6d28d9">'+c['Agency Name']+'</span>' : '—'}</td>
-              <td><span class="badge-stage ${_stageClass(c['Stage'])}">${c['Stage']}</span></td>
+              <td><span class="src-tag">${c['Source']||'—'}</span></td>
+              <td>${c['Agency Name'] ? '<span class="agy-tag">' + c['Agency Name'] + '</span>' : '—'}</td>
+              <td><span class="${_stageClass(c['Stage'])}">${c['Stage']}</span></td>
               <td class="text-slate-500 text-xs">${c['Applied On']||'—'}</td>
               <td class="text-slate-500 text-xs">${c['Last Modified'] ? c['Last Modified'].slice(0,10) : '—'}</td>
               <td>
-                <div class="action-btns" style="flex-wrap:wrap;gap:4px;">
-                  <button class="icon-btn" title="View Detail" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
+                <div class="act-btns" style="flex-wrap:wrap;gap:4px;">
+                  <button class="ic-btn" title="View Detail" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
                   ${_hasWrite() ? `
-                    <button class="icon-btn" title="Edit" onclick="_editCnd('${c['Candidate ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                    ${canAdvance ? `<button class="icon-btn success" title="Move to ${nextStg}" onclick="_quickStageChange('${c['Candidate ID']}','${nextStg}')"><i class="fa-solid fa-forward"></i></button>` : ''}
-                    ${canRevert ? `<button class="icon-btn" title="Revert to ${prevStg}" style="color:#f59e0b" onclick="_quickStageChange('${c['Candidate ID']}','${prevStg}')"><i class="fa-solid fa-backward"></i></button>` : ''}
-                    ${canReject ? `<button class="icon-btn danger" title="Reject" onclick="_quickStageChange('${c['Candidate ID']}','Rejected')"><i class="fa-solid fa-ban"></i></button>` : ''}
-                    ${c['Stage']==='Applied' ? `<button class="icon-btn success" title="Schedule Interview" onclick="_scheduleInterviewFrom('${c['Candidate ID']}')"><i class="fa-solid fa-calendar-plus"></i></button>` : ''}
-                    ${c['Stage']==='Selected' ? `<button class="icon-btn success" title="Create Offer" onclick="_createOfferFrom('${c['Candidate ID']}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
+                    <button class="ic-btn" title="Edit" onclick="_editCnd('${c['Candidate ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                    ${canAdvance ? `<button class="ic-btn suc" title="Move to ${nextStg}" onclick="_quickStageChange('${c['Candidate ID']}','${nextStg}')"><i class="fa-solid fa-forward"></i></button>` : ''}
+                    ${canRevert ? `<button class="ic-btn bwd" title="Revert to ${prevStg}" onclick="_quickStageChange('${c['Candidate ID']}','${prevStg}')"><i class="fa-solid fa-backward"></i></button>` : ''}
+                    ${canReject ? `<button class="ic-btn dan" title="Reject" onclick="_quickStageChange('${c['Candidate ID']}','Rejected')"><i class="fa-solid fa-ban"></i></button>` : ''}
+                    ${c['Stage']==='Applied' ? `<button class="ic-btn suc" title="Schedule Interview" onclick="_scheduleInterviewFrom('${c['Candidate ID']}')"><i class="fa-solid fa-calendar-plus"></i></button>` : ''}
+                    ${c['Stage']==='Selected' ? `<button class="ic-btn suc" title="Create Offer" onclick="_createOfferFrom('${c['Candidate ID']}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
                   ` : ''}
                 </div>
               </td>
@@ -908,7 +902,7 @@ function _openCndModal(cnd) {
   var sources = ['Portal','Referral','LinkedIn','Direct Walk-in','Agency','Campus','Other'];
 
   _showModal(c['Candidate ID'] ? 'Edit Candidate' : 'Add Candidate', `
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg">
         <label>Full Name <span class="req">*</span></label>
         <input id="c_name" value="${c['Full Name']||''}" placeholder="Candidate full name">
@@ -954,8 +948,8 @@ function _openCndModal(cnd) {
         <input id="c_res" value="${c['Resume Link']||''}" placeholder="https://drive.google.com/...">
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Candidate</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Candidate</button>`
   );
 }
 
@@ -990,23 +984,23 @@ function _openCndDetail(candidateId) {
   var agy   = c['Agency Name'] ? (_D.agencies||[]).find(function(a){ return a['Agency Name']===c['Agency Name']; }) : null;
 
   var intHtml = cInts.length ? cInts.map(function(i){
-    var rc = i['Result']==='Pass' ? 'stage-joined' : i['Result']==='Fail' ? 'stage-rejected' : 'stage-interview';
-    return `<div class="timeline-item">
-      <div class="timeline-dot ${i['Result']==='Pass'?'dot-green':i['Result']==='Fail'?'dot-red':'dot-amber'}"></div>
-      <div class="timeline-body">
-        <div class="tl-head">Round ${i['Round']} — ${i['Type']} <span class="badge-stage ${rc} ml-2">${i['Result']||i['Status']}</span></div>
+    var rc = i['Result']==='Pass' ? 'b-joined badge' : i['Result']==='Fail' ? 'b-rejected badge' : 'b-interview badge';
+    return `<div class="tl-item">
+      <div class="timeline-dot ${i['Result']==='Pass'?'tl-g':i['Result']==='Fail'?'tl-r':'tl-a'}"></div>
+      <div class="tl-body">
+        <div class="tl-head">Round ${i['Round']} — ${i['Type']} <span class="${rc} ml-2">${i['Result']||i['Status']}</span></div>
         <div class="tl-sub">${i['Scheduled On']} · ${i['Interviewer']} · ${i['Mode']}</div>
-        ${i['Feedback'] ? `<div class="tl-feedback">"${i['Feedback']}"</div>` : ''}
+        ${i['Feedback'] ? `<div class="tl-fb">"${i['Feedback']}"</div>` : ''}
         ${_hasWrite() && i['Status']==='Scheduled' ? `<button class="link-btn mt-1" onclick="_markInterviewResult('${i['Interview ID']}','${candidateId}')"><i class="fa-solid fa-pen mr-1"></i>Mark Result</button>` : ''}
       </div>
     </div>`;
   }).join('') : '<div class="text-slate-400 text-sm py-2">No interviews scheduled yet.</div>';
 
   var offerHtml = offer ? `
-    <div class="detail-offer-card">
+    <div class="offer-card">
       <div class="flex items-center justify-between mb-2">
         <div class="font-semibold text-slate-700">Offer Letter</div>
-        <span class="badge-stage ${offer['Offer Status']==='Accepted'?'stage-joined':offer['Offer Status']==='Declined'?'stage-rejected':'stage-offered'}">${offer['Offer Status']}</span>
+        <span class="${offer['Offer Status']==='Accepted'?'badge b-accepted':offer['Offer Status']==='Declined'?'badge b-declined':'badge b-sent'}">${offer['Offer Status']}</span>
       </div>
       <div class="grid grid-cols-2 gap-2 text-sm">
         <div><span class="text-slate-400">CTC:</span> <strong class="text-green-700">${offer['Offered CTC']} LPA</strong></div>
@@ -1014,49 +1008,49 @@ function _openCndDetail(candidateId) {
       </div>
       ${_hasWrite() && offer['Offer Status']==='Sent' ? `
         <div class="flex gap-2 mt-3">
-          <button class="modal-btn-primary small" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Accepted');_closeModal()"><i class="fa-solid fa-check mr-1"></i>Mark Accepted</button>
+          <button class="mbtn-p sm" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Accepted');_closeModal()"><i class="fa-solid fa-check mr-1"></i>Mark Accepted</button>
           <button class="modal-btn-danger small" onclick="_updateOfferStatus('${offer['Offer ID']}','${candidateId}','Declined');_closeModal()">Mark Declined</button>
         </div>` : ''}
       ${_hasWrite() && offer['Offer Status']==='Accepted' ? `
-        <button class="modal-btn-primary small mt-3" onclick="_confirmJoining('${offer['Offer ID']}','${candidateId}');"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>` : ''}
+        <button class="mbtn-p sm mt-3" onclick="_confirmJoining('${offer['Offer ID']}','${candidateId}');"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>` : ''}
     </div>` : '';
 
   var agyHtml = agy ? `
-    <div class="detail-field" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
+    <div class="det-field" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
       <label style="color:#7c3aed"><i class="fa-solid fa-handshake mr-1"></i>Agency</label>
       <span style="color:#6d28d9;font-weight:700">${agy['Agency Name']}</span>
       <div class="text-xs text-slate-500 mt-1">Contact: ${agy['Contact Person']||'—'} · Commission: ${agy['Commission (%)']||0}%</div>
     </div>` : '';
 
   _showModal(`${c['Full Name']} — Profile`, `
-    <div class="detail-header">
-      <div class="detail-avatar">${(c['Full Name']||'?').charAt(0)}</div>
+    <div class="det-hd">
+      <div class="det-av">${(c['Full Name']||'?').charAt(0)}</div>
       <div>
-        <div class="detail-name">${c['Full Name']}</div>
-        <div class="detail-meta">${c['Email']||''} · ${c['Phone']||''}</div>
-        <span class="badge-stage ${_stageClass(c['Stage'])}">${c['Stage']}</span>
+        <div class="det-name">${c['Full Name']}</div>
+        <div class="det-meta">${c['Email']||''} · ${c['Phone']||''}</div>
+        <span class="${_stageClass(c['Stage'])}">${c['Stage']}</span>
       </div>
     </div>
-    <div class="detail-grid">
-      <div class="detail-field"><label>Job Applied</label><span>${job ? job['Title'] : '—'}</span></div>
-      <div class="detail-field"><label>Department</label><span>${job ? job['Department']||'—' : '—'}</span></div>
-      <div class="detail-field"><label>Current Company</label><span>${c['Current Company']||'—'}</span></div>
-      <div class="detail-field"><label>Experience</label><span>${c['Experience (Yrs)']||0} years</span></div>
-      <div class="detail-field"><label>Current CTC</label><span>${c['Current CTC']||'—'}</span></div>
-      <div class="detail-field"><label>Expected CTC</label><span class="text-green-700 font-semibold">${c['Expected CTC']||'—'}</span></div>
-      <div class="detail-field"><label>Source</label><span>${c['Source']||'—'}</span></div>
-      <div class="detail-field"><label>Applied On</label><span>${c['Applied On']||'—'}</span></div>
+    <div class="det-grid">
+      <div class="det-field"><label>Job Applied</label><span>${job ? job['Title'] : '—'}</span></div>
+      <div class="det-field"><label>Department</label><span>${job ? job['Department']||'—' : '—'}</span></div>
+      <div class="det-field"><label>Current Company</label><span>${c['Current Company']||'—'}</span></div>
+      <div class="det-field"><label>Experience</label><span>${c['Experience (Yrs)']||0} years</span></div>
+      <div class="det-field"><label>Current CTC</label><span>${c['Current CTC']||'—'}</span></div>
+      <div class="det-field"><label>Expected CTC</label><span class="text-green-700 font-semibold">${c['Expected CTC']||'—'}</span></div>
+      <div class="det-field"><label>Source</label><span>${c['Source']||'—'}</span></div>
+      <div class="det-field"><label>Applied On</label><span>${c['Applied On']||'—'}</span></div>
       ${agyHtml}
-      ${c['Resume Link'] ? `<div class="detail-field full"><label>Resume</label><a href="${c['Resume Link']}" target="_blank" class="link-btn">View Resume <i class="fa-solid fa-external-link ml-1"></i></a></div>` : ''}
+      ${c['Resume Link'] ? `<div class="det-field full"><label>Resume</label><a href="${c['Resume Link']}" target="_blank" class="lnk-btn">View Resume <i class="fa-solid fa-external-link ml-1"></i></a></div>` : ''}
     </div>
-    <div class="detail-section-title">Interview History</div>
+    <div class="det-sec-title">Interview History</div>
     <div class="timeline">${intHtml}</div>
     ${offerHtml}`,
     `<div class="flex gap-2 flex-wrap">
-      <button class="modal-btn-secondary" onclick="_editCnd('${candidateId}');_closeModal()"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-      ${_hasWrite() && c['Stage']==='Applied' ? `<button class="modal-btn-primary" onclick="_scheduleInterviewFrom('${candidateId}')"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>` : ''}
-      ${_hasWrite() && c['Stage']==='Selected' ? `<button class="modal-btn-primary" onclick="_createOfferFrom('${candidateId}')"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>` : ''}
-      ${_hasWrite() && _stageNext(c['Stage']) ? `<button class="modal-btn-success" onclick="_quickStageChange('${candidateId}','${_stageNext(c['Stage'])}');_closeModal()"><i class="fa-solid fa-forward mr-1"></i>Move to ${_stageNext(c['Stage'])}</button>` : ''}
+      <button class="mbtn-s" onclick="_editCnd('${candidateId}');_closeModal()"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
+      ${_hasWrite() && c['Stage']==='Applied' ? `<button class="mbtn-p" onclick="_scheduleInterviewFrom('${candidateId}')"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>` : ''}
+      ${_hasWrite() && c['Stage']==='Selected' ? `<button class="mbtn-p" onclick="_createOfferFrom('${candidateId}')"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>` : ''}
+      ${_hasWrite() && _stageNext(c['Stage']) ? `<button class="mbtn-g" onclick="_quickStageChange('${candidateId}','${_stageNext(c['Stage'])}');_closeModal()"><i class="fa-solid fa-forward mr-1"></i>Move to ${_stageNext(c['Stage'])}</button>` : ''}
       <button class="modal-btn-secondary ml-auto" onclick="_closeModal()">Close</button>
     </div>`
   );
@@ -1100,41 +1094,41 @@ function _renderInterviews() {
   var modeOpts = allModes.map(function(m){ return '<option value="'+m+'" '+(modeF===m?'selected':'')+'>'+(m==='all'?'All Modes':m)+'</option>'; }).join('');
 
   var html = `
-  <div class="view-toolbar" style="flex-wrap:wrap;gap:10px;">
-    <div class="toolbar-left" style="flex-wrap:wrap;">
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;">
+    <div class="vb-left" style="flex-wrap:wrap;">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="intSearch" type="text" placeholder="Search by candidate name..." value="${search}" oninput="_renderInterviews()">
       </div>
-      <select id="intFilter" class="filter-select" onchange="_renderInterviews()">
+      <select id="intFilter" class="f-select" onchange="_renderInterviews()">
         <option value="all" ${filter==='all'?'selected':''}>All Status</option>
         <option value="Scheduled" ${filter==='Scheduled'?'selected':''}>Scheduled</option>
         <option value="Done" ${filter==='Done'?'selected':''}>Done</option>
         <option value="Cancelled" ${filter==='Cancelled'?'selected':''}>Cancelled</option>
       </select>
-      <select id="intTypeFilter" class="filter-select" onchange="_renderInterviews()">${typeOpts}</select>
-      <select id="intModeFilter" class="filter-select" onchange="_renderInterviews()">${modeOpts}</select>
-      <select id="intRoundFilter" class="filter-select" onchange="_renderInterviews()">
+      <select id="intTypeFilter" class="f-select" onchange="_renderInterviews()">${typeOpts}</select>
+      <select id="intModeFilter" class="f-select" onchange="_renderInterviews()">${modeOpts}</select>
+      <select id="intRoundFilter" class="f-select" onchange="_renderInterviews()">
         <option value="all" ${roundF==='all'?'selected':''}>All Rounds</option>
         <option value="1" ${roundF==='1'?'selected':''}>Round 1</option>
         <option value="2" ${roundF==='2'?'selected':''}>Round 2</option>
         <option value="3" ${roundF==='3'?'selected':''}>Round 3</option>
       </select>
-      <select id="intResultFilter" class="filter-select" onchange="_renderInterviews()">
+      <select id="intResultFilter" class="f-select" onchange="_renderInterviews()">
         <option value="all" ${resultF==='all'?'selected':''}>All Results</option>
         <option value="Pass" ${resultF==='Pass'?'selected':''}>✅ Pass</option>
         <option value="Fail" ${resultF==='Fail'?'selected':''}>❌ Fail</option>
         <option value="Hold" ${resultF==='Hold'?'selected':''}>⏸ Hold</option>
       </select>
     </div>
-    <div class="toolbar-right">
-      <span class="result-count">${visible.length} of ${ints.length}</span>
-      ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>' : ''}
+    <div class="vb-right">
+      <span class="res-count">${visible.length} of ${ints.length}</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openInterviewModal()"><i class="fa-solid fa-calendar-plus mr-1"></i>Schedule Interview</button>' : ''}
     </div>
   </div>
 
   <div class="table-card">
-    <table class="data-table">
+    <table class="data-tbl">
       <thead>
         <tr>
           <th>ID</th><th>Candidate</th><th>Job Role</th><th>Round</th><th>Type</th>
@@ -1146,31 +1140,31 @@ function _renderInterviews() {
         ${visible.length ? visible.map(function(i) {
           var c   = cands.find(function(x){ return x['Candidate ID']===i['Candidate ID']; });
           var job = (_D.jobs||[]).find(function(j){ return j['Job ID']===i['Job ID']; });
-          var stCls = i['Status']==='Done' ? 'stage-joined' : i['Status']==='Cancelled' ? 'stage-rejected' : 'stage-interview';
-          var resCls = i['Result']==='Pass' ? 'stage-joined' : i['Result']==='Fail' ? 'stage-rejected' : i['Result']==='Hold' ? 'stage-offered' : '';
+          var stCls = i['Status']==='Done' ? 'b-joined badge' : i['Status']==='Cancelled' ? 'b-rejected badge' : 'b-interview badge';
+          var resCls = i['Result']==='Pass' ? 'b-joined badge' : i['Result']==='Fail' ? 'b-rejected badge' : i['Result']==='Hold' ? 'b-offered badge' : '';
           return `<tr>
             <td class="id-cell">${i['Interview ID']}</td>
             <td>
               <div class="name-cell">
-                <div class="name-avatar sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
+                <div class="n-av sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
                 <span class="font-medium text-slate-700">${c ? c['Full Name'] : '—'}</span>
               </div>
             </td>
             <td class="text-slate-600">${job ? job['Title'] : '—'}</td>
-            <td class="text-center"><span class="round-badge">R${i['Round']||1}</span></td>
+            <td class="text-center"><span class="round-b">R${i['Round']||1}</span></td>
             <td>${i['Type']||'—'}</td>
             <td>${i['Scheduled On']||'—'}</td>
             <td>${i['Interviewer']||'—'}</td>
             <td>
-              ${i['Meeting Link'] ? `<a href="${i['Meeting Link']}" target="_blank" class="link-btn"><i class="fa-solid fa-video mr-1"></i>${i['Mode']||'Online'}</a>` : (i['Mode']||'—')}
+              ${i['Meeting Link'] ? `<a href="${i['Meeting Link']}" target="_blank" class="lnk-btn"><i class="fa-solid fa-video mr-1"></i>${i['Mode']||'Online'}</a>` : (i['Mode']||'—')}
             </td>
-            <td><span class="badge-stage ${stCls}">${i['Status']}</span></td>
-            <td>${i['Result'] ? `<span class="badge-stage ${resCls}">${i['Result']}</span>` : '<span class="text-slate-300">—</span>'}</td>
+            <td><span class="${stCls}">${i['Status']}</span></td>
+            <td>${i['Result'] ? `<span class="${resCls}">${i['Result']}</span>` : '<span class="text-slate-300">—</span>'}</td>
             ${_hasWrite() ? `<td>
-              <div class="action-btns">
-                ${i['Status']==='Scheduled' ? `<button class="icon-btn success" title="Mark Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>` : ''}
-                ${i['Status']==='Scheduled' ? `<button class="icon-btn danger" title="Cancel" onclick="_cancelInterview('${i['Interview ID']}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
-                ${i['Feedback'] ? `<button class="icon-btn" title="Feedback: ${i['Feedback']}"><i class="fa-solid fa-comment-dots"></i></button>` : ''}
+              <div class="act-btns">
+                ${i['Status']==='Scheduled' ? `<button class="ic-btn suc" title="Mark Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>` : ''}
+                ${i['Status']==='Scheduled' ? `<button class="ic-btn dan" title="Cancel" onclick="_cancelInterview('${i['Interview ID']}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                ${i['Feedback'] ? `<button class="ic-btn" title="Feedback: ${i['Feedback']}"><i class="fa-solid fa-comment-dots"></i></button>` : ''}
               </div>
             </td>` : ''}
           </tr>`;
@@ -1188,7 +1182,7 @@ function _openInterviewModal(interview, preCandidateId) {
   if (!cndOpts) { _toast('No eligible candidates (Applied/Interview stage) found.', 'warning'); return; }
 
   _showModal('Schedule Interview', `
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg full">
         <label>Candidate <span class="req">*</span></label>
         <select id="i_cnd">${cndOpts}</select>
@@ -1226,8 +1220,8 @@ function _openInterviewModal(interview, preCandidateId) {
         <input id="i_link" placeholder="https://meet.google.com/...">
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check mr-1"></i>Schedule</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check mr-1"></i>Schedule</button>`
   );
 }
 
@@ -1251,7 +1245,7 @@ function _submitInterview() {
 
 function _markInterviewResult(interviewId, candidateId) {
   _showModal('Mark Interview Result', `
-    <div class="form-grid-1">
+    <div class="fg1">
       <div class="fg">
         <label>Result <span class="req">*</span></label>
         <select id="r_res">
@@ -1266,8 +1260,8 @@ function _markInterviewResult(interviewId, candidateId) {
         <textarea id="r_fb" rows="3" placeholder="Add interviewer feedback, strengths, areas of improvement..."></textarea>
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Result</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Result</button>`
   );
 }
 
@@ -1308,34 +1302,34 @@ function _renderOffers() {
     return c && (c['Full Name']||'').toLowerCase().includes(offSearch);
   });
   var html = `
-  <div class="view-toolbar">
-    <div class="toolbar-left">
+  <div class="view-bar">
+    <div class="vb-left">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="offSearch" type="text" placeholder="Search by candidate..." value="${offSearch}" oninput="_renderOffers()">
       </div>
-      <select id="offFilter" class="filter-select" onchange="_renderOffers()">
+      <select id="offFilter" class="f-select" onchange="_renderOffers()">
         <option value="all" ${filter==='all'?'selected':''}>All Offers</option>
         <option value="Sent" ${filter==='Sent'?'selected':''}>📤 Sent</option>
         <option value="Accepted" ${filter==='Accepted'?'selected':''}>✅ Accepted</option>
         <option value="Declined" ${filter==='Declined'?'selected':''}>❌ Declined</option>
         <option value="Expired" ${filter==='Expired'?'selected':''}>⏰ Expired</option>
       </select>
-      <select id="offMonthFilter" class="filter-select" onchange="_renderOffers()">
+      <select id="offMonthFilter" class="f-select" onchange="_renderOffers()">
         <option value="all">All Time</option>
         <option value="this_month">This Month</option>
         <option value="last_month">Last Month</option>
         <option value="this_year">This Year</option>
       </select>
     </div>
-    <div class="toolbar-right">
-      <span class="result-count">${visible.length} of ${offs.length}</span>
-      ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openOfferModal()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>' : ''}
+    <div class="vb-right">
+      <span class="res-count">${visible.length} of ${offs.length}</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openOfferModal()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>' : ''}
     </div>
   </div>
 
   <div class="table-card">
-    <table class="data-table">
+    <table class="data-tbl">
       <thead>
         <tr>
           <th>Offer ID</th><th>Candidate</th><th>Job Role</th>
@@ -1347,12 +1341,12 @@ function _renderOffers() {
         ${visible.length ? visible.map(function(o) {
           var c   = cands.find(function(x){ return x['Candidate ID']===o['Candidate ID']; });
           var job = jobs.find(function(j){ return j['Job ID']===o['Job ID']; });
-          var stCls = o['Offer Status']==='Accepted' ? 'stage-joined' : o['Offer Status']==='Declined' ? 'stage-rejected' : 'stage-offered';
+          var stCls = o['Offer Status']==='Accepted' ? 'b-joined badge' : o['Offer Status']==='Declined' ? 'b-rejected badge' : 'b-offered badge';
           return `<tr>
             <td class="id-cell">${o['Offer ID']}</td>
             <td>
               <div class="name-cell">
-                <div class="name-avatar sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
+                <div class="n-av sm">${c ? (c['Full Name']||'?').charAt(0) : '?'}</div>
                 <span class="font-medium text-slate-700">${c ? c['Full Name'] : '—'}</span>
               </div>
             </td>
@@ -1360,14 +1354,14 @@ function _renderOffers() {
             <td class="text-green-700 font-bold">${o['Offered CTC']} LPA</td>
             <td>${o['Joining Date']||'—'}</td>
             <td class="text-slate-400 text-xs">${o['Sent On']||'—'}</td>
-            <td><span class="badge-stage ${stCls}">${o['Offer Status']}</span></td>
+            <td><span class="${stCls}">${o['Offer Status']}</span></td>
             ${_hasWrite() ? `<td>
-              <div class="action-btns">
+              <div class="act-btns">
                 ${o['Offer Status']==='Sent' ? `
-                  <button class="icon-btn success" title="Mark Accepted" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')"><i class="fa-solid fa-check"></i></button>
-                  <button class="icon-btn danger" title="Mark Declined" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Declined')"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                  <button class="ic-btn suc" title="Mark Accepted" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')"><i class="fa-solid fa-check"></i></button>
+                  <button class="ic-btn dan" title="Mark Declined" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Declined')"><i class="fa-solid fa-xmark"></i></button>` : ''}
                 ${o['Offer Status']==='Accepted' ? `
-                  <button class="icon-btn success" title="Confirm Joining" onclick="_confirmJoining('${o['Offer ID']}','${o['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
+                  <button class="ic-btn suc" title="Confirm Joining" onclick="_confirmJoining('${o['Offer ID']}','${o['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
               </div>
             </td>` : ''}
           </tr>`;
@@ -1385,7 +1379,7 @@ function _openOfferModal(offer, preCandidateId) {
   if (!cndOpts) { _toast('No candidates in "Selected" stage. Mark interview as Pass first.','warning'); return; }
 
   _showModal('Create Offer Letter', `
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg full">
         <label>Candidate <span class="req">*</span></label>
         <select id="o_cnd">${cndOpts}</select>
@@ -1403,8 +1397,8 @@ function _openOfferModal(offer, preCandidateId) {
         <input id="o_desg" placeholder="e.g. Production Engineer">
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitOffer()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature mr-1"></i>Create Offer</button>`
   );
 }
 
@@ -1438,14 +1432,14 @@ function _confirmJoining(offerId, candidateId) {
   var job = (_D.jobs||[]).find(function(j){ return j['Job ID']===c['Job ID']; });
 
   _showModal('🎉 Confirm Joining', `
-    <div class="joining-confirm-banner">
+    <div class="joining-banner">
       <i class="fa-solid fa-champagne-glasses text-2xl"></i>
       <div>
         <div class="font-bold">${c['Full Name']} is joining!</div>
         <div class="text-sm opacity-75">Joining Date: ${offer['Joining Date']} · CTC: ${offer['Offered CTC']} LPA</div>
       </div>
     </div>
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg">
         <label>Department</label>
         <input id="j_dept" value="${job ? job['Department']||'' : ''}" placeholder="Department">
@@ -1460,8 +1454,8 @@ function _confirmJoining(offerId, candidateId) {
       </div>
     </div>
     <div class="info-note"><i class="fa-solid fa-circle-info mr-1"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-success" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered mr-1"></i>Confirm Joining</button>`
   );
 }
 
@@ -1505,26 +1499,26 @@ function _renderAgencies() {
   });
 
   var html = `
-  <div class="view-toolbar">
-    <div class="toolbar-left">
+  <div class="view-bar">
+    <div class="vb-left">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="agySearch" type="text" placeholder="Search agencies..." value="${search}" oninput="_renderAgencies()">
       </div>
-      <select id="agyFilter" class="filter-select" onchange="_renderAgencies()">
+      <select id="agyFilter" class="f-select" onchange="_renderAgencies()">
         <option value="all" ${filter==='all'?'selected':''}>All Status</option>
         <option value="Active" ${filter==='Active'?'selected':''}>🟢 Active</option>
         <option value="Inactive" ${filter==='Inactive'?'selected':''}>🔴 Inactive</option>
       </select>
     </div>
-    <div class="toolbar-right">
-      <span class="result-count">${visible.length} of ${agys.length} agencies</span>
-      ${_hasWrite() ? '<button class="btn-primary-sm" onclick="_openAgencyModal()"><i class="fa-solid fa-plus mr-1"></i>Add Agency</button>' : ''}
+    <div class="vb-right">
+      <span class="res-count">${visible.length} of ${agys.length} agencies</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openAgencyModal()"><i class="fa-solid fa-plus mr-1"></i>Add Agency</button>' : ''}
     </div>
   </div>
 
   <div class="table-card">
-    <table class="data-table">
+    <table class="data-tbl">
       <thead>
         <tr>
           <th>Agency ID</th>
@@ -1542,12 +1536,12 @@ function _renderAgencies() {
       </thead>
       <tbody>
         ${visible.length ? visible.map(function(a) {
-          var stCls = a['Status']==='Active' ? 'stage-joined' : 'stage-rejected';
+          var stCls = a['Status']==='Active' ? 'b-joined badge' : 'b-rejected badge';
           return `<tr>
             <td class="id-cell">${a['Agency ID']}</td>
             <td class="font-semibold text-slate-800">
               <div class="name-cell">
-                <div class="name-avatar" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)"><i class="fa-solid fa-building" style="font-size:10px"></i></div>
+                <div class="n-av" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)"><i class="fa-solid fa-building" style="font-size:10px"></i></div>
                 <span>${a['Agency Name']}</span>
               </div>
             </td>
@@ -1557,13 +1551,13 @@ function _renderAgencies() {
             <td class="text-slate-500 text-xs" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${a['Address']||'—'}</td>
             <td class="text-center font-semibold text-violet-600">${a['Commission (%)']||0}%</td>
             <td class="text-center">
-              <button class="link-btn" onclick="_viewAgencyCands('${a['Agency Name']}')">${a._totalCands}</button>
+              <button class="lnk-btn" onclick="_viewAgencyCands('${a['Agency Name']}')">${a._totalCands}</button>
             </td>
             <td class="text-center text-green-700 font-bold">${a._placements}</td>
-            <td><span class="badge-stage ${stCls}">${a['Status']}</span></td>
+            <td><span class="${stCls}">${a['Status']}</span></td>
             ${_hasWrite() ? `<td>
-              <div class="action-btns">
-                <button class="icon-btn" title="Edit" onclick="_editAgency('${a['Agency ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+              <div class="act-btns">
+                <button class="ic-btn" title="Edit" onclick="_editAgency('${a['Agency ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
                 <button class="icon-btn ${a['Status']==='Active'?'danger':'success'}" title="${a['Status']==='Active'?'Deactivate':'Activate'}" onclick="_toggleAgencyStatus('${a['Agency ID']}','${a['Status']}')"><i class="fa-solid fa-power-off"></i></button>
               </div>
             </td>` : ''}
@@ -1575,8 +1569,8 @@ function _renderAgencies() {
 
   <!-- Agency Performance Summary Cards -->
   ${visible.length ? `
-  <div class="dash-section-card mt-4">
-    <div class="dash-section-header">
+  <div class="section-card mt-4">
+    <div class="section-head">
       <h3><i class="fa-solid fa-chart-bar mr-2 text-violet-600"></i>Agency Performance Summary</h3>
     </div>
     <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0;">
@@ -1602,7 +1596,7 @@ function _viewAgencyCands(agencyName) {
 function _openAgencyModal(agency) {
   var a = agency || {};
   _showModal(a['Agency ID'] ? 'Edit Agency' : 'Add New Agency', `
-    <div class="form-grid-2">
+    <div class="fg2">
       <div class="fg full">
         <label>Agency Name <span class="req">*</span></label>
         <input id="a_name" value="${a['Agency Name']||''}" placeholder="e.g. ABC Recruitment">
@@ -1628,8 +1622,8 @@ function _openAgencyModal(agency) {
         <input id="a_comm" type="number" min="0" max="100" value="${a['Commission (%)']||0}" placeholder="e.g. 8.5">
       </div>
     </div>`,
-    `<button class="modal-btn-secondary" onclick="_closeModal()">Cancel</button>
-     <button class="modal-btn-primary" onclick="_submitAgency('${a['Agency ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Agency</button>`
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitAgency('${a['Agency ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Agency</button>`
   );
 }
 
@@ -1668,26 +1662,27 @@ function _showModal(title, body, footer) {
   _el('mTitle').textContent  = title;
   _el('mBody').innerHTML     = body;
   _el('mFoot').innerHTML     = footer || '';
-  _el('mOv').style.display   = 'block';
+  _el('mOv').style.display = 'block';
   _el('modal').style.display = 'flex';
-  setTimeout(function() { _el('modal').classList.add('modal-visible'); }, 10);
+  setTimeout(function() { _el('modal').classList.add('mv'); }, 10);
 }
 
 function _closeModal() {
   _submitting = false;
-  _el('modal').classList.remove('modal-visible');
+  _el('modal').classList.remove('mv');
   setTimeout(function() { _el('mOv').style.display='none'; _el('modal').style.display='none'; }, 280);
 }
 
 // ─── TOAST ────────────────────────────────────────────────────
 function _toast(msg, type) {
   var t = _el('toast');
-  t.className = 'toast toast-' + (type||'info');
+  var typeMap = { success:'suc', error:'err', warning:'wrn', info:'inf' };
+  t.className = 'toast t-' + (typeMap[type] || 'inf');
   var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation', info:'fa-circle-info' };
-  t.innerHTML = '<i class="fa-solid fa-' + (icons[type]||'circle-info') + ' mr-2"></i>' + msg;
-  t.classList.add('toast-show');
+  t.innerHTML = '<i class="fa-solid fa-' + (icons[type]||'circle-info') + '" style="margin-right:8px"></i>' + msg;
+  t.classList.add('ts');
   clearTimeout(t._timer);
-  t._timer = setTimeout(function() { t.classList.remove('toast-show'); }, 3500);
+  t._timer = setTimeout(function() { t.classList.remove('ts'); }, 3500);
 }
 
 // ─── UTILS ────────────────────────────────────────────────────
