@@ -743,159 +743,725 @@ function _viewJobCands(jobId) {
 
 
 // ─── CANDIDATES ───────────────────────────────────────────────
+
+// ─── CANDIDATES ───────────────────────────────────────────────
 function _renderCandidates() {
   var cands  = _D.candidates || [];
   var jobs   = _D.jobs       || [];
   var agys   = _D.agencies   || [];
-  var search  = _el('cndSearch')       ? _el('cndSearch').value.toLowerCase()       : '';
-  var stgF    = _el('cndStageFilter')  ? _el('cndStageFilter').value                : 'all';
-  var jobF    = _el('cndJobFilter')    ? _el('cndJobFilter').value                  : 'all';
-  var srcF    = _el('cndSrcFilter')    ? _el('cndSrcFilter').value                  : 'all';
-  var agyF    = _el('cndAgyFilter')    ? _el('cndAgyFilter').value                  : 'all';
-  var expF    = _el('cndExpFilter')    ? _el('cndExpFilter').value                  : 'all';
-  var deptF   = _el('cndDeptFilter')   ? _el('cndDeptFilter').value                 : 'all';
 
+  // Read filter state (persist across re-renders)
+  var search  = _el('cndSearch')      ? _el('cndSearch').value.toLowerCase()  : '';
+  var stgF    = _el('cndStageFilter') ? _el('cndStageFilter').value            : 'all';
+  var jobF    = _el('cndJobFilter')   ? _el('cndJobFilter').value              : 'all';
+  var srcF    = _el('cndSrcFilter')   ? _el('cndSrcFilter').value              : 'all';
+  var agyF    = _el('cndAgyFilter')   ? _el('cndAgyFilter').value              : 'all';
+  var expF    = _el('cndExpFilter')   ? _el('cndExpFilter').value              : 'all';
+  var deptF   = _el('cndDeptFilter')  ? _el('cndDeptFilter').value             : 'all';
+  var ctcF    = _el('cndCtcFilter')   ? _el('cndCtcFilter').value              : 'all';
+  var sortF   = _el('cndSort')        ? _el('cndSort').value                   : 'newest';
+
+  // Build option lists
   var allSources = ['all'].concat([...new Set(cands.map(function(c){return c['Source']||'';}).filter(Boolean))]);
   var allAgys    = ['all'].concat([...new Set(cands.map(function(c){return c['Agency Name']||'';}).filter(Boolean))]);
-  var allDepts2  = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
+  var allDepts   = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
 
+  // Stage counts for pills
+  var stageCounts = {};
+  ['Applied','Interview','Selected','Offered','Joined','Rejected'].forEach(function(s){
+    stageCounts[s] = cands.filter(function(c){ return c['Stage']===s; }).length;
+  });
+
+  // Filter
   var visible = cands.filter(function(c) {
-    if (stgF !== 'all' && c['Stage'] !== stgF) return false;
-    if (jobF !== 'all' && c['Job ID'] !== jobF) return false;
-    if (srcF !== 'all' && c['Source'] !== srcF) return false;
-    if (agyF !== 'all' && c['Agency Name'] !== agyF) return false;
+    if (stgF  !== 'all' && c['Stage']       !== stgF)  return false;
+    if (jobF  !== 'all' && c['Job ID']      !== jobF)  return false;
+    if (srcF  !== 'all' && c['Source']      !== srcF)  return false;
+    if (agyF  !== 'all' && c['Agency Name'] !== agyF)  return false;
     if (deptF !== 'all') {
       var cJob = jobs.find(function(j){return j['Job ID']===c['Job ID'];});
       if (!cJob || cJob['Department'] !== deptF) return false;
     }
     if (expF !== 'all') {
       var exp = parseFloat(c['Experience (Yrs)']||0);
-      if (expF === '0-2'  && exp > 2)  return false;
-      if (expF === '2-5'  && (exp < 2 || exp > 5))  return false;
-      if (expF === '5-10' && (exp < 5 || exp > 10)) return false;
-      if (expF === '10+'  && exp < 10) return false;
+      if (expF==='0-2'  && exp>2)               return false;
+      if (expF==='2-5'  && (exp<2||exp>5))      return false;
+      if (expF==='5-10' && (exp<5||exp>10))     return false;
+      if (expF==='10+'  && exp<10)              return false;
+    }
+    if (ctcF !== 'all') {
+      var ectc = parseFloat(c['Expected CTC']||0);
+      if (ctcF==='0-3'   && ectc>3)             return false;
+      if (ctcF==='3-6'   && (ectc<3||ectc>6))  return false;
+      if (ctcF==='6-10'  && (ectc<6||ectc>10)) return false;
+      if (ctcF==='10+'   && ectc<10)            return false;
     }
     if (search && !(c['Full Name']||'').toLowerCase().includes(search) &&
                   !(c['Email']||'').toLowerCase().includes(search) &&
                   !(c['Phone']||'').toLowerCase().includes(search) &&
                   !(c['Current Company']||'').toLowerCase().includes(search) &&
+                  !(c['Candidate ID']||'').toLowerCase().includes(search) &&
                   !(c['Agency Name']||'').toLowerCase().includes(search)) return false;
     return true;
   });
 
-  var jobOpts  = '<option value="all">All Jobs</option>' + jobs.map(function(j){ return '<option value="'+j['Job ID']+'" '+(jobF===j['Job ID']?'selected':'')+'>'+j['Title']+'</option>'; }).join('');
+  // Sort
+  if (sortF === 'newest')  visible.sort(function(a,b){ return (b['Applied On']||'').localeCompare(a['Applied On']||''); });
+  if (sortF === 'oldest')  visible.sort(function(a,b){ return (a['Applied On']||'').localeCompare(b['Applied On']||''); });
+  if (sortF === 'name')    visible.sort(function(a,b){ return (a['Full Name']||'').localeCompare(b['Full Name']||''); });
+  if (sortF === 'exp-hi')  visible.sort(function(a,b){ return parseFloat(b['Experience (Yrs)']||0)-parseFloat(a['Experience (Yrs)']||0); });
+  if (sortF === 'exp-lo')  visible.sort(function(a,b){ return parseFloat(a['Experience (Yrs)']||0)-parseFloat(b['Experience (Yrs)']||0); });
+  if (sortF === 'ctc-hi')  visible.sort(function(a,b){ return parseFloat(b['Expected CTC']||0)-parseFloat(a['Expected CTC']||0); });
+  if (sortF === 'modified')visible.sort(function(a,b){ return (b['Last Modified']||'').localeCompare(a['Last Modified']||''); });
+
+  // Build select options
+  var jobOpts  = '<option value="all">All Jobs</option>'
+    + jobs.map(function(j){ return '<option value="'+j['Job ID']+'" '+(jobF===j['Job ID']?'selected':'')+'>'+j['Title']+'</option>'; }).join('');
   var srcOpts  = allSources.map(function(s){ return '<option value="'+s+'" '+(srcF===s?'selected':'')+'>'+(s==='all'?'All Sources':s)+'</option>'; }).join('');
   var agyOpts  = allAgys.map(function(a){ return '<option value="'+a+'" '+(agyF===a?'selected':'')+'>'+(a==='all'?'All Agencies':a)+'</option>'; }).join('');
-  var deptOpts = allDepts2.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
+  var deptOpts = allDepts.map(function(d){ return '<option value="'+d+'" '+(deptF===d?'selected':'')+'>'+(d==='all'?'All Departments':d)+'</option>'; }).join('');
+
+  // Stage pill bar (quick filter)
+  var stagePills = ['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){
+    var sc = _stageClass(s);
+    var active = stgF === s;
+    return '<button onclick="_cndStageQuick(\''+s+'\')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid '+(active?'transparent':'var(--bdr)')+';background:'+(active?'var(--brand)':'var(--surf)')+';color:'+(active?'#fff':'var(--t2)')+';font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;">'
+      + s + ' <span style="background:'+(active?'rgba(255,255,255,.3)':'var(--surf2)')+';color:'+(active?'#fff':'var(--t3)')+';padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;">'+stageCounts[s]+'</span></button>';
+  }).join('');
 
   var html = `
-  <div class="view-bar" style="flex-wrap:wrap;gap:10px;">
-    <div class="vb-left" style="flex-wrap:wrap;">
-      <div class="search-box">
+  <!-- Stage quick-filter pills -->
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--surf);border-radius:var(--r-md);border:1px solid var(--bdr);box-shadow:var(--shadow-xs);">
+    <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:4px;">Stage</span>
+    <button onclick="_cndStageQuick('all')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid ${stgF==='all'?'transparent':'var(--bdr)'};background:${stgF==='all'?'var(--t1)':'var(--surf)'};color:${stgF==='all'?'#fff':'var(--t2)'};font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;">
+      All <span style="background:${stgF==='all'?'rgba(255,255,255,.25)':'var(--surf2)'};color:${stgF==='all'?'#fff':'var(--t3)'};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;">${cands.length}</span>
+    </button>
+    ${stagePills}
+  </div>
+
+  <!-- Main toolbar -->
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;align-items:flex-start;">
+    <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box" style="min-width:240px;max-width:320px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="cndSearch" type="text" placeholder="Name, email, phone, company, agency..." value="${search}" oninput="_renderCandidates()">
+        <input id="cndSearch" type="text" placeholder="Name, email, phone, company, ID..." value="${search}" oninput="_renderCandidates()">
+        ${search ? '<button onclick="_el(\'cndSearch\').value=\'\';_renderCandidates()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
       </div>
-      <select id="cndStageFilter" class="f-select" onchange="_renderCandidates()">
-        <option value="all" ${stgF==='all'?'selected':''}>All Stages</option>
-        ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){ return '<option value="'+s+'" '+(stgF===s?'selected':'')+'>'+s+'</option>'; }).join('')}
-      </select>
-      <select id="cndJobFilter" class="f-select" onchange="_renderCandidates()">${jobOpts}</select>
-      <select id="cndDeptFilter" class="f-select" onchange="_renderCandidates()">${deptOpts}</select>
-      <select id="cndSrcFilter" class="f-select" onchange="_renderCandidates()">${srcOpts}</select>
-      <select id="cndAgyFilter" class="f-select" onchange="_renderCandidates()">${agyOpts}</select>
-      <select id="cndExpFilter" class="f-select" onchange="_renderCandidates()">
+      <select id="cndJobFilter"   class="f-select" onchange="_renderCandidates()">${jobOpts}</select>
+      <select id="cndDeptFilter"  class="f-select" onchange="_renderCandidates()">${deptOpts}</select>
+      <select id="cndSrcFilter"   class="f-select" onchange="_renderCandidates()">${srcOpts}</select>
+      <select id="cndAgyFilter"   class="f-select" onchange="_renderCandidates()">${agyOpts}</select>
+      <select id="cndExpFilter"   class="f-select" onchange="_renderCandidates()">
         <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
-        <option value="0-2" ${expF==='0-2'?'selected':''}>0–2 years</option>
-        <option value="2-5" ${expF==='2-5'?'selected':''}>2–5 years</option>
-        <option value="5-10" ${expF==='5-10'?'selected':''}>5–10 years</option>
-        <option value="10+" ${expF==='10+'?'selected':''}>10+ years</option>
+        <option value="0-2"  ${expF==='0-2'?'selected':''}>0–2 yrs</option>
+        <option value="2-5"  ${expF==='2-5'?'selected':''}>2–5 yrs</option>
+        <option value="5-10" ${expF==='5-10'?'selected':''}>5–10 yrs</option>
+        <option value="10+"  ${expF==='10+'?'selected':''}>10+ yrs</option>
+      </select>
+      <select id="cndCtcFilter"   class="f-select" onchange="_renderCandidates()">
+        <option value="all"  ${ctcF==='all'?'selected':''}>All CTC</option>
+        <option value="0-3"  ${ctcF==='0-3'?'selected':''}>Exp. ≤ 3 LPA</option>
+        <option value="3-6"  ${ctcF==='3-6'?'selected':''}>Exp. 3–6 LPA</option>
+        <option value="6-10" ${ctcF==='6-10'?'selected':''}>Exp. 6–10 LPA</option>
+        <option value="10+"  ${ctcF==='10+'?'selected':''}>Exp. 10+ LPA</option>
+      </select>
+      <select id="cndSort" class="f-select" onchange="_renderCandidates()">
+        <option value="newest"  ${sortF==='newest'?'selected':''}>⬇ Newest First</option>
+        <option value="oldest"  ${sortF==='oldest'?'selected':''}>⬆ Oldest First</option>
+        <option value="name"    ${sortF==='name'?'selected':''}>🔤 Name A–Z</option>
+        <option value="exp-hi"  ${sortF==='exp-hi'?'selected':''}>📈 Exp. High–Low</option>
+        <option value="exp-lo"  ${sortF==='exp-lo'?'selected':''}>📉 Exp. Low–High</option>
+        <option value="ctc-hi"  ${sortF==='ctc-hi'?'selected':''}>💰 CTC High–Low</option>
+        <option value="modified"${sortF==='modified'?'selected':''}>🕐 Recently Modified</option>
       </select>
     </div>
-    <div class="vb-right">
+    <div class="vb-right" style="gap:8px;">
       <span class="res-count">${visible.length} of ${cands.length}</span>
-      ${_hasWrite() ? '<button class="btn-add" onclick="_openCndModal()"><i class="fa-solid fa-user-plus mr-1"></i>Add Candidate</button>' : ''}
+      ${_hasWrite() ? `
+        <button class="btn-add" onclick="_openCndModal()"><i class="fa-solid fa-user-plus" style="margin-right:6px"></i>Add Candidate</button>
+        ${visible.length > 0 ? `<button onclick="_bulkExportCsv()" title="Export CSV" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:var(--surf);color:var(--t2);border:1.5px solid var(--bdr);border-radius:50px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;"><i class="fa-solid fa-download"></i></button>` : ''}
+      ` : ''}
     </div>
   </div>
-  ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye mr-2"></i>Viewing as Candidate — Read Only Mode</div>' : ''}
+
+  ${_U && _U.role === 'candidate' ? '<div class="role-banner"><i class="fa-solid fa-eye" style="margin-right:8px"></i>Viewing as Candidate — Read Only Mode</div>' : ''}
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:1200px;">
+      <table class="data-tbl" style="min-width:1400px;">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Name</th>
+            <th style="width:36px;"></th>
+            <th>Candidate</th>
             <th>Contact</th>
             <th>Job Applied</th>
             <th>Department</th>
             <th>Company</th>
-            <th>Exp</th>
-            <th>CTC Curr/Exp</th>
+            <th>Exp.</th>
+            <th>Current CTC</th>
+            <th>Expected CTC</th>
             <th>Source</th>
             <th>Agency</th>
+            <th>Resume</th>
             <th>Stage</th>
-            <th>Applied</th>
-            <th>Modified</th>
-            ${_hasWrite() ? '<th style="min-width:220px;">Quick Actions</th>' : '<th>Actions</th>'}
+            <th>Applied On</th>
+            <th>Last Modified</th>
+            <th style="min-width:${_hasWrite()?'240px':'80px'};">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${visible.length ? visible.map(function(c) {
-            var job = jobs.find(function(j){ return j['Job ID']===c['Job ID']; });
+            var job     = jobs.find(function(j){ return j['Job ID']===c['Job ID']; });
             var nextStg = _stageNext(c['Stage']);
             var prevStg = _stagePrev(c['Stage']);
-            var canAdvance = _hasWrite() && nextStg && ['Applied','Interview','Selected','Offered'].indexOf(c['Stage']) >= 0;
-            var canReject = _hasWrite() && c['Stage'] !== 'Rejected' && c['Stage'] !== 'Joined';
-            var canRevert = _hasWrite() && prevStg && c['Stage'] !== 'Joined';
-            return `<tr>
-              <td class="id-cell">${c['Candidate ID']}</td>
+            var canAdv  = _hasWrite() && nextStg && ['Applied','Interview','Selected','Offered'].indexOf(c['Stage'])>=0;
+            var canRej  = _hasWrite() && c['Stage']!=='Rejected' && c['Stage']!=='Joined';
+            var canRev  = _hasWrite() && prevStg && c['Stage']!=='Joined';
+            var hasIntv = (_D.interviews||[]).some(function(i){ return i['Candidate ID']===c['Candidate ID'] && i['Status']==='Scheduled'; });
+            var hasOff  = (_D.offers||[]).some(function(o){ return o['Candidate ID']===c['Candidate ID']; });
+
+            // Row highlight based on stage
+            var rowBg = '';
+            if (c['Stage']==='Joined')   rowBg = 'background:rgba(16,185,129,.04)';
+            if (c['Stage']==='Rejected') rowBg = 'background:rgba(239,68,68,.03)';
+            if (c['Stage']==='Offered')  rowBg = 'background:rgba(139,92,246,.04)';
+
+            return `<tr style="${rowBg}">
+              <td style="padding:8px 10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:${
+                  c['Stage']==='Applied'?'#3b82f6':c['Stage']==='Interview'?'#f59e0b':c['Stage']==='Selected'?'#8b5cf6':c['Stage']==='Offered'?'#ec4899':c['Stage']==='Joined'?'#10b981':'#ef4444'
+                };margin:0 auto;"></div>
+              </td>
               <td>
                 <div class="name-cell">
-                  <div class="n-av">${(c['Full Name']||'?').charAt(0)}</div>
+                  <div class="n-av" style="background:${_avatarGrad(c['Full Name'])}">${(c['Full Name']||'?').charAt(0).toUpperCase()}</div>
                   <div>
-                    <div class="font-semibold text-slate-800">${c['Full Name']}</div>
-                    <div class="text-xs text-slate-400">${c['Email']||''}</div>
+                    <div class="n-name">${c['Full Name']||'—'}</div>
+                    <div class="n-email">${c['Email']||'—'}</div>
                   </div>
                 </div>
               </td>
-              <td class="text-slate-600">${c['Phone']||'—'}</td>
-              <td class="text-slate-700 font-medium">${job ? job['Title'] : '—'}</td>
-              <td>${job ? job['Department']||'—' : '—'}</td>
-              <td>${c['Current Company']||'—'}</td>
-              <td class="text-center">${c['Experience (Yrs)']||0} yrs</td>
-              <td class="text-sm">${c['Current CTC']||'—'} / <span class="text-green-700">${c['Expected CTC']||'—'}</span></td>
+              <td style="color:var(--t2);font-size:12px;">${c['Phone']||'—'}</td>
+              <td style="font-weight:600;color:var(--t1);font-size:12.5px;">${job ? job['Title'] : '—'}</td>
+              <td style="font-size:12px;">${job ? (job['Department']||'—') : '—'}</td>
+              <td style="font-size:12px;color:var(--t2);">${c['Current Company']||'—'}</td>
+              <td style="text-align:center;font-weight:700;color:var(--t1);">${c['Experience (Yrs)']||0}<span style="font-size:10px;color:var(--t4);font-weight:400;"> yr</span></td>
+              <td style="font-size:12px;color:var(--t2);">${c['Current CTC']?c['Current CTC']+' LPA':'—'}</td>
+              <td style="font-weight:700;color:#059669;font-size:12.5px;">${c['Expected CTC']?c['Expected CTC']+' LPA':'—'}</td>
               <td><span class="src-tag">${c['Source']||'—'}</span></td>
-              <td>${c['Agency Name'] ? '<span class="agy-tag">' + c['Agency Name'] + '</span>' : '—'}</td>
-              <td><span class="${_stageClass(c['Stage'])}">${c['Stage']}</span></td>
-              <td class="text-slate-500 text-xs">${c['Applied On']||'—'}</td>
-              <td class="text-slate-500 text-xs">${c['Last Modified'] ? c['Last Modified'].slice(0,10) : '—'}</td>
+              <td>${c['Agency Name'] ? '<span class="agy-tag"><i class="fa-solid fa-handshake" style="font-size:9px;margin-right:4px;opacity:.7"></i>'+c['Agency Name']+'</span>' : '<span style="color:var(--t4);font-size:11px;">Direct</span>'}</td>
+              <td style="text-align:center;">
+                ${c['Resume Link'] ? '<a href="'+c['Resume Link']+'" title="View Resume" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:rgba(59,130,246,.1);color:#3b82f6;font-size:11px;border:1px solid rgba(59,130,246,.25);text-decoration:none;"><i class="fa-solid fa-file-pdf"></i></a>' : '<span style="color:var(--t4);font-size:11px;">—</span>'}
+              </td>
               <td>
-                <div class="act-btns" style="flex-wrap:wrap;gap:4px;">
-                  <button class="ic-btn" title="View Detail" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
+                <span class="${_stageClass(c['Stage'])}" style="white-space:nowrap;">${c['Stage']}</span>
+                ${hasIntv ? '<span title="Interview Scheduled" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;margin-left:5px;vertical-align:middle;"></span>' : ''}
+                ${hasOff  ? '<span title="Offer Issued"        style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-left:5px;vertical-align:middle;"></span>' : ''}
+              </td>
+              <td style="font-size:11px;color:var(--t4);white-space:nowrap;">${c['Applied On']||'—'}</td>
+              <td style="font-size:11px;color:var(--t4);white-space:nowrap;">${c['Last Modified']?c['Last Modified'].slice(0,10):'—'}</td>
+              <td>
+                <div class="act-btns" style="gap:4px;flex-wrap:wrap;">
+                  <!-- View Profile -->
+                  <button class="ic-btn" title="View Profile" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
                   ${_hasWrite() ? `
-                    <button class="ic-btn" title="Edit" onclick="_editCnd('${c['Candidate ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                    ${canAdvance ? `<button class="ic-btn suc" title="Move to ${nextStg}" onclick="_quickStageChange('${c['Candidate ID']}','${nextStg}')"><i class="fa-solid fa-forward"></i></button>` : ''}
-                    ${canRevert ? `<button class="ic-btn bwd" title="Revert to ${prevStg}" onclick="_quickStageChange('${c['Candidate ID']}','${prevStg}')"><i class="fa-solid fa-backward"></i></button>` : ''}
-                    ${canReject ? `<button class="ic-btn dan" title="Reject" onclick="_quickStageChange('${c['Candidate ID']}','Rejected')"><i class="fa-solid fa-ban"></i></button>` : ''}
-                    ${c['Stage']==='Applied' ? `<button class="ic-btn suc" title="Schedule Interview" onclick="_scheduleInterviewFrom('${c['Candidate ID']}')"><i class="fa-solid fa-calendar-plus"></i></button>` : ''}
-                    ${c['Stage']==='Selected' ? `<button class="ic-btn suc" title="Create Offer" onclick="_createOfferFrom('${c['Candidate ID']}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
+                  <!-- Edit -->
+                  <button class="ic-btn" title="Edit Candidate" onclick="_editCnd('${c['Candidate ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <!-- Advance Stage -->
+                  ${canAdv ? `<button class="ic-btn fwd" title="Advance → ${nextStg}" onclick="_quickStageChange('${c['Candidate ID']}','${nextStg}')"><i class="fa-solid fa-circle-chevron-right"></i></button>` : ''}
+                  <!-- Revert Stage -->
+                  ${canRev ? `<button class="ic-btn bwd" title="← Revert to ${prevStg}" onclick="_quickStageChange('${c['Candidate ID']}','${prevStg}')"><i class="fa-solid fa-circle-chevron-left"></i></button>` : ''}
+                  <!-- Schedule Interview (Applied/Interview stage) -->
+                  ${(c['Stage']==='Applied'||c['Stage']==='Interview') ? `<button class="ic-btn" title="Schedule Interview" style="color:#f59e0b;border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);" onclick="_scheduleInterviewFrom('${c['Candidate ID']}')"><i class="fa-solid fa-calendar-plus"></i></button>` : ''}
+                  <!-- Mark Interview Result (Interview stage + has interview) -->
+                  ${c['Stage']==='Interview' && hasIntv ? `<button class="ic-btn" title="Mark Interview Result" style="color:#8b5cf6;border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.08);" onclick="_markInterviewResultFromCand('${c['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>` : ''}
+                  <!-- Create Offer (Selected) -->
+                  ${c['Stage']==='Selected' ? `<button class="ic-btn" title="Create Offer Letter" style="color:#ec4899;border-color:rgba(236,72,153,.35);background:rgba(236,72,153,.08);" onclick="_createOfferFrom('${c['Candidate ID']}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
+                  <!-- Confirm Joining (Offered + offer accepted) -->
+                  ${c['Stage']==='Offered' && hasOff ? `<button class="ic-btn" title="Confirm Joining" style="color:#10b981;border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08);" onclick="_confirmJoiningFromCand('${c['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
+                  <!-- Reject -->
+                  ${canRej ? `<button class="ic-btn rej" title="Reject Candidate" onclick="_quickStageChange('${c['Candidate ID']}','Rejected')"><i class="fa-solid fa-ban"></i></button>` : ''}
+                  <!-- Restore (Rejected) -->
+                  ${c['Stage']==='Rejected' ? `<button class="ic-btn" title="Restore to Applied" style="color:#6366f1;border-color:rgba(99,102,241,.35);background:rgba(99,102,241,.08);" onclick="_quickStageChange('${c['Candidate ID']}','Applied')"><i class="fa-solid fa-rotate-left"></i></button>` : ''}
                   ` : ''}
                 </div>
               </td>
             </tr>`;
-          }).join('') : `<tr><td colspan="14" class="empty-row">No candidates found.</td></tr>`}
+          }).join('') : `<tr><td colspan="16" class="empty-row"><i class="fa-solid fa-users-slash" style="font-size:28px;display:block;margin-bottom:10px;opacity:.3"></i>No candidates match your filters.</td></tr>`}
         </tbody>
       </table>
     </div>
+    ${visible.length > 0 ? `
+    <div style="padding:12px 16px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf2);font-size:12px;color:var(--t3);">
+      <span><strong style="color:var(--t1)">${visible.length}</strong> candidate${visible.length!==1?'s':''} shown · <strong style="color:var(--t1)">${cands.length}</strong> total</span>
+      <div style="display:flex;gap:16px;">
+        <span>Applied: <strong style="color:#3b82f6">${stageCounts['Applied']}</strong></span>
+        <span>Interview: <strong style="color:#f59e0b">${stageCounts['Interview']}</strong></span>
+        <span>Selected: <strong style="color:#8b5cf6">${stageCounts['Selected']}</strong></span>
+        <span>Joined: <strong style="color:#10b981">${stageCounts['Joined']}</strong></span>
+      </div>
+    </div>` : ''}
   </div>`;
 
   _el('v-candidates').innerHTML = html;
 }
 
-// NEW: Quick stage change without modal
+// Helper: avatar gradient based on name
+function _avatarGrad(name) {
+  var grads = [
+    'linear-gradient(135deg,#e31e24,#f59e0b)',
+    'linear-gradient(135deg,#3b82f6,#8b5cf6)',
+    'linear-gradient(135deg,#10b981,#14b8a6)',
+    'linear-gradient(135deg,#f59e0b,#ef4444)',
+    'linear-gradient(135deg,#8b5cf6,#ec4899)',
+    'linear-gradient(135deg,#06b6d4,#3b82f6)',
+    'linear-gradient(135deg,#ec4899,#f43f5e)',
+    'linear-gradient(135deg,#14b8a6,#10b981)'
+  ];
+  var code = (name||'').charCodeAt(0) % grads.length;
+  return grads[code];
+}
+
+// Stage quick filter helper
+function _cndStageQuick(stage) {
+  var el = _el('cndStageFilter');
+  if (el) { el.value = stage; _renderCandidates(); }
+}
+
+// Quick stage change — no confirm dialog for forward movement, confirm for reject
 function _quickStageChange(candidateId, newStage) {
-  if (!confirm('Change candidate stage to "' + newStage + '"?')) return;
+  if (newStage === 'Rejected') {
+    if (!confirm('Reject this candidate? This will move them to Rejected stage.')) return;
+  }
+  var btn = event && event.currentTarget;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
   _api('updateCandidateStage', { candidateId: candidateId, stage: newStage }, function(r) {
+    if (r.success) {
+      _toast('Stage updated → ' + newStage, 'success');
+      _loadData();
+    } else {
+      _toast(r.error, 'error');
+      if (btn) { btn.disabled = false; }
+    }
+  }, function(e) { _toast(e.message, 'error'); if (btn) btn.disabled = false; });
+}
+
+// Mark interview result directly from candidates table
+function _markInterviewResultFromCand(candidateId) {
+  var ints = (_D.interviews||[]).filter(function(i){ return i['Candidate ID']===candidateId && i['Status']==='Scheduled'; });
+  if (!ints.length) { _toast('No scheduled interview found.', 'warning'); return; }
+  _markInterviewResult(ints[0]['Interview ID'], candidateId);
+}
+
+// Confirm joining directly from candidates table
+function _confirmJoiningFromCand(candidateId) {
+  var offer = (_D.offers||[]).find(function(o){ return o['Candidate ID']===candidateId && (o['Offer Status']==='Accepted'||o['Offer Status']==='Sent'); });
+  if (!offer) { _toast('No offer found. Create an offer first.', 'warning'); return; }
+  _confirmJoining(offer['Offer ID'], candidateId);
+}
+
+// CSV Export of visible candidates
+function _bulkExportCsv() {
+  var cands  = _D.candidates || [];
+  var jobs   = _D.jobs       || [];
+  var stgF   = _el('cndStageFilter') ? _el('cndStageFilter').value : 'all';
+  var search = _el('cndSearch')      ? _el('cndSearch').value.toLowerCase() : '';
+
+  var visible = cands.filter(function(c) {
+    if (stgF !== 'all' && c['Stage'] !== stgF) return false;
+    if (search && !(c['Full Name']||'').toLowerCase().includes(search) &&
+                  !(c['Email']||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  var headers = ['Candidate ID','Full Name','Email','Phone','Job Title','Department',
+    'Current Company','Experience (Yrs)','Current CTC','Expected CTC','Source',
+    'Agency Name','Stage','Applied On','Last Modified','Resume Link'];
+
+  var rows = visible.map(function(c){
+    var job = jobs.find(function(j){ return j['Job ID']===c['Job ID']; });
+    return [
+      c['Candidate ID'], c['Full Name'], c['Email'], c['Phone'],
+      job?job['Title']:'', job?job['Department']||'':'',
+      c['Current Company'], c['Experience (Yrs)'], c['Current CTC'], c['Expected CTC'],
+      c['Source'], c['Agency Name']||'', c['Stage'],
+      c['Applied On'], c['Last Modified'], c['Resume Link']||''
+    ].map(function(v){ return '"'+(v||'').toString().replace(/"/g,'""')+'"'; }).join(',');
+  });
+
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var a   = document.createElement('a');
+  a.href  = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'ISE_Candidates_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  _toast('Exported ' + visible.length + ' candidates', 'success');
+}
+
+
+// ─── AGENCIES ─────────────────────────────────────────────────
+function _renderAgencies() {
+  var agys  = _D.agencies   || [];
+  var cands = _D.candidates || [];
+  var ints  = _D.interviews || [];
+  var offs  = _D.offers     || [];
+
+  var filter = _el('agyFilter') ? _el('agyFilter').value : 'all';
+  var search = _el('agySearch') ? _el('agySearch').value.toLowerCase() : '';
+  var sortA  = _el('agySort')   ? _el('agySort').value   : 'name';
+
+  // Enrich agency stats
+  agys.forEach(function(a) {
+    var ac = cands.filter(function(c){ return c['Agency Name']===a['Agency Name']; });
+    a._totalCands   = ac.length;
+    a._placements   = ac.filter(function(c){ return c['Stage']==='Joined'; }).length;
+    a._inPipeline   = ac.filter(function(c){ return ['Applied','Interview','Selected','Offered'].indexOf(c['Stage'])>=0; }).length;
+    a._rejected     = ac.filter(function(c){ return c['Stage']==='Rejected'; }).length;
+    a._convRate     = a._totalCands > 0 ? Math.round(a._placements/a._totalCands*100) : 0;
+    a._activeInts   = ints.filter(function(i){ return ac.some(function(c){ return c['Candidate ID']===i['Candidate ID'] && i['Status']==='Scheduled'; }); }).length;
+    a._pendingOffs  = offs.filter(function(o){ return ac.some(function(c){ return c['Candidate ID']===o['Candidate ID'] && o['Offer Status']==='Sent'; }); }).length;
+    // Estimated commission (if placement)
+    var comm = parseFloat(a['Commission (%)']||0);
+    a._estCommission = ac.filter(function(c){ return c['Stage']==='Joined'; })
+      .reduce(function(sum,c){ return sum + (parseFloat(c['Expected CTC']||0)*100000*comm/100); }, 0);
+  });
+
+  // Filter
+  var visible = agys.filter(function(a) {
+    if (filter==='Active'   && a['Status']!=='Active')   return false;
+    if (filter==='Inactive' && a['Status']!=='Inactive') return false;
+    if (filter==='has-cands'&& a._totalCands===0)        return false;
+    if (filter==='top'      && a._placements===0)        return false;
+    if (search && !(a['Agency Name']||'').toLowerCase().includes(search) &&
+                  !(a['Contact Person']||'').toLowerCase().includes(search) &&
+                  !(a['Email']||'').toLowerCase().includes(search) &&
+                  !(a['Phone']||'').toLowerCase().includes(search) &&
+                  !(a['Address']||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort
+  if (sortA==='name')     visible.sort(function(a,b){ return (a['Agency Name']||'').localeCompare(b['Agency Name']||''); });
+  if (sortA==='cands')    visible.sort(function(a,b){ return b._totalCands-a._totalCands; });
+  if (sortA==='placed')   visible.sort(function(a,b){ return b._placements-a._placements; });
+  if (sortA==='conv')     visible.sort(function(a,b){ return b._convRate-a._convRate; });
+  if (sortA==='comm-hi')  visible.sort(function(a,b){ return parseFloat(b['Commission (%)']||0)-parseFloat(a['Commission (%)']||0); });
+  if (sortA==='newest')   visible.sort(function(a,b){ return (b['Created On']||'').localeCompare(a['Created On']||''); });
+
+  // Summary KPIs
+  var totalCands   = agys.reduce(function(s,a){ return s+a._totalCands; },0);
+  var totalPlaced  = agys.reduce(function(s,a){ return s+a._placements; },0);
+  var totalPipe    = agys.reduce(function(s,a){ return s+a._inPipeline; },0);
+  var avgConv      = totalCands > 0 ? Math.round(totalPlaced/totalCands*100) : 0;
+  var activeCount  = agys.filter(function(a){ return a['Status']==='Active'; }).length;
+  var topAgency    = agys.slice().sort(function(a,b){ return b._placements-a._placements; })[0];
+  var totalCommEst = agys.reduce(function(s,a){ return s+a._estCommission; },0);
+
+  var html = `
+  <!-- Agency Summary KPIs -->
+  <div class="kpi-grid" style="margin-bottom:16px;">
+    ${_kpiCard('fa-building','Total Agencies', agys.length, 'blue', activeCount+' active · '+(agys.length-activeCount)+' inactive')}
+    ${_kpiCard('fa-users','Agency Candidates', totalCands, 'violet', totalPipe+' in pipeline')}
+    ${_kpiCard('fa-user-check','Total Placements', totalPlaced, 'green', 'Confirmed joinings')}
+    ${_kpiCard('fa-percent','Avg Conversion', avgConv+'%', 'teal', topAgency?'Best: '+topAgency['Agency Name']:'—')}
+  </div>
+
+  <!-- Toolbar -->
+  <div class="view-bar" style="flex-wrap:wrap;gap:10px;">
+    <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="agySearch" type="text" placeholder="Search by name, person, email, phone..." value="${search}" oninput="_renderAgencies()">
+        ${search ? '<button onclick="_el(\'agySearch\').value=\'\';_renderAgencies()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
+      </div>
+      <select id="agyFilter" class="f-select" onchange="_renderAgencies()">
+        <option value="all"       ${filter==='all'?'selected':''}>All Agencies</option>
+        <option value="Active"    ${filter==='Active'?'selected':''}>🟢 Active Only</option>
+        <option value="Inactive"  ${filter==='Inactive'?'selected':''}>🔴 Inactive Only</option>
+        <option value="has-cands" ${filter==='has-cands'?'selected':''}>📁 Has Candidates</option>
+        <option value="top"       ${filter==='top'?'selected':''}>⭐ Has Placements</option>
+      </select>
+      <select id="agySort" class="f-select" onchange="_renderAgencies()">
+        <option value="name"    ${sortA==='name'?'selected':''}>🔤 Name A–Z</option>
+        <option value="cands"   ${sortA==='cands'?'selected':''}>👥 Most Candidates</option>
+        <option value="placed"  ${sortA==='placed'?'selected':''}>✅ Most Placements</option>
+        <option value="conv"    ${sortA==='conv'?'selected':''}>📈 Best Conversion</option>
+        <option value="comm-hi" ${sortA==='comm-hi'?'selected':''}>💸 Highest Commission</option>
+        <option value="newest"  ${sortA==='newest'?'selected':''}>🕐 Newest First</option>
+      </select>
+    </div>
+    <div class="vb-right" style="gap:8px;">
+      <span class="res-count">${visible.length} of ${agys.length}</span>
+      ${_hasWrite() ? '<button class="btn-add" onclick="_openAgencyModal()"><i class="fa-solid fa-plus" style="margin-right:6px"></i>Add Agency</button>' : ''}
+    </div>
+  </div>
+
+  <!-- Agencies Table -->
+  <div class="table-card" style="margin-bottom:16px;">
+    <div class="tbl-scroll">
+      <table class="data-tbl" style="min-width:1200px;">
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Contact Person</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Commission</th>
+            <th style="text-align:center;">Candidates</th>
+            <th style="text-align:center;">Pipeline</th>
+            <th style="text-align:center;">Placed</th>
+            <th style="text-align:center;">Conversion</th>
+            <th style="text-align:center;">Active Int.</th>
+            <th style="text-align:center;">Pending Offers</th>
+            <th>Status</th>
+            <th>Since</th>
+            ${_hasWrite() ? '<th style="min-width:140px;">Actions</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${visible.length ? visible.map(function(a) {
+            var isActive = a['Status']==='Active';
+            var convColor = a._convRate>=50?'#10b981':a._convRate>=25?'#f59e0b':'#ef4444';
+            return `<tr style="${isActive?'':'opacity:.7'}">
+              <td>
+                <div class="name-cell">
+                  <div class="n-av" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);flex-shrink:0;">
+                    <i class="fa-solid fa-handshake" style="font-size:11px;"></i>
+                  </div>
+                  <div>
+                    <div class="n-name">${a['Agency Name']||'—'}</div>
+                    <div class="n-email">${a['Agency ID']||'—'}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-size:12.5px;color:var(--t2);">${a['Contact Person']||'—'}</td>
+              <td style="font-size:11.5px;">
+                ${a['Email'] ? '<a href="mailto:'+a['Email']+'" style="color:var(--brand);text-decoration:none;font-size:11.5px;">'+a['Email']+'</a>' : '—'}
+              </td>
+              <td style="font-size:12px;color:var(--t2);">${a['Phone']||'—'}</td>
+              <td style="font-size:11px;color:var(--t3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a['Address']||''}">${a['Address']||'—'}</td>
+              <td style="text-align:center;">
+                <span style="background:rgba(139,92,246,.12);color:#7c3aed;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;">${a['Commission (%)']||0}%</span>
+              </td>
+              <td style="text-align:center;">
+                <button class="lnk-btn" onclick="_viewAgencyCands('${a['Agency Name']}')" style="font-size:15px;font-weight:800;">${a._totalCands}</button>
+              </td>
+              <td style="text-align:center;">
+                <span style="font-weight:700;color:#f59e0b;font-size:13px;">${a._inPipeline}</span>
+              </td>
+              <td style="text-align:center;">
+                <span style="font-weight:800;color:#10b981;font-size:14px;">${a._placements}</span>
+              </td>
+              <td style="text-align:center;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                  <div style="width:40px;height:5px;border-radius:3px;background:var(--surf2);overflow:hidden;">
+                    <div style="height:100%;width:${a._convRate}%;background:${convColor};border-radius:3px;transition:width .5s;"></div>
+                  </div>
+                  <span style="font-size:11px;font-weight:700;color:${convColor};">${a._convRate}%</span>
+                </div>
+              </td>
+              <td style="text-align:center;">
+                ${a._activeInts > 0 ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,.1);color:#d97706;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;"><i class="fa-solid fa-calendar-check" style="font-size:9px"></i>'+a._activeInts+'</span>' : '<span style="color:var(--t4);font-size:11px;">—</span>'}
+              </td>
+              <td style="text-align:center;">
+                ${a._pendingOffs > 0 ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(236,72,153,.1);color:#be185d;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;"><i class="fa-solid fa-file-signature" style="font-size:9px"></i>'+a._pendingOffs+'</span>' : '<span style="color:var(--t4);font-size:11px;">—</span>'}
+              </td>
+              <td>
+                <span class="${isActive?'badge b-active':'badge b-inactive'}">${a['Status']}</span>
+              </td>
+              <td style="font-size:11px;color:var(--t4);">${a['Created On']||'—'}</td>
+              ${_hasWrite() ? `<td>
+                <div class="act-btns" style="gap:4px;">
+                  <!-- Edit -->
+                  <button class="ic-btn" title="Edit Agency" onclick="_editAgency('${a['Agency ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <!-- View Candidates -->
+                  <button class="ic-btn" title="View Candidates" style="color:#3b82f6;border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07);" onclick="_viewAgencyCands('${a['Agency Name']}')"><i class="fa-solid fa-users"></i></button>
+                  <!-- Toggle Status -->
+                  <button class="ic-btn ${isActive?'rej':'fwd'}" title="${isActive?'Deactivate Agency':'Activate Agency'}" onclick="_toggleAgencyStatus('${a['Agency ID']}','${a['Status']}')"><i class="fa-solid fa-power-off"></i></button>
+                  ${a._totalCands>0 ? `<!-- Performance Detail -->
+                  <button class="ic-btn" title="Performance Report" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.07);" onclick="_showAgencyReport('${a['Agency ID']}')"><i class="fa-solid fa-chart-column"></i></button>` : ''}
+                </div>
+              </td>` : ''}
+            </tr>`;
+          }).join('') : `<tr><td colspan="15" class="empty-row"><i class="fa-solid fa-building-circle-xmark" style="font-size:28px;display:block;margin-bottom:10px;opacity:.3"></i>No agencies found.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Performance Cards — individual agency breakdown -->
+  ${visible.filter(function(a){return a._totalCands>0;}).length > 0 ? `
+  <div class="section-card">
+    <div class="section-head">
+      <h3><i class="fa-solid fa-chart-bar" style="margin-right:8px;color:#8b5cf6"></i>Agency Performance Breakdown</h3>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+      ${visible.filter(function(a){return a._totalCands>0;}).map(function(a){
+        var pct = a._convRate;
+        var barC = pct>=50?'#10b981':pct>=25?'#f59e0b':'#ef4444';
+        return `<div style="background:var(--surf2);border-radius:12px;padding:16px;border:1px solid var(--bdr);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);">${a['Agency Name']}</div>
+            <span class="${a['Status']==='Active'?'badge b-active':'badge b-inactive'}" style="font-size:9.5px;">${a['Status']}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;text-align:center;">
+            <div style="background:var(--surf);border-radius:8px;padding:8px 4px;"><div style="font-size:16px;font-weight:800;color:var(--t1);">${a._totalCands}</div><div style="font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;">Total</div></div>
+            <div style="background:var(--surf);border-radius:8px;padding:8px 4px;"><div style="font-size:16px;font-weight:800;color:#f59e0b;">${a._inPipeline}</div><div style="font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;">Pipeline</div></div>
+            <div style="background:var(--surf);border-radius:8px;padding:8px 4px;"><div style="font-size:16px;font-weight:800;color:#10b981;">${a._placements}</div><div style="font-size:9px;color:var(--t4);font-weight:600;text-transform:uppercase;">Placed</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:6px;border-radius:3px;background:var(--surf);overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${barC};border-radius:3px;transition:width .6s;"></div>
+            </div>
+            <span style="font-size:11px;font-weight:800;color:${barC};min-width:34px;">${pct}%</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+            <span style="font-size:11px;color:var(--t3);">Commission: <strong style="color:#7c3aed;">${a['Commission (%)']||0}%</strong></span>
+            <button onclick="_viewAgencyCands('${a['Agency Name']}')" style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;padding:0;">View Candidates →</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>` : ''}
+  `;
+
+  _el('v-agencies').innerHTML = html;
+}
+
+function _viewAgencyCands(agencyName) {
+  _lv('candidates');
+  setTimeout(function() {
+    var el = _el('cndAgyFilter');
+    if (el) { el.value = agencyName; _renderCandidates(); }
+  }, 120);
+}
+
+// Agency performance report modal
+function _showAgencyReport(agencyId) {
+  var a     = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
+  if (!a)   return;
+  var cands = (_D.candidates||[]).filter(function(c){ return c['Agency Name']===a['Agency Name']; });
+  var jobs  = _D.jobs||[];
+
+  var byStage = {};
+  ['Applied','Interview','Selected','Offered','Joined','Rejected'].forEach(function(s){
+    byStage[s] = cands.filter(function(c){ return c['Stage']===s; }).length;
+  });
+
+  var byJob = {};
+  cands.forEach(function(c){
+    var job = jobs.find(function(j){ return j['Job ID']===c['Job ID']; });
+    var title = job ? job['Title'] : 'Unknown';
+    byJob[title] = (byJob[title]||0)+1;
+  });
+
+  var topJobs = Object.keys(byJob).sort(function(a,b){ return byJob[b]-byJob[a]; }).slice(0,5);
+
+  _showModal('📊 ' + a['Agency Name'] + ' — Performance Report', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surf2);border-radius:10px;padding:12px 16px;border:1px solid var(--bdr);">
+        <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Total Candidates</div>
+        <div style="font-size:28px;font-weight:800;color:var(--t1);">${cands.length}</div>
+      </div>
+      <div style="background:rgba(16,185,129,.08);border-radius:10px;padding:12px 16px;border:1px solid rgba(16,185,129,.2);">
+        <div style="font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Placements</div>
+        <div style="font-size:28px;font-weight:800;color:#10b981;">${byStage['Joined']||0}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Stage Breakdown</div>
+      ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){
+        var pct = cands.length > 0 ? Math.round((byStage[s]||0)/cands.length*100) : 0;
+        var col = s==='Applied'?'#3b82f6':s==='Interview'?'#f59e0b':s==='Selected'?'#8b5cf6':s==='Offered'?'#ec4899':s==='Joined'?'#10b981':'#ef4444';
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+          +'<span style="font-size:12px;color:var(--t2);min-width:76px;">'+s+'</span>'
+          +'<div style="flex:1;height:8px;border-radius:4px;background:var(--surf2);overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;"></div></div>'
+          +'<span style="font-size:12px;font-weight:700;color:var(--t1);min-width:28px;text-align:right;">'+(byStage[s]||0)+'</span>'
+          +'</div>';
+      }).join('')}
+    </div>
+    ${topJobs.length > 0 ? `
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Top Jobs Applied</div>
+      ${topJobs.map(function(title){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surf2);border-radius:8px;margin-bottom:6px;">'
+          +'<span style="font-size:12.5px;color:var(--t1);">'+title+'</span>'
+          +'<span style="font-size:12px;font-weight:700;color:var(--brand);">'+byJob[title]+' candidate'+(byJob[title]!==1?'s':'')+'</span>'
+          +'</div>';
+      }).join('')}
+    </div>` : ''}
+    <div style="margin-top:16px;padding:12px 16px;background:rgba(139,92,246,.08);border-radius:10px;border:1px solid rgba(139,92,246,.15);">
+      <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Commission Details</div>
+      <div style="font-size:13px;color:var(--t2);">Rate: <strong style="color:#7c3aed">${a['Commission (%)']||0}%</strong> · Contact: <strong style="color:var(--t1)">${a['Contact Person']||'—'}</strong></div>
+    </div>`,
+    `<button class="mbtn-s" onclick="_closeModal()">Close</button>
+     <button class="mbtn-p" onclick="_viewAgencyCands('${a['Agency Name']}');_closeModal()"><i class="fa-solid fa-users" style="margin-right:6px"></i>View All Candidates</button>`
+  );
+}
+
+function _openAgencyModal(agency) {
+  var a = agency || {};
+  _showModal(a['Agency ID'] ? 'Edit Agency' : 'Add New Agency', `
+    <div class="fg2">
+      <div class="fg full">
+        <label>Agency Name <span class="req">*</span></label>
+        <input id="a_name" value="${a['Agency Name']||''}" placeholder="e.g. ABC Recruitment Pvt. Ltd.">
+      </div>
+      <div class="fg">
+        <label>Contact Person</label>
+        <input id="a_person" value="${a['Contact Person']||''}" placeholder="e.g. Rajesh Kumar">
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input id="a_email" type="email" value="${a['Email']||''}" placeholder="agency@email.com">
+      </div>
+      <div class="fg">
+        <label>Phone</label>
+        <input id="a_phone" value="${a['Phone']||''}" placeholder="10-digit mobile">
+      </div>
+      <div class="fg">
+        <label>Commission (%)</label>
+        <input id="a_comm" type="number" min="0" max="50" step="0.5" value="${a['Commission (%)']||''}" placeholder="e.g. 8.5">
+      </div>
+      <div class="fg full">
+        <label>Address</label>
+        <input id="a_addr" value="${a['Address']||''}" placeholder="City / Full address">
+      </div>
+    </div>`,
+    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
+     <button class="mbtn-p" onclick="_submitAgency('${a['Agency ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Save Agency</button>`
+  );
+}
+
+function _editAgency(agencyId) {
+  var a = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
+  if (a) _openAgencyModal(a);
+}
+
+function _submitAgency(existingId) {
+  if (_submitting) return; _submitting = true;
+  var data = {
+    agencyId: existingId||null,
+    agencyName:    _val('a_name'),
+    contactPerson: _val('a_person'),
+    email:         _val('a_email'),
+    phone:         _val('a_phone'),
+    address:       _val('a_addr'),
+    commission:    _val('a_comm')
+  };
+  if (!data.agencyName) { _toast('Agency name is required.','error'); _submitting=false; return; }
+  _api(existingId ? 'updateAgency' : 'saveAgency', data, function(r) {
+    _submitting = false;
+    if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
+    else _toast(r.error,'error');
+  }, function(e) { _submitting=false; _toast(e.message,'error'); });
+}
+
+function _toggleAgencyStatus(agencyId, currentStatus) {
+  var action = currentStatus==='Active' ? 'deactivate' : 'activate';
+  if (!confirm('Are you sure you want to ' + action + ' this agency?')) return;
+  _api('toggleAgencyStatus', { agencyId: agencyId }, function(r) {
     if (r.success) { _toast(r.message, 'success'); _loadData(); }
     else _toast(r.error, 'error');
   });
@@ -1483,187 +2049,6 @@ function _submitJoining(offerId, candidateId) {
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
 
-
-// ─── AGENCIES ─────────────────────────────────────────────────
-function _renderAgencies() {
-  var agys  = _D.agencies    || [];
-  var cands = _D.candidates  || [];
-  var filter = _el('agyFilter') ? _el('agyFilter').value : 'all';
-  var search = _el('agySearch') ? _el('agySearch').value.toLowerCase() : '';
-
-  // Calculate stats for each agency
-  agys.forEach(function(a){
-    a._totalCands = cands.filter(function(c){ return c['Agency Name'] === a['Agency Name']; }).length;
-    a._placements = cands.filter(function(c){ return c['Agency Name'] === a['Agency Name'] && c['Stage'] === 'Joined'; }).length;
-  });
-
-  var visible = agys.filter(function(a) {
-    if (filter !== 'all' && a['Status'] !== filter) return false;
-    if (search && !(a['Agency Name']||'').toLowerCase().includes(search) &&
-                  !(a['Contact Person']||'').toLowerCase().includes(search) &&
-                  !(a['Email']||'').toLowerCase().includes(search) &&
-                  !(a['Phone']||'').toLowerCase().includes(search)) return false;
-    return true;
-  });
-
-  var html = `
-  <div class="view-bar">
-    <div class="vb-left">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="agySearch" type="text" placeholder="Search agencies..." value="${search}" oninput="_renderAgencies()">
-      </div>
-      <select id="agyFilter" class="f-select" onchange="_renderAgencies()">
-        <option value="all" ${filter==='all'?'selected':''}>All Status</option>
-        <option value="Active" ${filter==='Active'?'selected':''}>🟢 Active</option>
-        <option value="Inactive" ${filter==='Inactive'?'selected':''}>🔴 Inactive</option>
-      </select>
-    </div>
-    <div class="vb-right">
-      <span class="res-count">${visible.length} of ${agys.length} agencies</span>
-      ${_hasWrite() ? '<button class="btn-add" onclick="_openAgencyModal()"><i class="fa-solid fa-plus mr-1"></i>Add Agency</button>' : ''}
-    </div>
-  </div>
-
-  <div class="table-card">
-    <table class="data-tbl">
-      <thead>
-        <tr>
-          <th>Agency ID</th>
-          <th>Agency Name</th>
-          <th>Contact Person</th>
-          <th>Email</th>
-          <th>Phone</th>
-          <th>Address</th>
-          <th>Commission</th>
-          <th>Candidates</th>
-          <th>Placements</th>
-          <th>Status</th>
-          ${_hasWrite() ? '<th>Actions</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>
-        ${visible.length ? visible.map(function(a) {
-          var stCls = a['Status']==='Active' ? 'b-joined badge' : 'b-rejected badge';
-          return `<tr>
-            <td class="id-cell">${a['Agency ID']}</td>
-            <td class="font-semibold text-slate-800">
-              <div class="name-cell">
-                <div class="n-av" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)"><i class="fa-solid fa-building" style="font-size:10px"></i></div>
-                <span>${a['Agency Name']}</span>
-              </div>
-            </td>
-            <td>${a['Contact Person']||'—'}</td>
-            <td class="text-slate-600">${a['Email']||'—'}</td>
-            <td>${a['Phone']||'—'}</td>
-            <td class="text-slate-500 text-xs" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${a['Address']||'—'}</td>
-            <td class="text-center font-semibold text-violet-600">${a['Commission (%)']||0}%</td>
-            <td class="text-center">
-              <button class="lnk-btn" onclick="_viewAgencyCands('${a['Agency Name']}')">${a._totalCands}</button>
-            </td>
-            <td class="text-center text-green-700 font-bold">${a._placements}</td>
-            <td><span class="${stCls}">${a['Status']}</span></td>
-            ${_hasWrite() ? `<td>
-              <div class="act-btns">
-                <button class="ic-btn" title="Edit" onclick="_editAgency('${a['Agency ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                <button class="icon-btn ${a['Status']==='Active'?'danger':'success'}" title="${a['Status']==='Active'?'Deactivate':'Activate'}" onclick="_toggleAgencyStatus('${a['Agency ID']}','${a['Status']}')"><i class="fa-solid fa-power-off"></i></button>
-              </div>
-            </td>` : ''}
-          </tr>`;
-        }).join('') : `<tr><td colspan="11" class="empty-row">No agencies found.</td></tr>`}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Agency Performance Summary Cards -->
-  ${visible.length ? `
-  <div class="section-card mt-4">
-    <div class="section-head">
-      <h3><i class="fa-solid fa-chart-bar mr-2 text-violet-600"></i>Agency Performance Summary</h3>
-    </div>
-    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0;">
-      ${_kpiCard('fa-users','Total Candidates', agys.reduce(function(s,a){return s+a._totalCands;},0), 'violet', 'Across all agencies')}
-      ${_kpiCard('fa-user-check','Total Placements', agys.reduce(function(s,a){return s+a._placements;},0), 'green', 'Successfully joined')}
-      ${_kpiCard('fa-percent','Avg Conversion', agys.reduce(function(s,a){return s+a._totalCands;},0)>0 ? Math.round(agys.reduce(function(s,a){return s+a._placements;},0)/agys.reduce(function(s,a){return s+a._totalCands;},0)*100)+'%' : '0%', 'teal', 'Placement rate')}
-      ${_kpiCard('fa-building','Active Partners', agys.filter(function(a){return a['Status']==='Active';}).length, 'blue', 'Active agencies')}
-    </div>
-  </div>` : ''}
-  `;
-
-  _el('v-agencies').innerHTML = html;
-}
-
-function _viewAgencyCands(agencyName) {
-  _lv('candidates');
-  setTimeout(function() {
-    var el = _el('cndAgyFilter');
-    if (el) { el.value = agencyName; _renderCandidates(); }
-  }, 100);
-}
-
-function _openAgencyModal(agency) {
-  var a = agency || {};
-  _showModal(a['Agency ID'] ? 'Edit Agency' : 'Add New Agency', `
-    <div class="fg2">
-      <div class="fg full">
-        <label>Agency Name <span class="req">*</span></label>
-        <input id="a_name" value="${a['Agency Name']||''}" placeholder="e.g. ABC Recruitment">
-      </div>
-      <div class="fg">
-        <label>Contact Person</label>
-        <input id="a_person" value="${a['Contact Person']||''}" placeholder="Contact person name">
-      </div>
-      <div class="fg">
-        <label>Email</label>
-        <input id="a_email" type="email" value="${a['Email']||''}" placeholder="agency@email.com">
-      </div>
-      <div class="fg">
-        <label>Phone</label>
-        <input id="a_phone" value="${a['Phone']||''}" placeholder="Phone number">
-      </div>
-      <div class="fg full">
-        <label>Address</label>
-        <input id="a_addr" value="${a['Address']||''}" placeholder="Full address">
-      </div>
-      <div class="fg">
-        <label>Commission (%)</label>
-        <input id="a_comm" type="number" min="0" max="100" value="${a['Commission (%)']||0}" placeholder="e.g. 8.5">
-      </div>
-    </div>`,
-    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitAgency('${a['Agency ID']||''}')"><i class="fa-solid fa-floppy-disk mr-1"></i>Save Agency</button>`
-  );
-}
-
-function _editAgency(agencyId) {
-  var a = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
-  if (a) _openAgencyModal(a);
-}
-
-function _submitAgency(existingId) {
-  if (_submitting) return; _submitting = true;
-  var data = {
-    agencyId: existingId||null,
-    agencyName: _val('a_name'), contactPerson: _val('a_person'),
-    email: _val('a_email'), phone: _val('a_phone'),
-    address: _val('a_addr'), commission: _val('a_comm')
-  };
-  if (!data.agencyName) { _toast('Agency name is required.','error'); _submitting=false; return; }
-  _api(existingId ? 'updateAgency' : 'saveAgency', data, function(r) {
-    _submitting = false;
-    if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-    else _toast(r.error,'error');
-  }, function(e) { _submitting=false; _toast(e.message,'error'); });
-}
-
-function _toggleAgencyStatus(agencyId, currentStatus) {
-  var action = currentStatus === 'Active' ? 'deactivate' : 'activate';
-  if (!confirm('Are you sure you want to ' + action + ' this agency?')) return;
-  _api('toggleAgencyStatus', { agencyId: agencyId }, function(r) {
-    if (r.success) { _toast(r.message, 'success'); _loadData(); }
-    else _toast(r.error, 'error');
-  });
-}
 
 // ─── MODAL ────────────────────────────────────────────────────
 function _showModal(title, body, footer) {
