@@ -1107,7 +1107,7 @@ function _renderOffers() {
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
         +'<div style="width:30px;height:30px;border-radius:8px;background:'+x[4]+';display:flex;align-items:center;justify-content:center;font-size:12px;color:'+x[3]+';"><i class="fa-solid '+x[0]+'"></i></div>'
         +'<span style="font-size:11px;font-weight:700;color:var(--t3);">'+x[1]+'</span></div>'
-        +'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
+        +'<div style="font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
         +'</div>';
     }).join('')}
   </div>
