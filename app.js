@@ -714,7 +714,7 @@ function _renderJobs() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:700px;">
+      <table class="data-tbl">
         <thead>
           <tr>
             <th>Job</th>
@@ -923,7 +923,7 @@ function _renderInterviews() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:720px;">
+      <table class="data-tbl">
         <thead>
           <tr>
             <th>Candidate</th>
@@ -1153,7 +1153,7 @@ function _renderOffers() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:680px;">
+      <table class="data-tbl">
         <thead>
           <tr>
             <th>Candidate</th>
@@ -1424,7 +1424,7 @@ function _renderCandidates() {
   <!-- Main toolbar -->
   <div class="view-bar" style="flex-wrap:wrap;gap:10px;align-items:flex-start;">
     <div class="vb-left" style="flex-wrap:wrap;gap:8px;">
-      <div class="search-box" style="min-width:240px;max-width:320px;">
+      <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="cndSearch" type="text" placeholder="Name, email, phone, company, ID..." value="${search}" oninput="_PG.candidates=1;_renderCandidates()">
         ${search ? '<button onclick="_el(\'cndSearch\').value=\'\';_renderCandidates()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
@@ -1470,7 +1470,7 @@ function _renderCandidates() {
 
   <div class="table-card">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:700px;">
+      <table class="data-tbl">
         <thead>
           <tr>
             <th style="width:36px;"></th>
@@ -1786,7 +1786,7 @@ function _renderAgencies() {
   <!-- Agencies Table -->
   <div class="table-card" style="margin-bottom:16px;">
     <div class="tbl-scroll">
-      <table class="data-tbl" style="min-width:800px;">
+      <table class="data-tbl">
         <thead>
           <tr>
             <th>Agency</th>
