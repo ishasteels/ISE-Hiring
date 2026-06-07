@@ -401,7 +401,7 @@ body.sb-collapsed .tb-logo-abbr{display:block}
 /* ── CONTENT ─────────────────────────────────────────────── */
 #content{
   position:fixed;top:var(--tbar);left:var(--sbw);
-  right:0;bottom:0;overflow-y:auto;
+  right:0;bottom:0;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   padding:24px;background:var(--bg);
   transition:left .28s cubic-bezier(.4,0,.2,1);
@@ -1002,39 +1002,94 @@ body.sb-collapsed .tb-logo-abbr{display:block}
 
 
 /* ══════════════════════════════════════════════════════════
-   TABLE COLUMNS — auto-adjustable, no forced min-width overflow
+   TABLE — contained scroll, no overflow outside card
 ══════════════════════════════════════════════════════════ */
-.data-tbl { table-layout:auto; width:100%; }
-.data-tbl thead th {
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  max-width:180px;
-}
-.data-tbl tbody td {
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  max-width:200px;
-}
-/* Name column — allow wrapping */
-.data-tbl .name-cell { white-space:normal; min-width:140px; }
-/* Action column — don't shrink */
-.data-tbl .act-btns { white-space:nowrap; }
 
-/* Table scroll container — hide scrollbar on mobile but keep functional */
+/* table-card acts as the clipping container */
+.table-card {
+  background:var(--surf);
+  border-radius:var(--r-md);
+  border:1px solid var(--bdr);
+  box-shadow:var(--shadow-xs);
+  overflow:hidden;           /* clips anything that escapes */
+  min-width:0;               /* allow card to shrink */
+  max-width:100%;
+}
+
+/* scroll wrapper — scroll INSIDE the card, not the page */
 .tbl-scroll {
   overflow-x:auto;
   overflow-y:visible;
-  position:relative;
-  border-radius:0;
+  -webkit-overflow-scrolling:touch;
+  max-width:100%;
 }
-.tbl-scroll::-webkit-scrollbar { height:4px; }
+.tbl-scroll::-webkit-scrollbar { height:5px; }
 .tbl-scroll::-webkit-scrollbar-track { background:var(--surf2); }
-.tbl-scroll::-webkit-scrollbar-thumb { background:var(--bdr); border-radius:2px; }
+.tbl-scroll::-webkit-scrollbar-thumb { background:var(--bdr); border-radius:3px; }
+.tbl-scroll::after { display:none !important; } /* remove gradient overlay */
 
-/* Remove the gradient overlay from previous CSS that was hiding content */
-.tbl-scroll::after { display:none !important; }
+/* table itself */
+.data-tbl {
+  table-layout:fixed;        /* fixed layout = columns won't blow up */
+  width:100%;
+  border-collapse:collapse;
+  font-size:12.5px;
+}
 
-/* ── PAGINATION CONTROLS ─────────────────────────────── */
+/* column widths — sensible defaults that sum to ~100% */
+.data-tbl thead th {
+  background:var(--surf2);
+  color:var(--t3);
+  font-size:10.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  padding:11px 12px;
+  text-align:left;
+  border-bottom:1px solid var(--bdr);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+.data-tbl tbody td {
+  padding:12px 12px;
+  border-bottom:1px solid var(--bdr2);
+  vertical-align:middle;
+  color:var(--t2);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:0;               /* needed for text-overflow on fixed layout */
+}
+.data-tbl tbody tr { transition:background .1s; }
+.data-tbl tbody tr:hover { background:var(--surf2); }
+.data-tbl tbody tr:last-child td { border-bottom:none; }
+
+/* Name cell — allow small wrap */
+.data-tbl td .name-cell {
+  white-space:normal;
+  min-width:0;
+}
+.name-cell { display:flex; align-items:center; gap:9px; }
+.n-name  { font-size:13px; font-weight:600; color:var(--t1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.n-email { font-size:11px; color:var(--t4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Action buttons column — never truncate */
+.data-tbl td:last-child { overflow:visible; white-space:nowrap; }
+.act-btns { display:flex; align-items:center; gap:4px; justify-content:flex-end; flex-wrap:nowrap; }
+
+/* id cell */
+.id-cell { font-family:'Courier New',monospace; font-size:10.5px; color:var(--t4); font-weight:600; }
+
+/* empty row */
+.empty-row { text-align:center; padding:56px 16px; color:var(--t4); font-size:13.5px; }
+
+/* Pagination bar */
 .pg-bar {
-  padding:12px 20px;
+  padding:10px 16px;
   border-top:1px solid var(--bdr);
   background:var(--surf2);
   display:flex;
@@ -1042,66 +1097,278 @@ body.sb-collapsed .tb-logo-abbr{display:block}
   justify-content:space-between;
   flex-wrap:wrap;
   gap:8px;
-  border-radius:0 0 var(--r-md) var(--r-md);
 }
-.pg-bar button:disabled {
-  opacity:.35;
-  cursor:not-allowed;
-}
-.pg-bar button:not(:disabled):hover {
-  border-color:var(--brand) !important;
-  color:var(--brand) !important;
-}
+.pg-bar button:disabled { opacity:.35; cursor:not-allowed; }
+.pg-bar button:not(:disabled):hover { border-color:var(--brand) !important; color:var(--brand) !important; }
 
-/* ── CANDIDATE / AGENCY ROW CLICK HIGHLIGHT ─────────── */
-.data-tbl tbody tr[onclick]:hover {
-  background:var(--surf2);
-  outline:1px solid var(--bdr);
-}
-.data-tbl tbody tr[onclick]:active {
-  background:var(--surf3);
-}
+/* ── CANDIDATES TABLE — custom col widths ─────────────── */
+#v-candidates .data-tbl { min-width:860px; }
+#v-candidates .data-tbl th:nth-child(1)  { width:28px;  } /* dot */
+#v-candidates .data-tbl th:nth-child(2)  { width:16%;  } /* name */
+#v-candidates .data-tbl th:nth-child(3)  { width:90px; } /* phone */
+#v-candidates .data-tbl th:nth-child(4)  { width:12%;  } /* job */
+#v-candidates .data-tbl th:nth-child(5)  { width:9%;   } /* dept */
+#v-candidates .data-tbl th:nth-child(6)  { width:9%;   } /* company */
+#v-candidates .data-tbl th:nth-child(7)  { width:44px; } /* exp */
+#v-candidates .data-tbl th:nth-child(8)  { width:72px; } /* curr ctc */
+#v-candidates .data-tbl th:nth-child(9)  { width:72px; } /* exp ctc */
+#v-candidates .data-tbl th:nth-child(10) { width:72px; } /* source */
+#v-candidates .data-tbl th:nth-child(11) { width:80px; } /* agency */
+#v-candidates .data-tbl th:nth-child(12) { width:44px; } /* resume */
+#v-candidates .data-tbl th:nth-child(13) { width:78px; } /* stage */
+#v-candidates .data-tbl th:nth-child(14) { width:72px; } /* applied */
+#v-candidates .data-tbl th:nth-child(15) { width:72px; } /* modified */
+#v-candidates .data-tbl th:nth-child(16) { width:160px;} /* actions */
 
-/* ── FILTER TOOLBAR — pills row on mobile ────────────── */
-.status-pills {
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:14px;
-}
+/* ── INTERVIEWS TABLE ─────────────────────────────────── */
+#v-interviews .data-tbl { min-width:780px; }
+#v-interviews .data-tbl th:nth-child(1)  { width:16%;  } /* candidate */
+#v-interviews .data-tbl th:nth-child(2)  { width:11%;  } /* job role */
+#v-interviews .data-tbl th:nth-child(3)  { width:50px; } /* round */
+#v-interviews .data-tbl th:nth-child(4)  { width:70px; } /* type */
+#v-interviews .data-tbl th:nth-child(5)  { width:90px; } /* mode */
+#v-interviews .data-tbl th:nth-child(6)  { width:110px;} /* scheduled */
+#v-interviews .data-tbl th:nth-child(7)  { width:9%;   } /* interviewer */
+#v-interviews .data-tbl th:nth-child(8)  { width:68px; } /* status */
+#v-interviews .data-tbl th:nth-child(9)  { width:55px; } /* result */
+#v-interviews .data-tbl th:nth-child(10) { width:14%;  } /* feedback */
+#v-interviews .data-tbl th:nth-child(11) { width:100px;} /* actions */
+
+/* ── JOBS TABLE ──────────────────────────────────────── */
+#v-jobs .data-tbl { min-width:700px; }
+#v-jobs .data-tbl th:nth-child(1)  { width:18%;  } /* job */
+#v-jobs .data-tbl th:nth-child(2)  { width:8%;   } /* dept */
+#v-jobs .data-tbl th:nth-child(3)  { width:8%;   } /* location */
+#v-jobs .data-tbl th:nth-child(4)  { width:55px; } /* exp req */
+#v-jobs .data-tbl th:nth-child(5)  { width:80px; } /* salary */
+#v-jobs .data-tbl th:nth-child(6)  { width:56px; } /* openings */
+#v-jobs .data-tbl th:nth-child(7)  { width:52px; } /* applied */
+#v-jobs .data-tbl th:nth-child(8)  { width:52px; } /* interviews */
+#v-jobs .data-tbl th:nth-child(9)  { width:72px; } /* deadline */
+#v-jobs .data-tbl th:nth-child(10) { width:8%;   } /* posted by */
+#v-jobs .data-tbl th:nth-child(11) { width:56px; } /* status */
+#v-jobs .data-tbl th:nth-child(12) { width:110px;} /* actions */
+
+/* ── OFFERS TABLE ────────────────────────────────────── */
+#v-offers .data-tbl { min-width:640px; }
+#v-offers .data-tbl th:nth-child(1)  { width:17%;  } /* candidate */
+#v-offers .data-tbl th:nth-child(2)  { width:7%;   } /* dept */
+#v-offers .data-tbl th:nth-child(3)  { width:10%;  } /* job role */
+#v-offers .data-tbl th:nth-child(4)  { width:70px; } /* CTC */
+#v-offers .data-tbl th:nth-child(5)  { width:72px; } /* joining */
+#v-offers .data-tbl th:nth-child(6)  { width:72px; } /* sent on */
+#v-offers .data-tbl th:nth-child(7)  { width:70px; } /* status */
+#v-offers .data-tbl th:nth-child(8)  { width:50px; } /* days */
+#v-offers .data-tbl th:nth-child(9)  { width:120px;} /* actions */
+
+/* ── AGENCIES TABLE ──────────────────────────────────── */
+#v-agencies .data-tbl { min-width:780px; }
+#v-agencies .data-tbl th:nth-child(1)  { width:16%;  } /* agency */
+#v-agencies .data-tbl th:nth-child(2)  { width:9%;   } /* contact */
+#v-agencies .data-tbl th:nth-child(3)  { width:11%;  } /* email */
+#v-agencies .data-tbl th:nth-child(4)  { width:80px; } /* phone */
+#v-agencies .data-tbl th:nth-child(5)  { width:7%;   } /* address */
+#v-agencies .data-tbl th:nth-child(6)  { width:66px; } /* commission */
+#v-agencies .data-tbl th:nth-child(7)  { width:50px; } /* candidates */
+#v-agencies .data-tbl th:nth-child(8)  { width:50px; } /* pipeline */
+#v-agencies .data-tbl th:nth-child(9)  { width:44px; } /* placed */
+#v-agencies .data-tbl th:nth-child(10) { width:72px; } /* conversion */
+#v-agencies .data-tbl th:nth-child(11) { width:50px; } /* active int */
+#v-agencies .data-tbl th:nth-child(12) { width:60px; } /* pending off */
+#v-agencies .data-tbl th:nth-child(13) { width:56px; } /* status */
+#v-agencies .data-tbl th:nth-child(14) { width:60px; } /* since */
+#v-agencies .data-tbl th:nth-child(15) { width:100px;} /* actions */
+
+/* ── RESPONSIVE TABLE BEHAVIOUR ─────────────────────── */
+/* On screens narrower than the min-width, horizontal scroll kicks in */
 @media(max-width:767px){
-  .status-pills {
-    overflow-x:auto;
-    flex-wrap:nowrap;
-    padding-bottom:4px;
-    -ms-overflow-style:none;
-    scrollbar-width:none;
-  }
-  .status-pills::-webkit-scrollbar { display:none; }
+  /* Tighter padding on mobile */
+  .data-tbl thead th { padding:9px 8px; font-size:9.5px; }
+  .data-tbl tbody td { padding:10px 8px; font-size:12px; }
+  .ic-btn { width:30px; height:30px; }
+  .act-btns { gap:3px; }
+  .n-av { width:28px; height:28px; font-size:10px; }
+  .n-av.sm { width:24px; height:24px; font-size:9px; }
+
+  /* on mobile, candidates/agencies show fewer columns — hide less-important ones */
+  #v-candidates .data-tbl th:nth-child(7),
+  #v-candidates .data-tbl td:nth-child(7),
+  #v-candidates .data-tbl th:nth-child(8),
+  #v-candidates .data-tbl td:nth-child(8),
+  #v-candidates .data-tbl th:nth-child(9),
+  #v-candidates .data-tbl td:nth-child(9),
+  #v-candidates .data-tbl th:nth-child(14),
+  #v-candidates .data-tbl td:nth-child(14),
+  #v-candidates .data-tbl th:nth-child(15),
+  #v-candidates .data-tbl td:nth-child(15) { display:none; }
+
+  #v-jobs .data-tbl th:nth-child(4),
+  #v-jobs .data-tbl td:nth-child(4),
+  #v-jobs .data-tbl th:nth-child(10),
+  #v-jobs .data-tbl td:nth-child(10) { display:none; }
+
+  #v-interviews .data-tbl th:nth-child(10),
+  #v-interviews .data-tbl td:nth-child(10) { display:none; }
 }
 
-/* ── DETAIL MODAL — full width on mobile ─────────────── */
-@media(max-width:767px){
-  .det-grid { grid-template-columns:1fr !important; }
-  #modal .fg2 { grid-template-columns:1fr !important; }
-  /* Modal wider on tablet */
-}
+/* ── ROW CLICK HIGHLIGHT ──────────────────────────────── */
+.data-tbl tbody tr[onclick] { cursor:pointer; }
+.data-tbl tbody tr[onclick]:hover { background:var(--surf2); }
+
+/* ── DARK MODE TABLE ─────────────────────────────────── */
+[data-theme="dark"] .table-card { background:var(--surf); }
+[data-theme="dark"] .data-tbl thead th { background:var(--surf2); }
+[data-theme="dark"] .data-tbl tbody tr:hover { background:var(--surf2); }
+[data-theme="dark"] .tbl-scroll::-webkit-scrollbar-track { background:var(--surf2); }
+[data-theme="dark"] .tbl-scroll::-webkit-scrollbar-thumb { background:var(--bdr); }
+
+/* ── SCROLL HINT — subtle right fade on desktop ─────── */
 @media(min-width:768px){
-  #modal { max-width:680px; }
+  .tbl-scroll-wrap { position:relative; }
+  .tbl-scroll-wrap::after {
+    content:'';
+    position:absolute;
+    right:0; top:0; bottom:0;
+    width:20px;
+    background:linear-gradient(to right, transparent, var(--surf));
+    pointer-events:none;
+    border-radius:0 var(--r-md) var(--r-md) 0;
+    opacity:0;
+    transition:opacity .2s;
+  }
+  .tbl-scroll-wrap.can-scroll::after { opacity:1; }
 }
 
-/* ── KPI mini strip in agency detail ─────────────────── */
-@media(max-width:480px){
-  #modal [style*="grid-template-columns:repeat(4"] {
-    grid-template-columns:repeat(2,1fr) !important;
-  }
-}
 
 /* Timeline fix */
 .tl { display:flex; flex-direction:column; }
 .tl-item { display:flex; gap:12px; padding-bottom:14px; position:relative; }
 .tl-item::before { content:''; position:absolute; left:11px; top:24px; bottom:0; width:1px; background:var(--bdr); }
 .tl-item:last-child::before { display:none; }
+
+
+/* ══════════════════════════════════════════════════════════
+   OVERFLOW CONTAINMENT — prevent any child from breaking layout
+══════════════════════════════════════════════════════════ */
+
+/* Content area clips everything */
+#content { overflow-x:hidden !important; }
+
+/* View containers */
+.view { max-width:100%; overflow-x:hidden; }
+
+/* View bar (toolbar) */
+.view-bar {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:14px;
+  gap:10px;
+  flex-wrap:wrap;
+  max-width:100%;
+  min-width:0;
+}
+.vb-left  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1; min-width:0; }
+.vb-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+
+/* Search box — responsive */
+.search-box {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--surf);
+  border:1.5px solid var(--bdr);
+  border-radius:50px;
+  padding:9px 16px;
+  flex:1;
+  min-width:0;
+  max-width:260px;
+  transition:border-color .15s, box-shadow .15s;
+  box-shadow:var(--shadow-xs);
+}
+.search-box input {
+  border:none;
+  outline:none;
+  font-size:13px;
+  font-family:inherit;
+  background:transparent;
+  width:100%;
+  min-width:0;
+  color:var(--t1);
+}
+
+/* Filter selects */
+.f-select {
+  padding:8px 14px;
+  border:1.5px solid var(--bdr);
+  border-radius:50px;
+  font-size:12px;
+  font-family:inherit;
+  color:var(--t2);
+  background:var(--surf);
+  outline:none;
+  cursor:pointer;
+  -webkit-appearance:none;
+  transition:border-color .15s;
+  max-width:140px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.f-select:focus { border-color:var(--brand); }
+
+/* Status pills row — horizontal scroll on mobile */
+.status-pills {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+  max-width:100%;
+}
+@media(max-width:600px){
+  .status-pills {
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding-bottom:4px;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .status-pills::-webkit-scrollbar { display:none; }
+  .f-select { max-width:110px; font-size:11.5px; padding:7px 10px; }
+  .search-box { max-width:100%; }
+  .btn-add { padding:9px 14px; font-size:12px; }
+}
+
+/* Section card */
+.section-card {
+  background:var(--surf);
+  border-radius:var(--r-md);
+  padding:20px;
+  border:1px solid var(--bdr);
+  box-shadow:var(--shadow-xs);
+  margin-bottom:16px;
+  max-width:100%;
+  overflow:hidden;
+}
+
+/* KPI grid */
+.kpi-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+@media(max-width:900px){ .kpi-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:480px){ .kpi-grid { grid-template-columns:repeat(2,1fr); gap:8px; } }
+
+/* Charts grid */
+.charts-2 {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:16px;
+}
+@media(max-width:700px){ .charts-2 { grid-template-columns:1fr; } }
 
 </style>
 <base target="_blank">
