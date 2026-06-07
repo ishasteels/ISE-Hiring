@@ -2285,75 +2285,79 @@ function _submitCandidate(existingId) {
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
 
+// Global context for candidate detail modal actions
+var _cndCtx = {};
+
 function _openCndDetail(candidateId) {
   var c    = (_D.candidates||[]).find(function(x){return x['Candidate ID']===candidateId;});
   if(!c) return;
   var job  = (_D.jobs||[]).find(function(j){return j['Job ID']===c['Job ID'];});
-  var ints = (_D.interviews||[]).filter(function(i){return i['Candidate ID']===candidateId;}).sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
+  var ints = (_D.interviews||[]).filter(function(i){return i['Candidate ID']===candidateId;})
+             .sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
   var offs = (_D.offers||[]).filter(function(o){return o['Candidate ID']===candidateId;});
   var agy  = c['Agency Name'] ? (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency Name'];}) : null;
 
-  var stageColor = c['Stage']==='Applied'?'#3b82f6':c['Stage']==='Interview'?'#f59e0b':c['Stage']==='Selected'?'#8b5cf6':c['Stage']==='Offered'?'#ec4899':c['Stage']==='Joined'?'#10b981':'#ef4444';
+  // Store context for modal button handlers
+  _cndCtx = { candidateId: candidateId, nextStage: _stageNext(c['Stage']), stage: c['Stage'], offs: offs };
 
-  // Interview timeline
+  var stageColor = {Applied:'#3b82f6',Interview:'#f59e0b',Selected:'#8b5cf6',Offered:'#ec4899',Joined:'#10b981',Rejected:'#ef4444'}[c['Stage']] || '#64748b';
+
+  // Interview timeline HTML
   var intHtml = ints.length ? ints.map(function(i){
     var dotCls = i['Result']==='Pass'?'tl-g':i['Result']==='Fail'?'tl-r':'tl-a';
     var resCls = i['Result']==='Pass'?'badge b-joined':i['Result']==='Fail'?'badge b-rejected':i['Result']==='Hold'?'badge b-offered':'badge b-scheduled';
+    var resultBadge = i['Result'] ? '<span class="'+resCls+'" style="margin-left:8px;">'+i['Result']+'</span>'
+                                  : '<span class="badge b-scheduled" style="margin-left:8px;">'+i['Status']+'</span>';
+    var meetLink = i['Meeting Link'] ? '<br><a href="'+i['Meeting Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6;margin-top:4px;"><i class="fa-solid fa-video" style="font-size:9px;"></i>Join Meeting</a>' : '';
+    var feedback = i['Feedback'] ? '<div class="tl-fb" style="margin-top:6px;">"'+i['Feedback']+'"</div>' : '';
+    var markBtn  = (_hasWrite() && i['Status']==='Scheduled')
+      ? '<br><button class="lnk-btn" style="margin-top:6px;font-size:12px;" data-iid="'+i['Interview ID']+'" onclick="_cndModalMarkResult(this)"><i class="fa-solid fa-check-to-slot" style="margin-right:4px;font-size:10px;"></i>Mark Result</button>'
+      : '';
     return '<div class="tl-item">'
       +'<div class="tl-dot '+dotCls+'"></div>'
       +'<div class="tl-body">'
-        +'<div class="tl-head">Round '+i['Round']+' — '+i['Type']
-          +(i['Result']?' <span class="'+resCls+'" style="margin-left:8px;">'+i['Result']+'</span>':' <span class="badge b-scheduled" style="margin-left:8px;">'+i['Status']+'</span>')
-        +'</div>'
-        +'<div class="tl-sub" style="margin-bottom:4px;">'+((i['Scheduled On']||'').replace('T',' ').slice(0,16)||'—')+' · '+(i['Interviewer']||'—')+' · '+(i['Mode']||'—')+'</div>'
-        +(i['Meeting Link']?'<a href="'+i['Meeting Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6;margin-bottom:4px;"><i class="fa-solid fa-video" style="font-size:9px;"></i>Join Meeting</a><br>':'')
-        +(i['Feedback']?'<div class="tl-fb" style="margin-top:4px;">"'+i['Feedback']+'"</div>':'')
-        +(_hasWrite()&&i['Status']==='Scheduled'?('<button data-iid="'+i['Interview ID']+'" data-cid="'+candidateId+'" onclick="var el=this;_markInterviewResult(el.getAttribute(String.fromCharCode(100,97,116,97,45,105,105,100)),el.getAttribute(String.fromCharCode(100,97,116,97,45,99,105,100)))" class="lnk-btn" style="margin-top:6px;">Mark Result</button>'):'' )
+        +'<div class="tl-head">Round '+i['Round']+' — '+i['Type']+resultBadge+'</div>'
+        +'<div class="tl-sub" style="margin-bottom:2px;">'+((i['Scheduled On']||'').replace('T',' ').slice(0,16)||'—')+' · '+(i['Interviewer']||'—')+' · '+(i['Mode']||'—')+'</div>'
+        +meetLink+feedback+markBtn
       +'</div></div>';
-  }).join('')
-  : '<div style="text-align:center;padding:20px;color:var(--t4);font-size:13px;">No interviews scheduled yet.</div>';
+  }).join('') : '<div style="text-align:center;padding:16px;color:var(--t4);font-size:13px;">No interviews scheduled yet.</div>';
 
-  // All offers
-  var offHtml = offs.length ? offs.map(function(o){
+  // Offer cards HTML
+  var offHtml = offs.length ? offs.map(function(o, oi){
     var oStCls = o['Offer Status']==='Accepted'?'badge b-accepted':o['Offer Status']==='Declined'?'badge b-declined':'badge b-sent';
+    var acceptBtn  = (_hasWrite() && o['Offer Status']==='Sent') ? '<button class="mbtn-g" style="flex:1;justify-content:center;" data-oi="'+oi+'" data-act="accept" onclick="_cndModalOfferAct(this)"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>' : '';
+    var declineBtn = (_hasWrite() && o['Offer Status']==='Sent') ? '<button class="mbtn-d" style="flex:1;justify-content:center;" data-oi="'+oi+'" data-act="decline" onclick="_cndModalOfferAct(this)"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>' : '';
+    var joinBtn    = (_hasWrite() && o['Offer Status']==='Accepted') ? '<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:6px;" data-oi="'+oi+'" onclick="_cndModalJoinAct(this)"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>' : '';
+    var btns = (acceptBtn||declineBtn) ? '<div style="display:flex;gap:8px;margin-top:8px;">'+acceptBtn+declineBtn+'</div>' : '';
     return '<div class="offer-card" style="margin-bottom:10px;">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
         +'<div style="font-weight:700;color:var(--t1);font-size:13px;"><i class="fa-solid fa-file-signature" style="color:#ec4899;margin-right:6px;font-size:11px;"></i>'+o['Offer ID']+'</div>'
         +'<span class="'+oStCls+'">'+o['Offer Status']+'</span>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
-        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;">Offered CTC</div><div style="font-size:16px;font-weight:800;color:#059669;">'+o['Offered CTC']+' LPA</div></div>'
-        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;">Joining Date</div><div style="font-size:14px;font-weight:700;color:var(--t1);">'+(o['Joining Date']||'—')+'</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);margin-bottom:2px;">Offered CTC</div><div style="font-size:16px;font-weight:800;color:#059669;">'+o['Offered CTC']+' LPA</div></div>'
+        +'<div style="background:var(--surf);border-radius:8px;padding:8px 12px;border:1px solid var(--bdr);"><div style="font-size:10px;font-weight:700;color:var(--t4);margin-bottom:2px;">Joining Date</div><div style="font-size:14px;font-weight:700;color:var(--t1);">'+(o['Joining Date']||'\u2014')+'</div></div>'
       +'</div>'
-      +(_hasWrite()&&o['Offer Status']==='Sent'
-        ?'<div style="display:flex;gap:8px;">'
-          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
-          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
-        +'</div>':''
-      )
-      +(_hasWrite()&&o['Offer Status']==='Accepted'
-        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\")"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
-      )
+      +btns+joinBtn
     +'</div>';
   }).join('') : '';
 
   // Agency block
-  var agyHtml = agy
-    ?'<div style="grid-column:1/-1;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(236,72,153,.06));border-radius:10px;padding:12px 14px;border:1px solid rgba(139,92,246,.2);">'
-      +'<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;"><i class="fa-solid fa-handshake" style="margin-right:5px;"></i>Recruiting Agency</div>'
-      +'<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:4px;">'+agy['Agency Name']+'</div>'
-      +'<div style="font-size:12px;color:var(--t3);">Contact: '+(agy['Contact Person']||'—')+' · '+( agy['Phone']?'<a href="tel:'+agy['Phone']+'" style="color:var(--brand);">'+agy['Phone']+'</a>':'—')+' · Commission: <strong style="color:#7c3aed">'+( agy['Commission (%)']||0)+'%</strong></div>'
-    +'</div>'
-    :'';
+  var agyHtml = agy ? '<div style="grid-column:1/-1;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(236,72,153,.06));border-radius:10px;padding:12px 14px;border:1px solid rgba(139,92,246,.2);">'
+    +'<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;"><i class="fa-solid fa-handshake" style="margin-right:5px;"></i>Recruiting Agency</div>'
+    +'<div style="font-size:14px;font-weight:700;color:#6d28d9;margin-bottom:4px;">'+agy['Agency Name']+'</div>'
+    +'<div style="font-size:12px;color:var(--t3);">Contact: '+(agy['Contact Person']||'\u2014')+' \xb7 '+(agy['Phone']?'<a href="tel:'+agy['Phone']+'" style="color:var(--brand);">'+agy['Phone']+'</a>':'\u2014')+' \xb7 Commission: <strong style="color:#7c3aed">'+(agy['Commission (%)']||0)+'%</strong></div>'
+  +'</div>' : '';
 
-  _showModal(c['Full Name']+' — Full Profile', 
-    // Header
-    '<div style="background:linear-gradient(135deg,'+stageColor+'18,'+stageColor+'08);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid '+stageColor+'30;">'
+  // Build modal content
+  var body = ''
+    // Profile header
+    +'<div style="background:linear-gradient(135deg,'+stageColor+'18,'+stageColor+'08);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid '+stageColor+'30;">'
       +'<div style="display:flex;align-items:center;gap:14px;">'
         +'<div style="width:56px;height:56px;border-radius:50%;background:'+_avatarGrad(c['Full Name'])+';color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+c['Full Name'].charAt(0).toUpperCase()+'</div>'
         +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
-          +'<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">'+(c['Email']||'')+(c['Phone']?' · '+c['Phone']:'')+'</div>'
+          +'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:2px;">'+c['Full Name']+'</div>'
+          +'<div style="font-size:12px;color:var(--t3);margin-bottom:6px;">'+(c['Email']||'')+((c['Email']&&c['Phone'])?' \xb7 ':'')+( c['Phone']||'')+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+_stageClass(c['Stage'])+'">'+c['Stage']+'</span>'
             +(job?'<span class="src-tag">'+job['Title']+'</span>':'')
@@ -2365,36 +2369,65 @@ function _openCndDetail(candidateId) {
     // Details grid
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">'
       +'<div class="det-field"><label>Candidate ID</label><span style="font-family:monospace;font-size:11px;color:var(--t3);">'+c['Candidate ID']+'</span></div>'
-      +'<div class="det-field"><label>Applied On</label><span>'+(c['Applied On']||'—')+'</span></div>'
-      +'<div class="det-field"><label>Current Company</label><span>'+(c['Current Company']||'—')+'</span></div>'
+      +'<div class="det-field"><label>Applied On</label><span>'+(c['Applied On']||'\u2014')+'</span></div>'
+      +'<div class="det-field"><label>Current Company</label><span>'+(c['Current Company']||'\u2014')+'</span></div>'
       +'<div class="det-field"><label>Experience</label><span>'+(c['Experience (Yrs)']||0)+' years</span></div>'
-      +'<div class="det-field"><label>Current CTC</label><span>'+(c['Current CTC']?c['Current CTC']+' LPA':'—')+'</span></div>'
-      +'<div class="det-field"><label>Expected CTC</label><span style="font-weight:700;color:#059669;">'+(c['Expected CTC']?c['Expected CTC']+' LPA':'—')+'</span></div>'
-      +'<div class="det-field"><label>Source</label><span>'+(c['Source']||'—')+'</span></div>'
-      +'<div class="det-field"><label>Last Modified</label><span style="font-size:11px;">'+(c['Last Modified']?c['Last Modified'].slice(0,16):'—')+'</span></div>'
+      +'<div class="det-field"><label>Current CTC</label><span>'+(c['Current CTC']?c['Current CTC']+' LPA':'\u2014')+'</span></div>'
+      +'<div class="det-field"><label>Expected CTC</label><span style="font-weight:700;color:#059669;">'+(c['Expected CTC']?c['Expected CTC']+' LPA':'\u2014')+'</span></div>'
+      +'<div class="det-field"><label>Source</label><span>'+(c['Source']||'\u2014')+'</span></div>'
+      +'<div class="det-field"><label>Last Modified</label><span style="font-size:11px;">'+(c['Last Modified']?c['Last Modified'].slice(0,16):'\u2014')+'</span></div>'
       +agyHtml
       +(c['Resume Link']?'<div class="det-field" style="grid-column:1/-1;"><label>Resume</label><a href="'+c['Resume Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(59,130,246,.1);color:#3b82f6;border-radius:8px;font-size:12.5px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,.25);"><i class="fa-solid fa-file-pdf"></i>View Resume</a></div>':'')
     +'</div>'
     // Interview section
-    +'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);">'
-      +'<i class="fa-solid fa-calendar-days" style="margin-right:6px;color:#f59e0b;"></i>Interview History ('+ints.length+')'
-    +'</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);"><i class="fa-solid fa-calendar-days" style="margin-right:6px;color:#f59e0b;"></i>Interview History ('+ints.length+')</div>'
     +'<div class="tl" style="margin-bottom:16px;">'+intHtml+'</div>'
     // Offers section
-    +(offs.length?'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);"><i class="fa-solid fa-file-signature" style="margin-right:6px;color:#ec4899;"></i>Offer Letters ('+offs.length+')</div>'+offHtml:'')
-    ,
-    // Footer buttons
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
-      +'<button class="mbtn-s" onclick="_editCnd(\"+" + candidateId + "+\");_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
-      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
-      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
-      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange(\"+" + candidateId + "+\",\"+" + _stageNext(c['Stage']) + "+\");_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
-      +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
-    +'</div>'
-  );
+    +(offs.length?'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr);"><i class="fa-solid fa-file-signature" style="margin-right:6px;color:#ec4899;"></i>Offer Letters ('+offs.length+')</div>'+offHtml:'');
+
+  // Footer buttons
+  var footer = '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
+    +(_hasWrite()?'<button class="mbtn-s" onclick="_cndModalEdit()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>':'')
+    +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_cndModalInt()"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Interview</button>':'')
+    +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_cndModalOffer()"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
+    +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_cndModalAdv()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>\u2192 '+_stageNext(c['Stage'])+'</button>':'')
+    +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
+  +'</div>';
+
+  _showModal(c['Full Name']+' \u2014 Full Profile', body, footer);
+}
+
+// Candidate detail modal action handlers
+function _cndModalEdit()  { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_editCnd(id);},150); }
+function _cndModalInt()   { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openInterviewModal(null,id);},250); }
+function _cndModalOffer() { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openOfferModal(null,id);},250); }
+function _cndModalAdv()   { var id=_cndCtx.candidateId; var ns=_cndCtx.nextStage; _quickStageChange(id,ns); _closeModal(); }
+function _cndModalMarkResult(btn) { var iid=btn.getAttribute('data-iid'); var id=_cndCtx.candidateId; _markInterviewResult(iid,id); }
+function _cndModalOfferAct(btn) {
+  var oi=parseInt(btn.getAttribute('data-oi')); var act=btn.getAttribute('data-act');
+  var o=_cndCtx.offs[oi]; if(!o) return;
+  _updateOfferStatus(o['Offer ID'],_cndCtx.candidateId,act==='accept'?'Accepted':'Declined');
+}
+function _cndModalJoinAct(btn) {
+  var oi=parseInt(btn.getAttribute('data-oi'));
+  var o=_cndCtx.offs[oi]; if(!o) return;
+  _confirmJoining(o['Offer ID'],_cndCtx.candidateId);
 }
 
 function _scheduleInterviewFrom(cid) { _closeModal(); setTimeout(function() { _openInterviewModal(null, cid); }, 250); }
+
+// Helpers for offer actions inside candidate detail modal
+function _detailOfferAction(btn) {
+  var oid = btn.getAttribute('data-oid');
+  var cid = btn.getAttribute('data-cid');
+  var st  = btn.getAttribute('data-st');
+  _updateOfferStatus(oid, cid, st);
+}
+function _detailJoinAction(btn) {
+  var oid = btn.getAttribute('data-oid');
+  var cid = btn.getAttribute('data-cid');
+  _confirmJoining(oid, cid);
+}
 function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _openOfferModal(null, cid); }, 250); }
 
 
