@@ -786,7 +786,7 @@ function _renderJobs() {
 
   _el('v-jobs').innerHTML = html;
   // Inject pager into html string
-  html = html.replace(/<\/div>\s*$/, _pagerHtml('jobs',_pag)+'</div>');
+  var _pi=_pagerHtml('jobs',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -998,7 +998,7 @@ function _renderInterviews() {
 
   _el('v-interviews').innerHTML = html;
   // Inject pager into html string
-  html = html.replace(/<\/div>\s*$/, _pagerHtml('interviews',_pag)+'</div>');
+  var _pi=_pagerHtml('interviews',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1107,7 +1107,7 @@ function _renderOffers() {
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
         +'<div style="width:30px;height:30px;border-radius:8px;background:'+x[4]+';display:flex;align-items:center;justify-content:center;font-size:12px;color:'+x[3]+';"><i class="fa-solid '+x[0]+'"></i></div>'
         +'<span style="font-size:11px;font-weight:700;color:var(--t3);">'+x[1]+'</span></div>'
-        +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
+        +'<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;color:'+x[3]+';">'+x[2]+'</div>'
         +'</div>';
     }).join('')}
   </div>
@@ -1231,7 +1231,7 @@ function _renderOffers() {
 
   _el('v-offers').innerHTML = html;
   // Inject pager into html string
-  html = html.replace(/<\/div>\s*$/, _pagerHtml('offers',_pag)+'</div>');
+  var _pi=_pagerHtml('offers',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1279,7 +1279,7 @@ function _openJobModal(job) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Job</button>`
+     <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Job</button>`
   );
 }
 
@@ -1587,7 +1587,7 @@ function _renderCandidates() {
 
   _el('v-candidates').innerHTML = html;
   // Inject pager into html string
-  html = html.replace(/<\/div>\s*$/, _pagerHtml('candidates',_pag)+'</div>');
+  var _pi=_pagerHtml('candidates',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1915,7 +1915,7 @@ function _renderAgencies() {
 
   _el('v-agencies').innerHTML = html;
   // Inject pager into html string
-  html = html.replace(/<\/div>\s*$/, _pagerHtml('agencies',_pag)+'</div>');
+  var _pi=_pagerHtml('agencies',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -2258,7 +2258,7 @@ function _openCndModal(cnd) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Candidate</button>`
+     <button class="mbtn-p" onclick="_submitCandidate('${c['Candidate ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Candidate</button>`
   );
 }
 
@@ -2327,12 +2327,12 @@ function _openCndDetail(candidateId) {
       +'</div>'
       +(_hasWrite()&&o['Offer Status']==='Sent'
         ?'<div style="display:flex;gap:8px;">'
-          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick='_updateOfferStatus("'+o['Offer ID']+'","'+candidateId+'","Accepted")'><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
-          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick='_updateOfferStatus("'+o['Offer ID']+'","'+candidateId+'","Declined")'><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
+          +'<button class="mbtn-g" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Accepted')"><i class="fa-solid fa-check" style="margin-right:6px;"></i>Accept</button>'
+          +'<button class="mbtn-d" style="flex:1;justify-content:center;" onclick="_updateOfferStatus(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\",'Declined')"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Decline</button>'
         +'</div>':''
       )
       +(_hasWrite()&&o['Offer Status']==='Accepted'
-        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick='_confirmJoining("'+o['Offer ID']+'","'+candidateId+'")'><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
+        ?'<button class="mbtn-g" style="width:100%;justify-content:center;margin-top:4px;" onclick="_confirmJoining(\"+" + o['Offer ID'] + "+\",\"+" + candidateId + "+\")"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i>Confirm Joining</button>':''
       )
     +'</div>';
   }).join('') : '';
@@ -2385,10 +2385,10 @@ function _openCndDetail(candidateId) {
     ,
     // Footer buttons
     '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">'
-      +'<button class="mbtn-s" onclick='_editCnd("'+candidateId+'");_closeModal()'><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
-      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick='_scheduleInterviewFrom("'+candidateId+'")'><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
-      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick='_createOfferFrom("'+candidateId+'")'><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
-      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick='_quickStageChange("'+candidateId+'","'+_stageNext(c['Stage'])+'");_closeModal()'><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
+      +'<button class="mbtn-s" onclick="_editCnd(\"+" + candidateId + "+\");_closeModal()"><i class="fa-solid fa-pen" style="margin-right:6px;"></i>Edit</button>'
+      +(_hasWrite()&&(c['Stage']==='Applied'||c['Stage']==='Interview')?'<button class="mbtn-p" style="background:#f59e0b;" onclick="_scheduleInterviewFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-calendar-plus" style="margin-right:6px;"></i>Schedule Interview</button>':'')
+      +(_hasWrite()&&c['Stage']==='Selected'?'<button class="mbtn-p" style="background:#ec4899;" onclick="_createOfferFrom(\"+" + candidateId + "+\")"><i class="fa-solid fa-file-signature" style="margin-right:6px;"></i>Create Offer</button>':'')
+      +(_hasWrite()&&_stageNext(c['Stage'])?'<button class="mbtn-g" onclick="_quickStageChange(\"+" + candidateId + "+\",\"+" + _stageNext(c['Stage']) + "+\");_closeModal()"><i class="fa-solid fa-circle-chevron-right" style="margin-right:6px;"></i>→ '+_stageNext(c['Stage'])+'</button>':'')
       +'<button class="mbtn-s" style="margin-left:auto;" onclick="_closeModal()">Close</button>'
     +'</div>'
   );
@@ -2444,7 +2444,7 @@ function _openInterviewModal(interview, preCandidateId, preJobId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check style="margin-right:4px;"></i>Schedule</button>`
+     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check" style="margin-right:4px;"></i>Schedule</button>`
   );
 }
 
@@ -2484,7 +2484,7 @@ function _markInterviewResult(interviewId, candidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk style="margin-right:4px;"></i>Save Result</button>`
+     <button class="mbtn-p" onclick="_submitInterviewResult('${interviewId}','${candidateId}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Result</button>`
   );
 }
 
@@ -2534,7 +2534,7 @@ function _openOfferModal(offer, preCandidateId) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature style="margin-right:4px;"></i>Create Offer</button>`
+     <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature" style="margin-right:4px;"></i>Create Offer</button>`
   );
 }
 
@@ -2589,9 +2589,9 @@ function _confirmJoining(offerId, candidateId) {
         <input id="j_mgr" placeholder="Manager name">
       </div>
     </div>
-    <div class="info-note"><i class="fa-solid fa-circle-info style="margin-right:4px;"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
+    <div class="info-note"><i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>An Employee record will be auto-created in the Employees sheet.</div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered style="margin-right:4px;"></i>Confirm Joining</button>`
+     <button class="mbtn-g" onclick="_submitJoining('${offerId}','${candidateId}')"><i class="fa-solid fa-flag-checkered" style="margin-right:4px;"></i>Confirm Joining</button>`
   );
 }
 
@@ -2645,6 +2645,6 @@ function _setBtnLoading(cls, loading, label) {
   var btns = document.querySelectorAll('.' + cls);
   btns.forEach(function(b) {
     b.disabled = loading;
-    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin style="margin-right:4px;"></i>' + label;
+    if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i>' + label;
   });
 }
