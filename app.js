@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbw9oNgBl0CgRIvUoiyxkq_uoNUm9vAn_8mkd8n8ocIsUzBU6iv9SGb7rRDSIs_oOczX/exec';
+var API = 'https://script.google.com/macros/s/AKfycbz_9eYVRo-5NmLATdS7XhJ2zieDR1Ry5zsmE0GRobzndvqHgGTRcY4IkbeR6wno_fmq/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -41,15 +41,35 @@ function _pagerHtml(view, pag) {
   var b = '';
   b += '<button onclick="_pgGo(\'' +view+ '\',' +(pag.pg-1)+ ')" ' +(pag.pg<=1?'disabled':'')+ ' style="'+_pgBtnS(false)+'"><i class="fa-solid fa-chevron-left" style="font-size:10px;"></i></button>';
   var s2=Math.max(1,pag.pg-2), e2=Math.min(pag.pages,s2+4);
-  if(s2>1) b+='<span style="color:var(--t4);padding:0 2px;">…</span>';
+  if(s2>1) b+='<span style="color:var(--t4);padding:0 4px;font-size:12px;">…</span>';
   for(var i=s2;i<=e2;i++) b+='<button onclick="_pgGo(\'' +view+ '\',' +i+ ')" style="'+_pgBtnS(i===pag.pg)+'">'+i+'</button>';
-  if(e2<pag.pages) b+='<span style="color:var(--t4);padding:0 2px;">…</span>';
+  if(e2<pag.pages) b+='<span style="color:var(--t4);padding:0 4px;font-size:12px;">…</span>';
   b += '<button onclick="_pgGo(\'' +view+ '\',' +(pag.pg+1)+ ')" ' +(pag.pg>=pag.pages?'disabled':'')+ ' style="'+_pgBtnS(false)+'"><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i></button>';
-  return '<div style="padding:12px 20px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'
-    +'<span style="font-size:12px;color:var(--t3);">Showing <strong style="color:var(--t1)">'+pag.start+'–'+pag.end+'</strong> of <strong style="color:var(--t1)">'+pag.total+'</strong></span>'
+  return '<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-radius:0 0 var(--r-md) var(--r-md);">'
+    +'<span style="font-size:12px;color:var(--t3);">Showing <strong style="color:var(--t1)">'+pag.start+'–'+pag.end+'</strong> of <strong style="color:var(--t1)">'+pag.total+'</strong> records</span>'
     +'<div style="display:flex;align-items:center;gap:4px;">'+b+'</div></div>';
 }
 
+
+
+// ─── FORMAT DATE / EXCEL SERIAL DATE ─────────────────────────
+function _fmtDate(val) {
+  if (!val || val === '—') return '—';
+  var s = String(val).trim();
+  // If it's already a yyyy-MM-dd string, return as is
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  // If it's a number (Excel serial date), convert it
+  var n = parseFloat(s);
+  if (!isNaN(n) && n > 1000) {
+    // Excel serial: days since 1900-01-01 (with leap year bug offset)
+    var d = new Date((n - 25569) * 86400 * 1000);
+    return d.toISOString().slice(0,10);
+  }
+  // If it's a date string in other format, try parsing
+  var parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0,10);
+  return s;
+}
 
 // ─── IST DATE HELPERS (UTC+5:30) ─────────────────────────────
 function _istDate() {
@@ -828,17 +848,18 @@ function _renderJobs() {
         </tbody>
       </table>
     </div>
-    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
-      <span>Showing <strong style="color:var(--t1)">${visible.length}</strong> of <strong style="color:var(--t1)">${jobs.length}</strong> jobs</span>
+    ${(_pag.pages<=1&&visible.length>0)?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+      <span><strong style="color:var(--t1)">${visible.length}</strong> jobs</span>
       <span>Open: <strong style="color:#10b981">${openCount}</strong></span>
       <span>Closed: <strong style="color:#ef4444">${closedCount}</strong></span>
       <span>On Hold: <strong style="color:#f59e0b">${holdCount}</strong></span>
     </div>`:''}
   </div>`;
 
+  // Build final html with pagination bar
+  var _pi=_pagerHtml('jobs',_pag);
+  if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
   _el('v-jobs').innerHTML = html;
-  // Inject pager into html string
-  var _pi=_pagerHtml('jobs',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1042,15 +1063,16 @@ function _renderInterviews() {
         </tbody>
       </table>
     </div>
-    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
-      <span>Showing <strong style="color:var(--t1)">${visible.length}</strong> interviews</span>
+    ${(_pag.pages<=1&&_pag.total>0)?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+      <span>Showing <strong style="color:var(--t1)">${_pag.total}</strong> interview${_pag.total!==1?'s':''}</span>
       ${todayInts>0?'<span style="color:var(--brand);font-weight:700;"><i class="fa-solid fa-clock" style="margin-right:4px;font-size:10px;"></i>'+todayInts+' scheduled today</span>':''}
     </div>`:''}
   </div>`;
 
+  // Build final html with pagination bar
+  var _pi=_pagerHtml('interviews',_pag);
+  if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
   _el('v-interviews').innerHTML = html;
-  // Inject pager into html string
-  var _pi=_pagerHtml('interviews',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1274,7 +1296,7 @@ function _renderOffers() {
         </tbody>
       </table>
     </div>
-    ${visible.length>0?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
+    ${(_pag.pages<=1&&visible.length>0)?`<div style="padding:10px 16px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--t3);flex-wrap:wrap;">
       <span>Pending: <strong style="color:#d97706">${sentCount}</strong></span>
       <span>Accepted: <strong style="color:#10b981">${acceptedCount}</strong></span>
       <span>Declined: <strong style="color:#ef4444">${declinedCount}</strong></span>
@@ -1282,9 +1304,10 @@ function _renderOffers() {
     </div>`:''}
   </div>`;
 
+  // Build final html with pagination bar
+  var _pi=_pagerHtml('offers',_pag);
+  if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
   _el('v-offers').innerHTML = html;
-  // Inject pager into html string
-  var _pi=_pagerHtml('offers',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1647,9 +1670,9 @@ function _renderCandidates() {
         </tbody>
       </table>
     </div>
-    ${visible.length > 0 ? `
+    ${(_pag.pages<=1&&visible.length > 0) ? `
     <div style="padding:12px 16px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf2);font-size:12px;color:var(--t3);">
-      <span><strong style="color:var(--t1)">${visible.length}</strong> candidate${visible.length!==1?'s':''} shown · <strong style="color:var(--t1)">${cands.length}</strong> total</span>
+      <span><strong style="color:var(--t1)">${_pag.total}</strong> candidates</span>
       <div style="display:flex;gap:16px;">
         <span>Applied: <strong style="color:#3b82f6">${stageCounts['Applied']}</strong></span>
         <span>Interview: <strong style="color:#f59e0b">${stageCounts['Interview']}</strong></span>
@@ -1659,9 +1682,10 @@ function _renderCandidates() {
     </div>` : ''}
   </div>`;
 
+  // Build final html with pagination bar
+  var _pi=_pagerHtml('candidates',_pag);
+  if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
   _el('v-candidates').innerHTML = html;
-  // Inject pager into html string
-  var _pi=_pagerHtml('candidates',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -1992,7 +2016,7 @@ function _renderAgencies() {
               <td>
                 <span class="${isActive?'badge b-active':'badge b-inactive'}">${a['Status']}</span>
               </td>
-              <td style="font-size:11px;color:var(--t4);">${a['Created On']||'—'}</td>
+              <td style="font-size:11px;color:var(--t4);">${_fmtDate(a['Created On']||'—')}</td>
               ${_hasWrite() ? `<td>
                 <div class="act-btns" style="gap:4px;">
                   <!-- Edit -->
@@ -2048,9 +2072,10 @@ function _renderAgencies() {
   </div>` : ''}
   `;
 
+  // Build final html with pagination bar
+  var _pi=_pagerHtml('agencies',_pag);
+  if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
   _el('v-agencies').innerHTML = html;
-  // Inject pager into html string
-  var _pi=_pagerHtml('agencies',_pag); if(_pi){ var _li=html.lastIndexOf('</div>'); if(_li>=0) html=html.slice(0,_li)+_pi+'</div>'; }
 
 }
 
@@ -2107,8 +2132,8 @@ function _openAgencyDetail(agencyId) {
           +'<div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin-bottom:4px;">'+a['Agency Name']+'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             +'<span class="'+(isActive?'badge b-active':'badge b-inactive')+'">'+a['Status']+'</span>'
-            +'<span style="font-size:12px;color:var(--t3);">Since: '+(a['Created On']||'—')+'</span>'
-            +'<span style="background:rgba(139,92,246,.12);color:#7c3aed;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+( a['Commission (%)']||0)+'% Commission</span>'
+            +'<span style="font-size:12px;color:var(--t3);">Since: '+_fmtDate(a['Created On']||'—')+'</span>'
+            +'<span style="background:rgba(139,92,246,.12);color:#7c3aed;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+(isNaN(parseFloat(a['Commission (%)']))?'—%':parseFloat(a['Commission (%)']).toFixed(1)+'%')+' Commission</span>'
           +'</div>'
         +'</div>'
       +'</div>'
