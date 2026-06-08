@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbyLOY2CyY3DfBxbev-dxiT5wbvvB7jZyrX_SaNH7E0_nmXv7Quf_Hv1NmJ4zFsK3Ywu/exec';
+var API = 'https://script.google.com/macros/s/AKfycbwYQwCXHUTU5EpWDOMUPg70_spjUz5NdIeYkLz0Im9lBbXe4Lzf7GDoWfWefSQ8Cl0o/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -2382,37 +2382,115 @@ function _handleResumeSelect(input) {
   window._resumeFile = file;
 }
 
-// Upload resume to Drive via GAS (base64)
+// Upload resume: base64 chunks via JSONP
+// GAS JSONP URL limit ~8000 chars. Base64 = 4/3 of file size.
+// Max safe: ~5KB file. Larger files: use Drive link paste instead.
+// Solution: chunk upload for files up to 500KB, else prompt for link.
+
+var _uploadChunks = [];
+var _uploadMeta   = {};
+var _uploadDone   = null;
+
 function _uploadAndSaveResume(file, candidateId, onDone) {
   if (!file) { onDone(null); return; }
-  var MAX_SIZE = 4 * 1024 * 1024; // 4MB limit for base64 JSONP
-  if (file.size > MAX_SIZE) {
-    _toast('File too large (max 4MB). Please upload to Google Drive and paste the link.', 'warning');
-    onDone(null);
+
+  // Hard limit: files > 500KB go through manual link
+  var CHUNK_LIMIT = 500 * 1024; // 500KB
+  if (file.size > CHUNK_LIMIT) {
+    // Show link-paste dialog instead
+    _showResumeLinkPrompt(file.name, onDone);
     return;
   }
+
   var reader = new FileReader();
   reader.onload = function(ev) {
     var b64 = ev.target.result.split(',')[1];
-    _api('uploadResume', {
-      fileName:    file.name,
-      mimeType:    file.type || 'application/octet-stream',
-      base64:      b64,
-      candidateId: candidateId
-    }, function(r) {
-      if (r.success) {
-        onDone(r.url);
-      } else {
-        _toast('Upload failed: ' + (r.error||'Unknown error'), 'error');
-        onDone(null);
-      }
-    }, function(e) {
-      _toast('Upload error: ' + e.message, 'error');
-      onDone(null);
-    });
+    // Split into 4000-char chunks to stay under URL limit
+    var CHUNK = 4000;
+    _uploadChunks = [];
+    for (var i=0; i<b64.length; i+=CHUNK) {
+      _uploadChunks.push(b64.slice(i, i+CHUNK));
+    }
+    _uploadMeta = { fileName: file.name, mimeType: file.type||'application/octet-stream', total: _uploadChunks.length };
+    _uploadDone = onDone;
+    _toast('Uploading... (0/' + _uploadChunks.length + ')', 'info');
+    _sendChunk(0, candidateId, '');
   };
   reader.onerror = function() { _toast('Failed to read file.', 'error'); onDone(null); };
   reader.readAsDataURL(file);
+}
+
+function _sendChunk(idx, candidateId, uploadId) {
+  if (idx >= _uploadChunks.length) return;
+  var isLast = (idx === _uploadChunks.length - 1);
+  _api('uploadResumeChunk', {
+    chunk:      _uploadChunks[idx],
+    idx:        idx,
+    total:      _uploadMeta.total,
+    fileName:   _uploadMeta.fileName,
+    mimeType:   _uploadMeta.mimeType,
+    uploadId:   uploadId,
+    candidateId:candidateId,
+    isLast:     isLast
+  }, function(r) {
+    if (!r.success) {
+      _toast('Upload chunk failed: ' + (r.error||'error'), 'error');
+      if (_uploadDone) _uploadDone(null);
+      return;
+    }
+    if (isLast) {
+      _toast('Resume uploaded!', 'success');
+      if (_uploadDone) _uploadDone(r.url);
+    } else {
+      _toast('Uploading... (' + (idx+1) + '/' + _uploadMeta.total + ')', 'info');
+      _sendChunk(idx+1, candidateId, r.uploadId||uploadId);
+    }
+  }, function(e) {
+    _toast('Upload error: ' + e.message, 'error');
+    if (_uploadDone) _uploadDone(null);
+  });
+}
+
+function _showResumeLinkPrompt(fileName, onDone) {
+  _showModal('📎 Upload Resume', 
+    '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px;margin-bottom:16px;">'
+      +'<div style="font-size:13px;font-weight:600;color:#d97706;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>File too large to auto-upload</div>'
+      +'<div style="font-size:12px;color:var(--t2);">File: <strong>'+fileName+'</strong></div>'
+      +'<div style="font-size:12px;color:var(--t3);margin-top:4px;">Please upload this file to Google Drive manually, then paste the shareable link below.</div>'
+    +'</div>'
+    +'<div style="margin-bottom:12px;padding:12px;background:var(--surf2);border-radius:8px;border:1px solid var(--bdr);">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">How to get link:</div>'
+      +'<div style="font-size:12px;color:var(--t2);line-height:1.8;">'
+        +'1. Go to <a href="https://drive.google.com/drive/folders/1ilj8CD9FHp8ndRty-zWXliv0O1Dlnima" target="_blank" style="color:var(--brand);">ISE Resumes folder</a><br>'
+        +'2. Upload the file there<br>'
+        +'3. Right-click → "Get link" → "Anyone with link"<br>'
+        +'4. Paste the link below'
+      +'</div>'
+    +'</div>'
+    +'<div class="fg">'
+      +'<label>Google Drive Link</label>'
+      +'<input id="manual_resume_link" type="url" placeholder="https://drive.google.com/file/d/..." style="width:100%;">'
+    +'</div>',
+    '<button class="mbtn-s" onclick="_closeModal();if(_uploadDone)_uploadDone(null);">Skip (save without resume)</button>'
+    +'<button class="mbtn-p" onclick="_applyManualLink()"><i class="fa-solid fa-link" style="margin-right:6px;"></i>Use This Link</button>'
+  );
+  // Store onDone for later
+  window._resumeLinkDone = onDone;
+}
+
+function _applyManualLink() {
+  var link = _val('manual_resume_link');
+  if (!link || !link.startsWith('http')) {
+    _toast('Please enter a valid URL', 'error');
+    return;
+  }
+  _closeModal();
+  setTimeout(function() {
+    if (window._resumeLinkDone) {
+      window._resumeLinkDone(link);
+      window._resumeLinkDone = null;
+    }
+  }, 350);
 }
 
 function _openCndModal(cnd) {
