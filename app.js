@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbzZQM7WzJkEq28sUNYkaI1Z4Nbjnbu4gy-XsaGHmNVdQXiDAyAv8J3tTUsOaAMpp9P0/exec';
+var API = 'https://script.google.com/macros/s/AKfycbyLOY2CyY3DfBxbev-dxiT5wbvvB7jZyrX_SaNH7E0_nmXv7Quf_Hv1NmJ4zFsK3Ywu/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -105,7 +105,12 @@ function _api(action, data, ok, err) {
     clearTimeout(t);
     try { delete window[cb]; } catch(e) {}
     var s = document.getElementById('_s_' + cb); if (s) s.remove();
-    if (r && r.success === false && r.error === 'NOT_AUTHENTICATED') { _signOut(); return; }
+    if (!r) { if (err) err({ message: 'Empty response from server.' }); return; }
+    if (r.success === false && r.error === 'NOT_AUTHENTICATED') { _signOut(); return; }
+    if (r.success === false && !ok) {
+      _toast('Error: ' + (r.error||'Unknown error'), 'error');
+      return;
+    }
     if (ok) ok(r);
   };
   t = setTimeout(function() {
@@ -2380,54 +2385,30 @@ function _handleResumeSelect(input) {
 // Upload resume to Drive via GAS (base64)
 function _uploadAndSaveResume(file, candidateId, onDone) {
   if (!file) { onDone(null); return; }
-  // JSONP URL limit ~8KB. Base64 of 5MB file = ~6.7MB — too large.
-  // GAS doGet URL has ~8000 char limit. Max safe file size: ~4KB base64 = ~3KB file.
-  // For larger files: split not possible with JSONP.
-  // Solution: use fetch POST instead of JSONP for file uploads
+  var MAX_SIZE = 4 * 1024 * 1024; // 4MB limit for base64 JSONP
+  if (file.size > MAX_SIZE) {
+    _toast('File too large (max 4MB). Please upload to Google Drive and paste the link.', 'warning');
+    onDone(null);
+    return;
+  }
   var reader = new FileReader();
-  reader.onload = function(e) {
-    var b64 = e.target.result.split(',')[1];
-    // Check size: base64 length > 50000 chars = ~37KB binary
-    // GAS doGet URL limit is ~2000 chars for payload, so even small files fail via JSONP
-    // Use POST fetch instead
-    var payload = JSON.stringify({
-      action: 'uploadResume',
-      token: _TOKEN || '',
-      data: { fileName: file.name, mimeType: file.type || 'application/octet-stream', base64: b64, candidateId: candidateId }
-    });
-    fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: payload
-    })
-    .then(function(res) { return res.text(); })
-    .then(function(text) {
-      // GAS POST returns JSON directly (no JSONP wrapper)
-      try {
-        var r = JSON.parse(text);
-        onDone(r.success ? r.url : null);
-        if (!r.success) _toast('Upload error: ' + (r.error||'Unknown'), 'error');
-      } catch(pe) {
-        // Might have JSONP wrapper, try extracting
-        var m = text.match(/\{.*\}/s);
-        if (m) { try { var r2=JSON.parse(m[0]); onDone(r2.success?r2.url:null); return; } catch(e2){} }
+  reader.onload = function(ev) {
+    var b64 = ev.target.result.split(',')[1];
+    _api('uploadResume', {
+      fileName:    file.name,
+      mimeType:    file.type || 'application/octet-stream',
+      base64:      b64,
+      candidateId: candidateId
+    }, function(r) {
+      if (r.success) {
+        onDone(r.url);
+      } else {
+        _toast('Upload failed: ' + (r.error||'Unknown error'), 'error');
         onDone(null);
-        _toast('Upload response parse error', 'error');
       }
-    })
-    .catch(function(fe) {
-      // CORS issue — fall back to JSONP with size warning
-      if (b64.length > 8000) {
-        _toast('File too large for upload. Please use Google Drive link instead.', 'warning');
-        onDone(null);
-        return;
-      }
-      // Try JSONP for small files
-      _api('uploadResume', {
-        fileName: file.name, mimeType: file.type || 'application/octet-stream',
-        base64: b64, candidateId: candidateId
-      }, function(r) { onDone(r.success ? r.url : null); },
-      function(e) { _toast('Upload failed: ' + e.message, 'error'); onDone(null); });
+    }, function(e) {
+      _toast('Upload error: ' + e.message, 'error');
+      onDone(null);
     });
   };
   reader.onerror = function() { _toast('Failed to read file.', 'error'); onDone(null); };
@@ -2694,9 +2675,9 @@ function _openCndDetail(candidateId) {
 }
 
 // Candidate detail modal action handlers
-function _cndModalEdit()  { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_editCnd(id);},150); }
-function _cndModalInt()   { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openInterviewModal(null,id);},250); }
-function _cndModalOffer() { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openOfferModal(null,id);},250); }
+function _cndModalEdit()  { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_editCnd(id);},320); }
+function _cndModalInt()   { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openInterviewModal(null,id);},320); }
+function _cndModalOffer() { var id=_cndCtx.candidateId; _closeModal(); setTimeout(function(){_openOfferModal(null,id);},320); }
 function _cndModalAdv()   { var id=_cndCtx.candidateId; var ns=_cndCtx.nextStage; _quickStageChange(id,ns); _closeModal(); }
 function _cndModalMarkResult(btn) { var iid=btn.getAttribute('data-iid'); var id=_cndCtx.candidateId; _markInterviewResult(iid,id); }
 function _cndModalOfferAct(btn) {
@@ -2710,7 +2691,7 @@ function _cndModalJoinAct(btn) {
   _confirmJoining(o['Offer ID'],_cndCtx.candidateId);
 }
 
-function _scheduleInterviewFrom(cid) { _closeModal(); setTimeout(function() { _openInterviewModal(null, cid); }, 250); }
+function _scheduleInterviewFrom(cid) { _closeModal(); setTimeout(function() { _openInterviewModal(null, cid); }, 320); }
 
 // Helpers for offer actions inside candidate detail modal
 function _detailOfferAction(btn) {
@@ -2724,7 +2705,7 @@ function _detailJoinAction(btn) {
   var cid = btn.getAttribute('data-cid');
   _confirmJoining(oid, cid);
 }
-function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _openOfferModal(null, cid); }, 250); }
+function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _openOfferModal(null, cid); }, 320); }
 
 
 function _openInterviewModal(interview, preCandidateId, preJobId) {
@@ -3010,6 +2991,8 @@ function _submitJoining(offerId, candidateId) {
 
 // ─── MODAL ────────────────────────────────────────────────────
 function _showModal(title, body, footer) {
+  // Cancel any pending close animation so new modal doesn't get hidden
+  if (_closeModalTimer) { clearTimeout(_closeModalTimer); _closeModalTimer = null; }
   _el('mTitle').textContent  = title;
   _el('mBody').innerHTML     = body;
   _el('mFoot').innerHTML     = footer || '';
@@ -3018,10 +3001,16 @@ function _showModal(title, body, footer) {
   setTimeout(function() { _el('modal').classList.add('mv'); }, 10);
 }
 
+var _closeModalTimer = null;
 function _closeModal() {
   _submitting = false;
+  window._resumeFile = null;
   _el('modal').classList.remove('mv');
-  setTimeout(function() { _el('mOv').style.display='none'; _el('modal').style.display='none'; }, 280);
+  _closeModalTimer = setTimeout(function() {
+    _el('mOv').style.display = 'none';
+    _el('modal').style.display = 'none';
+    _closeModalTimer = null;
+  }, 280);
 }
 
 // ─── TOAST ────────────────────────────────────────────────────
