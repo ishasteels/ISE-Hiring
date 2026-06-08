@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbwo02Jus1lN3sHMys2C-Cw_YFgzpMcI1O3cpzwpF8UuJMpmGPirsYSXQiZFmX74znvm/exec';
+var API = 'https://script.google.com/macros/s/AKfycbzZQM7WzJkEq28sUNYkaI1Z4Nbjnbu4gy-XsaGHmNVdQXiDAyAv8J3tTUsOaAMpp9P0/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -1314,6 +1314,7 @@ function _offStatusQuick(st) {
 }
 
 function _openJobModal(job) {
+  _submitting = false;
   var j = job || {};
   var depts = ['Production','Quality','Accounts','HR','Purchase','Sales','Admin','IT','Maintenance'];
   _showModal(j['Job ID'] ? 'Edit Job Opening' : 'New Job Opening', `
@@ -1382,9 +1383,8 @@ function _submitJob(existingId) {
     postedBy: _val('f_by') || (_U?_U.name:'')
   };
   if (!data.title) { _toast('Job title is required.','error'); _submitting=false; return; }
-  _setBtnLoading('mbtn-p', true, 'Saving...');
   _api(existingId ? 'updateJob' : 'saveJob', data, function(r) {
-    _submitting = false; _setBtnLoading('mbtn-p', false, 'Save Job');
+    _submitting = false;
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
     else _toast(r.error, 'error');
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
@@ -2297,6 +2297,7 @@ function _showAgencyReport(agencyId) {
 }
 
 function _openAgencyModal(agency) {
+  _submitting = false;
   var a = agency || {};
   _showModal(a['Agency ID'] ? 'Edit Agency' : 'Add New Agency', `
     <div class="fg2">
@@ -2379,22 +2380,63 @@ function _handleResumeSelect(input) {
 // Upload resume to Drive via GAS (base64)
 function _uploadAndSaveResume(file, candidateId, onDone) {
   if (!file) { onDone(null); return; }
+  // JSONP URL limit ~8KB. Base64 of 5MB file = ~6.7MB — too large.
+  // GAS doGet URL has ~8000 char limit. Max safe file size: ~4KB base64 = ~3KB file.
+  // For larger files: split not possible with JSONP.
+  // Solution: use fetch POST instead of JSONP for file uploads
   var reader = new FileReader();
   reader.onload = function(e) {
     var b64 = e.target.result.split(',')[1];
-    _api('uploadResume', {
-      fileName: file.name,
-      mimeType: file.type || 'application/octet-stream',
-      base64:   b64,
-      candidateId: candidateId
-    }, function(r) {
-      onDone(r.success ? r.url : null);
-    }, function() { onDone(null); });
+    // Check size: base64 length > 50000 chars = ~37KB binary
+    // GAS doGet URL limit is ~2000 chars for payload, so even small files fail via JSONP
+    // Use POST fetch instead
+    var payload = JSON.stringify({
+      action: 'uploadResume',
+      token: _TOKEN || '',
+      data: { fileName: file.name, mimeType: file.type || 'application/octet-stream', base64: b64, candidateId: candidateId }
+    });
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(text) {
+      // GAS POST returns JSON directly (no JSONP wrapper)
+      try {
+        var r = JSON.parse(text);
+        onDone(r.success ? r.url : null);
+        if (!r.success) _toast('Upload error: ' + (r.error||'Unknown'), 'error');
+      } catch(pe) {
+        // Might have JSONP wrapper, try extracting
+        var m = text.match(/\{.*\}/s);
+        if (m) { try { var r2=JSON.parse(m[0]); onDone(r2.success?r2.url:null); return; } catch(e2){} }
+        onDone(null);
+        _toast('Upload response parse error', 'error');
+      }
+    })
+    .catch(function(fe) {
+      // CORS issue — fall back to JSONP with size warning
+      if (b64.length > 8000) {
+        _toast('File too large for upload. Please use Google Drive link instead.', 'warning');
+        onDone(null);
+        return;
+      }
+      // Try JSONP for small files
+      _api('uploadResume', {
+        fileName: file.name, mimeType: file.type || 'application/octet-stream',
+        base64: b64, candidateId: candidateId
+      }, function(r) { onDone(r.success ? r.url : null); },
+      function(e) { _toast('Upload failed: ' + e.message, 'error'); onDone(null); });
+    });
   };
+  reader.onerror = function() { _toast('Failed to read file.', 'error'); onDone(null); };
   reader.readAsDataURL(file);
 }
 
 function _openCndModal(cnd) {
+  _submitting = false; // reset on fresh modal open
+  window._resumeFile = null;
   var c = cnd || {};
   var jobs = _D.jobs || [];
   var agys = _D.agencies || [];
@@ -2858,6 +2900,7 @@ function _submitEditOffer(offerId, candidateId) {
   }, function(e){ _submitting=false; _toast(e.message,'error'); });
 }
 function _openOfferModal(offer, preCandidateId) {
+  _submitting = false;
   var selCands = (_D.candidates||[]).filter(function(c){ return c['Stage']==='Selected'; });
   var cndOpts  = selCands.map(function(c){ return `<option value="${c['Candidate ID']}" ${preCandidateId===c['Candidate ID']?'selected':''}>${c['Full Name']}</option>`; }).join('');
   if (!cndOpts) { _toast('No candidates in "Selected" stage. Mark interview as Pass first.','warning'); return; }
