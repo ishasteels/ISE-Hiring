@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbzLBfgZjHp8ea4yleXtP-lJ892ACZkob6dfZgvfguG6cukw-TZTlknilSzMc6XQFga_/exec';
+var API = 'https://script.google.com/macros/s/AKfycbxFcSYkHX9Yjh_9I0MqG2QKOZUxWzOVaULi1y0vdQDqMUO-xufkyLe7vCFbX-IdxzMf/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -103,26 +103,41 @@ function _api(action, data, ok, err) {
   var cb = '_gcb' + (++_cbIdx), t;
   window[cb] = function(r) {
     clearTimeout(t);
-    try { delete window[cb]; } catch(e2) {}
-    var s = document.getElementById('_s_' + cb); if (s) s.remove();
-    if (!r) { if (err) err({ message: 'Empty server response.' }); return; }
+    try { delete window[cb]; } catch(ex) {}
+    var s = document.getElementById('_s_' + cb); if(s) s.parentNode && s.parentNode.removeChild(s);
+    if (!r) {
+      var msg = 'No response from server for: ' + action;
+      if (err) err({ message: msg }); else _toast(msg, 'error');
+      return;
+    }
     if (r.success === false && r.error === 'NOT_AUTHENTICATED') { _signOut(); return; }
-    if (ok) ok(r); else if (r.success === false) _toast('Error: '+(r.error||'Unknown'),'error');
+    if (r.success === false) {
+      var errMsg = r.error || 'Unknown error on: ' + action;
+      console.error('[ISE API Error]', action, r);
+      if (ok) ok(r); // Let caller handle it
+      else _toast('Error: ' + errMsg, 'error');
+      return;
+    }
+    if (ok) ok(r);
   };
   t = setTimeout(function() {
-    try { delete window[cb]; } catch(e2) {}
-    var s2 = document.getElementById('_s_' + cb); if (s2) s2.remove();
-    if (err) err({ message: 'Request timed out (30s). Please check connection and try again.' });
+    try { delete window[cb]; } catch(ex) {}
+    var s2 = document.getElementById('_s_' + cb); if(s2) s2.parentNode && s2.parentNode.removeChild(s2);
+    var msg = 'Timeout on: ' + action + '. Check GAS deployment URL.';
+    console.error('[ISE Timeout]', action);
+    if (err) err({ message: msg }); else _toast(msg, 'error');
   }, 30000);
   var payload = JSON.stringify({ action: action, data: data || {}, token: _TOKEN || '' });
   var url = API + '?callback=' + cb + '&payload=' + encodeURIComponent(payload);
+  console.log('[ISE API]', action, '→', url.length + ' chars');
   var s = document.createElement('script');
   s.id = '_s_' + cb;
   s.onerror = function() {
     clearTimeout(t);
-    try { delete window[cb]; } catch(e2) {}
-    if (err) err({ message: 'Network error — could not reach server.' });
-    else _toast('Network error — please retry.', 'error');
+    try { delete window[cb]; } catch(ex) {}
+    var msg = 'Script load failed for: ' + action + '. GAS may be down.';
+    console.error('[ISE Script Error]', action);
+    if (err) err({ message: msg }); else _toast(msg, 'error');
   };
   s.src = url;
   document.body.appendChild(s);
@@ -1436,6 +1451,7 @@ function _editJob(jobId) {
 
 function _submitJob(existingId) {
   if (_submitting) return; _submitting = true;
+  if (existingId && !String(existingId).match(/^JOB-/)) existingId = null;
   var data = {
     jobId: existingId||null,
     title: _val('f_title'), department: _val('f_dept'), location: _val('f_loc'),
@@ -2400,6 +2416,7 @@ function _editAgency(agencyId) {
 
 function _submitAgency(existingId) {
   if (_submitting) return; _submitting = true;
+  if (existingId && !String(existingId).match(/^AGY-/)) existingId = null;
   var data = {
     agencyId:      existingId||null,
     agencyName:    _val('a_name'),
@@ -2564,13 +2581,17 @@ function _openCndModal(cnd) {
   var jobOpts = jobs.map(function(j){ return `<option value="${j['Job ID']}" ${c['Job ID']===j['Job ID']?'selected':''}>${j['Title']}</option>`; }).join('');
   // Dropdown: value=AgencyID, text=AgencyName (all active agencies)
   // Pre-select: match by existing Agency Name stored in candidate
+    // Agency dropdown: value=AgencyID (sent to backend), text=AgencyName (shown to user)
   var agyOpts = '<option value="">Direct / No Agency</option>'
     + agys.map(function(a){
-        var inactive = a['Status']==='Inactive';
-        // Pre-select by matching stored Agency Name OR Agency ID
-        var isSelected = (c['Agency Name'] && c['Agency Name']===a['Agency Name'])
-                      || (c['Agency ID']   && c['Agency ID']===a['Agency ID']);
-        return '<option value="'+a['Agency ID']+'" '+(isSelected?'selected':'')+' '+(inactive?'style="color:var(--t3);"':'')+'>'+a['Agency Name']+(inactive?' (Inactive)':'')+'</option>';
+        var nm  = String(a['Agency Name']||'').trim();
+        var aid = String(a['Agency ID']  ||'').trim();
+        // Pre-select: match by name (existing data) OR by ID
+        var stored = String(c['Agency Name']||'').trim();
+        var storedId = String(c['Agency ID']||'').trim();
+        var sel = (stored && stored===nm) || (storedId && storedId===aid);
+        var dim = (a['Status']==='Inactive') ? ' style=\"opacity:.55;\"' : '';
+        return '<option value="'+aid+'" '+(sel?'selected':'')+dim+'>'+nm+(a['Status']==='Inactive'?' (Inactive)':'')+'</option>';
       }).join('');
   var sources = ['Portal','Referral','LinkedIn','Direct Walk-in','Agency','Campus','Other'];
 
@@ -2658,6 +2679,8 @@ function _editCnd(candidateId) {
 
 function _submitCandidate(existingId) {
   if (_submitting) return; _submitting = true;
+  // Normalize existingId: only keep real IDs like 'CND-001'
+  if (existingId && !String(existingId).match(/^CND-/)) existingId = null;
   var name  = _val('c_name'), phone = _val('c_phone');
   if (!name || !phone) { _toast('Name and phone are required.','error'); _submitting=false; return; }
   var file  = window._resumeFile || null;
@@ -2666,8 +2689,12 @@ function _submitCandidate(existingId) {
   function _doSave(resumeUrl) {
     window._resumeFile = null;
     var agyId   = _val('c_agy');
-    var agyObj  = agyId ? (_D.agencies||[]).find(function(a){ return a['Agency ID']===agyId; }) : null;
-    var agyName = agyObj ? agyObj['Agency Name'] : '';
+    // agyId = Agency ID from dropdown; look up the actual Agency Name
+    var agyObj  = agyId
+      ? ((_D.agencies||[]).find(function(a){ return a['Agency ID']===agyId; })
+         || (_D.agencies||[]).find(function(a){ return a['Agency Name']===agyId; }))
+      : null;
+    var agyName = agyObj ? String(agyObj['Agency Name']||'').trim() : '';
     var data = {
       candidateId:    existingId || null,
       name:           name,
@@ -2853,6 +2880,7 @@ function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _o
 
 
 function _openInterviewModal(interview, preCandidateId, preJobId) {
+  _submitting = false;
   var i = interview || {};
   var allCands = _D.candidates||[];
   var eligibleCands = allCands.filter(function(c){ return ['Applied','Interview','Selected'].indexOf(c['Stage']) >= 0; });
@@ -2914,6 +2942,7 @@ function _openInterviewModal(interview, preCandidateId, preJobId) {
 
 function _submitInterview(existingId) {
   if (_submitting) return; _submitting = true;
+  if (existingId && !String(existingId).match(/^INT-/)) existingId = null;
   var cid = _val('i_cnd');
   var c   = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===cid; });
   var data = {
@@ -3176,4 +3205,9 @@ function _setBtnLoading(cls, loading, label) {
     b.disabled = loading;
     if (loading) b.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i>' + label;
   });
+}
+
+function _testGAS() {
+  _toast('Testing...','info');
+  _api('getAllData',{},function(r){_toast(r.success?'GAS OK':'Error: '+(r.error||'?'),r.success?'success':'error');},function(e){_toast('Network: '+e.message,'error');});
 }
