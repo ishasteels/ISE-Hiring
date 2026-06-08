@@ -383,7 +383,7 @@ function _renderHome() {
 
   var today        = _istDate();
   var thisMonth    = _istMonth();
-  var todayInts    = ints.filter(function(i){ return (i['Scheduled On']||'').slice(0,10) === today && i['Status'] === 'Scheduled'; }).length;
+  var todayInts    = ints.filter(function(i){ return String(i['Scheduled On']||'').slice(0,10) === today && i['Status'] === 'Scheduled'; }).length;
   var pendingOffs  = offs.filter(function(o){ return o['Offer Status'] === 'Sent'; }).length;
   var joinedMonth  = cands.filter(function(c){ return c['Stage']==='Joined' && ((c['Last Modified']||c['Applied On']||'')).slice(0,7)===thisMonth; }).length;
   var intDone      = ints.filter(function(i){ return i['Status'] === 'Done'; }).length;
@@ -587,6 +587,46 @@ function _renderHome() {
     </div>
   </div>
 
+  <!-- Agency Performance Breakdown -->
+  <div class="section-card" style="margin-bottom:16px;">
+    <div class="section-head">
+      <h3><i class="fa-solid fa-handshake" style="margin-right:8px;color:#8b5cf6;"></i>Agency Performance</h3>
+      <button class="lnk-btn" onclick="_lv('agencies')">Manage Agencies →</button>
+    </div>
+    ${(function(){
+      if (!agys.length) return '<div class="empty-sm">No agencies yet.</div>';
+      var rows = agys.map(function(a){
+        var ac = cands.filter(function(c){ return String(c['Agency']||'').trim()===String(a['Agency Name']||'').trim() || String(c['Agency']||'').trim()===String(a['Agency ID']||'').trim(); });
+        var placed   = ac.filter(function(c){ return c['Stage']==='Joined'; }).length;
+        var pipeline = ac.filter(function(c){ return ['Applied','Interview','Selected','Offered'].indexOf(c['Stage'])>=0; }).length;
+        var convRate = ac.length>0 ? Math.round(placed/ac.length*100) : 0;
+        var commEst  = placed>0 ? ac.filter(function(c){return c['Stage']==='Joined';}).reduce(function(s,c){ return s+(parseFloat(c['Expected CTC']||0)*100000*(parseFloat(a['Commission (%)']||0)/100)); },0) : 0;
+        return { name: a['Agency Name'], total: ac.length, pipeline: pipeline, placed: placed, conv: convRate, comm: commEst, status: a['Status'] };
+      }).filter(function(r){ return r.total>0; }).sort(function(a,b){ return b.placed-a.placed||b.total-a.total; }).slice(0,6);
+      if (!rows.length) return '<div class="empty-sm">No agency candidates yet.</div>';
+      return '<div class="tbl-scroll"><table class="ins-table"><thead><tr>'
+        +'<th>Agency</th><th style="text-align:center;">Candidates</th><th style="text-align:center;">Pipeline</th><th style="text-align:center;">Placed</th><th style="text-align:center;">Conv%</th><th style="text-align:right;">Est. Commission</th>'
+        +'</tr></thead><tbody>'
+        +rows.map(function(r){
+          var bar = r.total>0 ? Math.round(r.placed/r.total*100) : 0;
+          return '<tr>'
+            +'<td><span style="font-weight:600;color:var(--t1);">'+r.name+'</span></td>'
+            +'<td style="text-align:center;font-weight:700;color:#3b82f6;">'+r.total+'</td>'
+            +'<td style="text-align:center;color:#f59e0b;">'+r.pipeline+'</td>'
+            +'<td style="text-align:center;"><span style="font-weight:800;color:#10b981;">'+r.placed+'</span></td>'
+            +'<td style="text-align:center;">'
+              +'<div style="display:flex;align-items:center;gap:6px;justify-content:center;">'
+                +'<div style="width:40px;height:5px;border-radius:3px;background:var(--surf2);overflow:hidden;"><div style="height:100%;width:'+bar+'%;background:'+(bar>=50?'#10b981':bar>=25?'#f59e0b':'#ef4444')+';"></div></div>'
+                +'<span style="font-size:11px;font-weight:700;color:'+(bar>=50?'#059669':bar>=25?'#d97706':'#dc2626')+';">'+r.conv+'%</span>'
+              +'</div>'
+            +'</td>'
+            +'<td style="text-align:right;font-weight:600;color:#7c3aed;">'+( r.comm>0 ? '₹'+Math.round(r.comm/1000)+'K' : '—' )+'</td>'
+          +'</tr>';
+        }).join('')
+        +'</tbody></table></div>';
+    })()}
+  </div>
+
   <!-- Job Status Summary Table -->
   <div class="section-card">
     <div class="section-head">
@@ -624,17 +664,32 @@ function _renderHome() {
     ['cStage','cDept','cTrend','cSource','cTopJobs','cAgency','cIntResult'].forEach(function(k){ _destroyChart(k); });
 
     var isDark    = document.body.getAttribute('data-theme') === 'dark';
-    var COLORS    = ['#E31E24','#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316'];
-    var gridColor = isDark ? '#1f2238' : '#F1F5F9';
-    var labelColor= isDark ? '#9ba3cc' : '#64748B';
-    var defOpts   = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor, font: { family: "'Plus Jakarta Sans'", size: 11 }, boxWidth: 12 } } } };
+    var COLORS    = ['#E31E24','#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316','#06B6D4','#84CC16'];
+    var gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(99,115,180,.08)';
+    var labelColor= isDark ? '#9ba3cc' : '#6B7280';
+    var surfColor = isDark ? '#13162a' : '#ffffff';
+    var defOpts   = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: labelColor, font: { family: "'Plus Jakarta Sans'", size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: {
+          backgroundColor: isDark ? '#1f2238' : '#fff',
+          titleColor: isDark ? '#e8ecff' : '#111827',
+          bodyColor: isDark ? '#9ba3cc' : '#374151',
+          borderColor: isDark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)',
+          borderWidth: 1,
+          cornerRadius: 10,
+          padding: 10
+        }
+      }
+    };
 
     // 1) Stage doughnut
     var el1 = _el('cStage');
     if (el1) _charts['cStage'] = new Chart(el1, { type: 'doughnut', data: {
       labels: ['Applied','Interview','Selected','Offered','Joined','Rejected'],
       datasets: [{ data: [applied, interviewing, selected, offered, joined, rejected], backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
-    }, options: Object.assign({}, defOpts, { cutout: '65%' }) });
+    }, options: Object.assign({}, defOpts, { cutout: '65%', plugins: Object.assign({},defOpts.plugins,{legend:{position:'bottom',labels:Object.assign({},defOpts.plugins.legend.labels,{padding:14})}}) }) });
 
     // 2) Dept bar
     var el2 = _el('cDept');
@@ -642,8 +697,8 @@ function _renderHome() {
       labels: Object.keys(depts),
       datasets: [{ label: 'Jobs', data: Object.values(depts), backgroundColor: COLORS, borderRadius: 6, borderSkipped: false }]
     }, options: Object.assign({}, defOpts, { plugins: { legend: { display: false } }, scales: {
-      x: { grid: { display: false }, ticks: { color: labelColor } },
-      y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
+      x: { grid: { display:false }, ticks: { color: labelColor, font:{size:10} } },
+      y: { border:{display:false}, grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
     }}) });
 
     // 3) Trend line — 3 series
@@ -685,8 +740,8 @@ function _renderHome() {
       labels: agyLabels,
       datasets: [{ label: 'Candidates', data: agyValues, backgroundColor: COLORS.slice(2), borderRadius: 6, borderSkipped: false }]
     }, options: Object.assign({}, defOpts, { plugins: { legend: { display: false } }, scales: {
-      x: { grid: { display: false }, ticks: { color: labelColor } },
-      y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
+      x: { grid: { display:false }, ticks: { color: labelColor, font:{size:10} } },
+      y: { border:{display:false}, grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
     }}) });
 
     // 7) Interview result pie
@@ -2394,7 +2449,7 @@ function _openAgencyModal(agency) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitAgency('${a['Agency ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Save Agency</button>`
+     <button class="mbtn-p" id="agySaveBtn" data-id="${a['Agency ID']||''}" onclick="_submitAgency(this.dataset.id)"><i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Save Agency</button>`
   );
 }
 
@@ -2402,10 +2457,18 @@ function _editAgency(agencyId) {
   var a = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
   if (a) _openAgencyModal(a);
 }
+function _editAgencyFromDetail(agencyId) {
+  // Close detail modal first, THEN open edit form after animation completes
+  _closeModal();
+  setTimeout(function() {
+    var a = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
+    if (a) _openAgencyModal(a);
+  }, 320);
+}
 
 function _submitAgency(existingId) {
   if (_submitting) return; _submitting = true;
-  if (existingId && !String(existingId).match(/^AGY-/)) existingId = null;
+  existingId = (existingId && String(existingId).match(/^AGY-/)) ? existingId : null;
   var data = {
     agencyId:      existingId||null,
     agencyName:    _val('a_name'),
