@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbz_9eYVRo-5NmLATdS7XhJ2zieDR1Ry5zsmE0GRobzndvqHgGTRcY4IkbeR6wno_fmq/exec';
+var API = 'https://script.google.com/macros/s/AKfycbwo02Jus1lN3sHMys2C-Cw_YFgzpMcI1O3cpzwpF8UuJMpmGPirsYSXQiZFmX74znvm/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -689,7 +689,7 @@ function _renderJobs() {
   var ints  = _D.interviews  || [];
 
   var search  = _el('jobSearch')     ? _el('jobSearch').value.toLowerCase()  : '';
-  var stF     = _el('jobFilter')     ? _el('jobFilter').value                 : 'all';
+  var stF     = (_el('jobFilter') ? _el('jobFilter').value : null) || _FS['jobFilter'] || 'all';
   var deptF   = _el('jobDeptFilter') ? _el('jobDeptFilter').value             : 'all';
   var locF    = _el('jobLocFilter')  ? _el('jobLocFilter').value              : 'all';
   var sortF   = _el('jobSort')       ? _el('jobSort').value                   : 'newest';
@@ -866,8 +866,7 @@ function _renderJobs() {
 var _today = _istDate();
 
 function _jobStatusQuick(st) {
-  _PG.jobs=1; var el=_el('jobFilter');
-  if(el){el.value=st;_renderJobs();}
+  _PG.jobs=1; _FS['jobFilter']=st; _renderJobs();
 }
 
 function _reopenJob(jobId) {
@@ -885,7 +884,7 @@ function _renderInterviews() {
   var jobs  = _D.jobs       || [];
 
   var search  = _el('intSearch')      ? _el('intSearch').value.toLowerCase()  : '';
-  var stF     = _el('intFilter')      ? _el('intFilter').value                 : 'all';
+  var stF     = (_el('intFilter') ? _el('intFilter').value : null) || _FS['intFilter'] || 'all';
   var typeF   = _el('intTypeFilter')  ? _el('intTypeFilter').value             : 'all';
   var modeF   = _el('intModeFilter')  ? _el('intModeFilter').value             : 'all';
   var roundF  = _el('intRoundFilter') ? _el('intRoundFilter').value            : 'all';
@@ -1077,8 +1076,7 @@ function _renderInterviews() {
 }
 
 function _intStatusQuick(st) {
-  _PG.interviews=1; var el=_el('intFilter');
-  if(el){el.value=st;_renderInterviews();}
+  _PG.interviews=1; _FS['intFilter']=st; _renderInterviews();
 }
 
 function _rescheduleInterview(interviewId) {
@@ -1119,7 +1117,7 @@ function _renderOffers() {
   var jobs  = _D.jobs       || [];
 
   var search  = _el('offSearch')       ? _el('offSearch').value.toLowerCase()  : '';
-  var stF     = _el('offFilter')       ? _el('offFilter').value                 : 'all';
+  var stF     = (_el('offFilter') ? _el('offFilter').value : null) || _FS['offFilter'] || 'all';
   var monthF  = _el('offMonthFilter')  ? _el('offMonthFilter').value            : 'all';
   var sortF   = _el('offSort')         ? _el('offSort').value                   : 'newest';
   var deptF   = _el('offDeptFilter')   ? _el('offDeptFilter').value             : 'all';
@@ -1312,8 +1310,7 @@ function _renderOffers() {
 }
 
 function _offStatusQuick(st) {
-  _PG.offers=1; var el=_el('offFilter');
-  if(el){el.value=st;_renderOffers();}
+  _PG.offers=1; _FS['offFilter']=st; _renderOffers();
 }
 
 function _openJobModal(job) {
@@ -1418,15 +1415,15 @@ function _renderCandidates() {
   var agys   = _D.agencies   || [];
 
   // Read filter state (persist across re-renders)
-  var search  = _el('cndSearch')      ? _el('cndSearch').value.toLowerCase()  : '';
-  var stgF    = _el('cndStageFilter') ? _el('cndStageFilter').value            : 'all';
-  var jobF    = _el('cndJobFilter')   ? _el('cndJobFilter').value              : 'all';
-  var srcF    = _el('cndSrcFilter')   ? _el('cndSrcFilter').value              : 'all';
-  var agyF    = _el('cndAgyFilter')   ? _el('cndAgyFilter').value              : 'all';
+  var search  = _el('cndSearch') ? _el('cndSearch').value.toLowerCase() : '';
+  var stgF    = (_el('cndStageFilter') ? _el('cndStageFilter').value : null) || _FS['cndStageFilter'] || 'all';
+  var jobF    = (_el('cndJobFilter') ? _el('cndJobFilter').value : null) || _FS['cndJobFilter'] || 'all';
+  var srcF    = (_el('cndSrcFilter') ? _el('cndSrcFilter').value : null) || _FS['cndSrcFilter'] || 'all';
+  var agyF    = (_el('cndAgyFilter') ? _el('cndAgyFilter').value : null) || _FS['cndAgyFilter'] || 'all';
   var expF    = _el('cndExpFilter')   ? _el('cndExpFilter').value              : 'all';
-  var deptF   = _el('cndDeptFilter')  ? _el('cndDeptFilter').value             : 'all';
+  var deptF   = (_el('cndDeptFilter') ? _el('cndDeptFilter').value : null) || _FS['cndDeptFilter'] || 'all';
   var ctcF    = _el('cndCtcFilter')   ? _el('cndCtcFilter').value              : 'all';
-  var sortF   = _el('cndSort')        ? _el('cndSort').value                   : 'newest';
+  var sortF   = (_el('cndSort') ? _el('cndSort').value : null) || _FS['cndSort'] || 'newest';
 
   // Build option lists
   var allSources = ['all'].concat([...new Set(cands.map(function(c){return c['Source']||'';}).filter(Boolean))]);
@@ -1521,10 +1518,10 @@ function _renderCandidates() {
         <input id="cndSearch" type="text" placeholder="Name, email, phone, company, ID..." value="${search}" oninput="_PG.candidates=1;_renderCandidates()">
         ${search ? '<button onclick="_el(\'cndSearch\').value=\'\';_renderCandidates()" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:11px;padding:0 4px;">✕</button>' : ''}
       </div>
-      <select id="cndJobFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${jobOpts}</select>
-      <select id="cndDeptFilter"  class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${deptOpts}</select>
-      <select id="cndSrcFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${srcOpts}</select>
-      <select id="cndAgyFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">${agyOpts}</select>
+      <select id="cndJobFilter"   class="f-select" onchange="_PG.candidates=1;_FS['cndJobFilter']=this.value;_renderCandidates()">${jobOpts}</select>
+      <select id="cndDeptFilter"  class="f-select" onchange="_PG.candidates=1;_FS['cndDeptFilter']=this.value;_renderCandidates()">${deptOpts}</select>
+      <select id="cndSrcFilter"   class="f-select" onchange="_PG.candidates=1;_FS['cndSrcFilter']=this.value;_renderCandidates()">${srcOpts}</select>
+      <select id="cndAgyFilter"   class="f-select" onchange="_PG.candidates=1;_FS['cndAgyFilter']=this.value;_renderCandidates()">${agyOpts}</select>
       <select id="cndExpFilter"   class="f-select" onchange="_PG.candidates=1;_renderCandidates()">
         <option value="all" ${expF==='all'?'selected':''}>All Experience</option>
         <option value="0-2"  ${expF==='0-2'?'selected':''}>0–2 yrs</option>
@@ -1608,10 +1605,10 @@ function _renderCandidates() {
               </td>
               <td>
                 <div class="name-cell">
-                  <div class="n-av" style="background:${_avatarGrad(c['Full Name'])}">${(c['Full Name']||'?').charAt(0).toUpperCase()}</div>
-                  <div>
-                    <div class="n-name">${c['Full Name']||'—'}</div>
-                    <div class="n-email">${c['Email']||'—'}</div>
+                  <div class="n-av sm" style="background:${_avatarGrad(c['Full Name'])};flex-shrink:0;">${(c['Full Name']||'?').charAt(0).toUpperCase()}</div>
+                  <div style="min-width:0;">
+                    <div class="n-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${c['Full Name']||''}">${c['Full Name']||'—'}</div>
+                    <div class="n-email" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${c['Email']||''}">${c['Email']||'—'}</div>
                   </div>
                 </div>
               </td>
@@ -1640,7 +1637,7 @@ function _renderCandidates() {
                   : '<span style="color:var(--t4);font-size:11px;">—</span>'}
               </td>
               <td>
-                <div class="act-btns" style="gap:4px;flex-wrap:wrap;">
+                <div class="act-btns" style="gap:3px;flex-wrap:nowrap;justify-content:flex-end;">
                   <!-- View Profile -->
                   <button class="ic-btn" title="View Profile" onclick="_openCndDetail('${c['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
                   ${_hasWrite() ? `
@@ -1707,8 +1704,7 @@ function _avatarGrad(name) {
 
 // Stage quick filter helper
 function _cndStageQuick(stage) {
-  _PG.candidates=1; var el=_el('cndStageFilter');
-  if(el){el.value=stage;_renderCandidates();}
+  _PG.candidates=1; _FS['cndStageFilter']=stage; _renderCandidates();
 }
 
 // Quick stage change — no confirm dialog for forward movement, confirm for reject
@@ -1808,7 +1804,7 @@ function _confirmJoiningFromCand(candidateId) {
 function _bulkExportCsv() {
   var cands  = _D.candidates || [];
   var jobs   = _D.jobs       || [];
-  var stgF   = _el('cndStageFilter') ? _el('cndStageFilter').value : 'all';
+  var stgF   = (_el('cndStageFilter') ? _el('cndStageFilter').value : null) || _FS['cndStageFilter'] || 'all';
   var search = _el('cndSearch')      ? _el('cndSearch').value.toLowerCase() : '';
 
   var visible = cands.filter(function(c) {
@@ -1849,7 +1845,7 @@ function _renderAgencies() {
   var ints  = _D.interviews || [];
   var offs  = _D.offers     || [];
 
-  var filter = _el('agyFilter') ? _el('agyFilter').value : 'all';
+  var filter = (_el('agyFilter') ? _el('agyFilter').value : null) || _FS['agyFilter'] || 'all';
   var search = _el('agySearch') ? _el('agySearch').value.toLowerCase() : '';
   var sortA  = _el('agySort')   ? _el('agySort').value   : 'name';
 
@@ -2225,11 +2221,15 @@ function _openAgencyDetail(agencyId) {
 }
 
 function _viewAgencyCands(agencyName) {
+  // Store in _FS first, then navigate
+  _FS['cndAgyFilter'] = agencyName;
+  _PG.candidates = 1;
   _lv('candidates');
+  // After render, also try setting DOM select
   setTimeout(function() {
     var el = _el('cndAgyFilter');
-    if (el) { el.value = agencyName; _renderCandidates(); }
-  }, 120);
+    if (el) { el.value = agencyName; }
+  }, 200);
 }
 
 // Agency performance report modal
@@ -2399,7 +2399,16 @@ function _openCndModal(cnd) {
   var jobs = _D.jobs || [];
   var agys = _D.agencies || [];
   var jobOpts = jobs.map(function(j){ return `<option value="${j['Job ID']}" ${c['Job ID']===j['Job ID']?'selected':''}>${j['Title']}</option>`; }).join('');
-  var agyOpts = '<option value="">Direct / No Agency</option>' + agys.filter(function(a){ return a['Status']==='Active'; }).map(function(a){ return `<option value="${a['Agency Name']}" ${c['Agency Name']===a['Agency Name']?'selected':''}>${a['Agency Name']}</option>`; }).join('');
+  // Dropdown: value=AgencyID, text=AgencyName (all active agencies)
+  // Pre-select: match by existing Agency Name stored in candidate
+  var agyOpts = '<option value="">Direct / No Agency</option>'
+    + agys.map(function(a){
+        var inactive = a['Status']==='Inactive';
+        // Pre-select by matching stored Agency Name OR Agency ID
+        var isSelected = (c['Agency Name'] && c['Agency Name']===a['Agency Name'])
+                      || (c['Agency ID']   && c['Agency ID']===a['Agency ID']);
+        return '<option value="'+a['Agency ID']+'" '+(isSelected?'selected':'')+' '+(inactive?'style="color:var(--t3);"':'')+'>'+a['Agency Name']+(inactive?' (Inactive)':'')+'</option>';
+      }).join('');
   var sources = ['Portal','Referral','LinkedIn','Direct Walk-in','Agency','Campus','Other'];
 
   _showModal(c['Candidate ID'] ? 'Edit Candidate' : 'Add Candidate', `
@@ -2498,7 +2507,14 @@ function _submitCandidate(existingId) {
       name: name, phone: phone, email: _val('c_email'),
       jobId: _val('c_job'), currentCompany: _val('c_co'), experience: _val('c_exp'),
       currentCtc: _val('c_cctc'), expectedCtc: _val('c_ectc'),
-      source: _val('c_src'), agencyName: _val('c_agy'),
+      source: _val('c_src'),
+      agencyId: _val('c_agy'),
+      agencyName: (function(){
+        var aid = _val('c_agy');
+        if (!aid) return '';
+        var ag = (_D.agencies||[]).find(function(a){ return a['Agency ID']===aid; });
+        return ag ? ag['Agency Name'] : aid; // fallback to id if not found
+      })(),
       resumeLink: resumeUrl || resLink
     };
     _api(existingId ? 'updateCandidate' : 'saveCandidate', data, function(r) {
