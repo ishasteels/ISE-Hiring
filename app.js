@@ -213,6 +213,12 @@ function _showApp() {
   // Default landing view based on role
   if (role === 'candidate') {
     _V = 'jobs';
+    // Candidate: restrict data - show only open jobs
+    // Data is filtered server-side, but add UI lock
+    document.querySelectorAll('[data-v="candidates"],[data-v="interviews"],[data-v="offers"],[data-v="agencies"]').forEach(function(el){
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.4';
+    });
   }
 
   // Role badge color
@@ -1320,6 +1326,16 @@ function _openJobModal(job) {
         <label>Application Deadline</label>
         <input id="f_ddl" type="date" value="${j['Deadline']||''}">
       </div>
+      <div class="fg">
+        <label>Status</label>
+        <select id="f_status">
+          ${['Open','Closed','On Hold'].map(function(s){return '<option '+(j['Status']===s?'selected':'')+((!j['Job ID']&&s==='Open')?' selected':'')+'>'+s+'</option>';}).join('')}
+        </select>
+      </div>
+      <div class="fg">
+        <label>Posted By</label>
+        <input id="f_by" value="${j['Posted By']||(_U?_U.name:'')}" placeholder="HR Manager name">
+      </div>
       <div class="fg full">
         <label>Job Description</label>
         <textarea id="f_desc" rows="3" placeholder="Describe responsibilities, skills needed...">${j['Description']||''}</textarea>
@@ -1341,7 +1357,9 @@ function _submitJob(existingId) {
     jobId: existingId||null,
     title: _val('f_title'), department: _val('f_dept'), location: _val('f_loc'),
     minExp: _val('f_exp'), openings: _val('f_open'), salaryRange: _val('f_sal'),
-    deadline: _val('f_ddl'), description: _val('f_desc')
+    deadline: _val('f_ddl'), description: _val('f_desc'),
+    status: _val('f_status') || 'Open',
+    postedBy: _val('f_by') || (_U?_U.name:'')
   };
   if (!data.title) { _toast('Job title is required.','error'); _submitting=false; return; }
   _setBtnLoading('mbtn-p', true, 'Saving...');
@@ -2401,6 +2419,16 @@ function _openCndModal(cnd) {
         <label>Agency (if applicable)</label>
         <select id="c_agy">${agyOpts}</select>
       </div>
+      <div class="fg">
+        <label>Stage</label>
+        <select id="c_stage">
+          ${['Applied','Interview','Selected','Offered','Joined','Rejected'].map(function(s){return '<option '+(c['Stage']===s?'selected':'')+((!c['Candidate ID']&&s==='Applied')?' selected':'')+'>'+s+'</option>';}).join('')}
+        </select>
+      </div>
+      <div class="fg">
+        <label>Applied On</label>
+        <input id="c_adon" type="date" value="${c['Applied On']||_istDate()}">
+      </div>
       <div class="fg full">
         <label>Resume / CV</label>
         <div id="c_res_wrap" style="display:flex;flex-direction:column;gap:8px;">
@@ -2811,6 +2839,10 @@ function _openOfferModal(offer, preCandidateId) {
         <label>Designation</label>
         <input id="o_desg" placeholder="e.g. Production Engineer">
       </div>
+      <div class="fg full">
+        <label>Offer Notes / Terms (optional)</label>
+        <textarea id="o_notes" rows="2" placeholder="Any special terms or conditions..."></textarea>
+      </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
      <button class="mbtn-p" onclick="_submitOffer()"><i class="fa-solid fa-file-signature" style="margin-right:4px;"></i>Create Offer</button>`
@@ -2823,7 +2855,8 @@ function _submitOffer() {
   var c   = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===cid; });
   var data = {
     candidateId: cid, jobId: c?c['Job ID']:'',
-    offeredCtc: _val('o_ctc'), joiningDate: _val('o_jdate'), designation: _val('o_desg')
+    offeredCtc: _val('o_ctc'), joiningDate: _val('o_jdate'), designation: _val('o_desg'),
+    notes: _val('o_notes')
   };
   if (!data.offeredCtc || !data.joiningDate) { _toast('CTC and joining date are required.','error'); _submitting=false; return; }
   _api('saveOffer', data, function(r) {
