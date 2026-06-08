@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbzY2B3T_q8Jam3lZII2fvEieTLvp-ESPHP1-yQqsS5rl0uiQXLBn_RcQ4F_LXtlcUYA/exec';
+var API = 'https://script.google.com/macros/s/AKfycbxr-PPia2I92ZVBzwUZfnZOFtualYES2WZ4jMXKMKuNBVnniW_Z-sxkH2lqaxRfFjFj/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -1687,7 +1687,7 @@ function _renderCandidates() {
               <td style="font-size:12px;color:var(--t2);">${c['Current CTC']?c['Current CTC']+' LPA':'—'}</td>
               <td style="font-weight:700;color:#059669;font-size:12.5px;">${c['Expected CTC']?c['Expected CTC']+' LPA':'—'}</td>
               <td><span class="src-tag">${c['Source']||'—'}</span></td>
-              <td>${c['Agency'] ? '<span class="agy-tag"><i class="fa-solid fa-handshake" style="font-size:9px;margin-right:4px;opacity:.7"></i>'+c['Agency']+'</span>' : '<span style="color:var(--t4);font-size:11px;">Direct</span>'}</td>
+              <td>${(function(){ var av=c['Agency']||''; if(!av) return '<span style=\"color:var(--t4);font-size:11px;\">Direct</span>'; var ao=(_D.agencies||[]).find(function(x){return x['Agency ID']===av||x['Agency Name']===av;}); var nm=ao?ao['Agency Name']:av; return '<span class=\"agy-tag\"><i class=\"fa-solid fa-handshake\" style=\"font-size:9px;margin-right:4px;opacity:.7\"></i>'+nm+'</span>'; })()}</td>
               <td style="text-align:center;">
                 ${c['Resume Link'] ? '<a href="'+c['Resume Link']+'" title="View Resume" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:rgba(59,130,246,.1);color:#3b82f6;font-size:11px;border:1px solid rgba(59,130,246,.25);text-decoration:none;"><i class="fa-solid fa-file-pdf"></i></a>' : '<span style="color:var(--t4);font-size:11px;">—</span>'}
               </td>
@@ -2032,7 +2032,7 @@ function _renderAgencies() {
           ${visible.length ? _slice.map(function(a) {
             var isActive = a['Status']==='Active';
             var convColor = a._convRate>=50?'#10b981':a._convRate>=25?'#f59e0b':'#ef4444';
-            return `<tr style="${isActive?'':'opacity:.7'};cursor:pointer;" onclick="_openAgencyDetail('${a['Agency ID']}')">
+            return `<tr style="${isActive?'':'opacity:.7'};cursor:pointer;" onclick="if(event.target.closest('.ic-btn'))return;_openAgencyDetail('${a['Agency ID']}')">
               <td>
                 <div class="name-cell">
                   <div class="n-av" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);flex-shrink:0;">
@@ -2695,6 +2695,7 @@ function _submitCandidate(existingId) {
       currentCtc:     _val('c_cctc'),
       expectedCtc:    _val('c_ectc'),
       source:         _val('c_src'),
+      agencyId:       agyId,
       agencyName:     agyName,
       resumeLink:     resumeUrl || resLink || '',
       stage:          _val('c_stage') || 'Applied',
@@ -2731,7 +2732,7 @@ function _openCndDetail(candidateId) {
   var ints = (_D.interviews||[]).filter(function(i){return i['Candidate ID']===candidateId;})
              .sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
   var offs = (_D.offers||[]).filter(function(o){return o['Candidate ID']===candidateId;});
-  var agy  = c['Agency'] ? (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency'];}) : null;
+  var agy  = c['Agency'] ? ((_D.agencies||[]).find(function(a){return a['Agency ID']===c['Agency'];}) || (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency'];})) : null;
 
   // Store context for modal button handlers
   _cndCtx = { candidateId: candidateId, nextStage: _stageNext(c['Stage']), stage: c['Stage'], offs: offs };
