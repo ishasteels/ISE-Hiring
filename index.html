@@ -1245,6 +1245,42 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 [data-theme="dark"] .data-tbl thead th:last-child { background:var(--surf2); }
 [data-theme="dark"] .data-tbl tbody tr:hover td:last-child { background:var(--surf2); }
 
+
+/* ── Candidates table — compact rows like agencies ───────────── */
+#v-candidates .data-tbl tbody td {
+  padding: 9px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#v-candidates .data-tbl thead th {
+  padding: 9px 10px;
+  font-size: 9.5px;
+}
+/* Compact action buttons in candidates */
+#v-candidates .act-btns { gap:3px; }
+#v-candidates .ic-btn { width:27px; height:27px; font-size:11px; }
+/* Compact name cell */
+#v-candidates .n-av.sm { width:26px; height:26px; font-size:9px; flex-shrink:0; }
+
+/* Status pills — same design across all views */
+.status-pill-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surf);
+  border-radius: var(--r-md);
+  border: 1px solid var(--bdr);
+  box-shadow: var(--shadow-xs);
+}
+.status-pill-bar .sp-label {
+  font-size: 10.5px; font-weight: 700; color: var(--t3);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-right: 4px; flex-shrink: 0;
+}
+
 /* ── Print styles ────────────────────────────────────────────── */
 @media print {
   #topbar,#sb,#bnav,#pageLoader,.act-btns,.tb-acts { display:none !important; }
