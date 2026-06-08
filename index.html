@@ -527,8 +527,9 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
   box-sizing: border-box;
 }
 .tbl-scroll::-webkit-scrollbar       { height:5px; }
-.tbl-scroll::-webkit-scrollbar-track { background:var(--surf2); }
-.tbl-scroll::-webkit-scrollbar-thumb { background:var(--bdr); border-radius:3px; }
+.tbl-scroll::-webkit-scrollbar-track { background:var(--surf2); border-radius:3px; }
+.tbl-scroll::-webkit-scrollbar-thumb { background:var(--t4); border-radius:3px; transition:background .2s; }
+.tbl-scroll::-webkit-scrollbar-thumb:hover { background:var(--brand); }
 
 /* Table base */
 .data-tbl {
@@ -615,7 +616,8 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 #v-candidates .data-tbl th:nth-child(13) { min-width:76px;  }
 #v-candidates .data-tbl th:nth-child(14) { min-width:70px;  }
 #v-candidates .data-tbl th:nth-child(15) { min-width:70px;  }
-#v-candidates .data-tbl th:nth-child(16) { min-width:160px; }
+#v-candidates .data-tbl th:nth-child(16) { min-width:100px; } /* rejection */
+#v-candidates .data-tbl th:nth-child(17) { min-width:150px; } /* actions */
 
 /* ── Jobs table ──────────────────────────────────────────────── */
 #v-jobs .data-tbl            { min-width:780px; }
@@ -633,18 +635,18 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 #v-jobs .data-tbl th:nth-child(12) { min-width:118px; }
 
 /* ── Interviews table ────────────────────────────────────────── */
-#v-interviews .data-tbl            { min-width:820px; }
-#v-interviews .data-tbl th:nth-child(1)  { min-width:140px; }
-#v-interviews .data-tbl th:nth-child(2)  { min-width:100px; }
-#v-interviews .data-tbl th:nth-child(3)  { min-width:50px;  }
-#v-interviews .data-tbl th:nth-child(4)  { min-width:65px;  }
-#v-interviews .data-tbl th:nth-child(5)  { min-width:95px;  }
-#v-interviews .data-tbl th:nth-child(6)  { min-width:108px; }
-#v-interviews .data-tbl th:nth-child(7)  { min-width:90px;  }
-#v-interviews .data-tbl th:nth-child(8)  { min-width:65px;  }
-#v-interviews .data-tbl th:nth-child(9)  { min-width:55px;  }
-#v-interviews .data-tbl th:nth-child(10) { min-width:128px; }
-#v-interviews .data-tbl th:nth-child(11) { min-width:108px; }
+#v-interviews .data-tbl            { min-width:840px; }
+#v-interviews .data-tbl th:nth-child(1)  { min-width:130px; } /* candidate */
+#v-interviews .data-tbl th:nth-child(2)  { min-width:95px;  } /* job role */
+#v-interviews .data-tbl th:nth-child(3)  { min-width:48px;  } /* round */
+#v-interviews .data-tbl th:nth-child(4)  { min-width:62px;  } /* type */
+#v-interviews .data-tbl th:nth-child(5)  { min-width:90px;  } /* mode */
+#v-interviews .data-tbl th:nth-child(6)  { min-width:106px; } /* scheduled */
+#v-interviews .data-tbl th:nth-child(7)  { min-width:85px;  } /* interviewer */
+#v-interviews .data-tbl th:nth-child(8)  { min-width:62px;  } /* status */
+#v-interviews .data-tbl th:nth-child(9)  { min-width:52px;  } /* result */
+#v-interviews .data-tbl th:nth-child(10) { min-width:120px; } /* feedback */
+#v-interviews .data-tbl th:nth-child(11) { min-width:100px; } /* actions */
 
 /* ── Offers table ────────────────────────────────────────────── */
 #v-offers .data-tbl            { min-width:680px; }
@@ -659,22 +661,22 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 #v-offers .data-tbl th:nth-child(9) { min-width:128px; }
 
 /* ── Agencies table ──────────────────────────────────────────── */
-#v-agencies .data-tbl            { min-width:900px; }
-#v-agencies .data-tbl th:nth-child(1)  { min-width:148px; }
-#v-agencies .data-tbl th:nth-child(2)  { min-width:88px;  }
-#v-agencies .data-tbl th:nth-child(3)  { min-width:108px; }
-#v-agencies .data-tbl th:nth-child(4)  { min-width:80px;  }
-#v-agencies .data-tbl th:nth-child(5)  { min-width:66px;  }
-#v-agencies .data-tbl th:nth-child(6)  { min-width:66px;  }
-#v-agencies .data-tbl th:nth-child(7)  { min-width:52px;  }
-#v-agencies .data-tbl th:nth-child(8)  { min-width:52px;  }
-#v-agencies .data-tbl th:nth-child(9)  { min-width:44px;  }
-#v-agencies .data-tbl th:nth-child(10) { min-width:72px;  }
-#v-agencies .data-tbl th:nth-child(11) { min-width:52px;  }
-#v-agencies .data-tbl th:nth-child(12) { min-width:58px;  }
-#v-agencies .data-tbl th:nth-child(13) { min-width:56px;  }
-#v-agencies .data-tbl th:nth-child(14) { min-width:58px;  }
-#v-agencies .data-tbl th:nth-child(15) { min-width:100px; }
+#v-agencies .data-tbl            { min-width:920px; }
+#v-agencies .data-tbl th:nth-child(1)  { min-width:140px; } /* agency name */
+#v-agencies .data-tbl th:nth-child(2)  { min-width:82px;  } /* contact */
+#v-agencies .data-tbl th:nth-child(3)  { min-width:100px; } /* email */
+#v-agencies .data-tbl th:nth-child(4)  { min-width:76px;  } /* phone */
+#v-agencies .data-tbl th:nth-child(5)  { min-width:62px;  } /* address */
+#v-agencies .data-tbl th:nth-child(6)  { min-width:62px;  } /* commission */
+#v-agencies .data-tbl th:nth-child(7)  { min-width:48px;  } /* candidates */
+#v-agencies .data-tbl th:nth-child(8)  { min-width:48px;  } /* pipeline */
+#v-agencies .data-tbl th:nth-child(9)  { min-width:42px;  } /* placed */
+#v-agencies .data-tbl th:nth-child(10) { min-width:68px;  } /* conversion */
+#v-agencies .data-tbl th:nth-child(11) { min-width:48px;  } /* active int */
+#v-agencies .data-tbl th:nth-child(12) { min-width:54px;  } /* pending off */
+#v-agencies .data-tbl th:nth-child(13) { min-width:52px;  } /* status */
+#v-agencies .data-tbl th:nth-child(14) { min-width:56px;  } /* since */
+#v-agencies .data-tbl th:nth-child(15) { min-width:96px;  } /* actions */
 
 /* ═══════════════════════════════════════════════════════════════
    BADGES
@@ -773,7 +775,7 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 .modal-hd h3{ flex:1; font-family:'Bricolage Grotesque',sans-serif; font-size:16px; font-weight:700; color:var(--t1); margin:0; }
 .modal-close{ width:32px; height:32px; border-radius:9px; border:none; background:var(--surf2); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--t3); font-size:13px; transition:all .15s; }
 .modal-close:hover { background:#fee2e2; color:var(--brand); }
-.modal-bd   { flex:1; overflow-y:auto; padding:18px 22px; -webkit-overflow-scrolling:touch; }
+.modal-bd   { flex:1; overflow-y:auto; overflow-x:hidden; padding:16px 20px; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; }
 .modal-ft   { padding:12px 22px; border-top:1px solid var(--bdr); display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-shrink:0; flex-wrap:wrap; }
 [data-theme="dark"] #modal        { background:var(--surf); border-color:var(--bdr); }
 [data-theme="dark"] .modal-hd     { border-bottom-color:var(--bdr); }
@@ -1221,6 +1223,27 @@ body.sb-collapsed .tb-logo-abbr                        { display:block; }
 [data-theme="dark"] .role-banner { background:rgba(245,158,11,.12); border-left-color:#f59e0b; }
 [data-theme="dark"] .joining-banner { background:linear-gradient(135deg,#052e16,#064e3b); color:#4ade80; }
 [data-theme="dark"] #pageLoader  { background:rgba(11,13,26,.88); }
+
+
+/* ── Sticky actions column — always visible ─────────────────── */
+.data-tbl th:last-child,
+.data-tbl td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--surf);
+  z-index: 1;
+  box-shadow: -4px 0 8px rgba(30,50,140,.06);
+}
+.data-tbl thead th:last-child {
+  background: var(--surf2);
+  z-index: 3;
+}
+.data-tbl tbody tr:hover td:last-child {
+  background: var(--surf2);
+}
+[data-theme="dark"] .data-tbl td:last-child { background:var(--surf); }
+[data-theme="dark"] .data-tbl thead th:last-child { background:var(--surf2); }
+[data-theme="dark"] .data-tbl tbody tr:hover td:last-child { background:var(--surf2); }
 
 /* ── Print styles ────────────────────────────────────────────── */
 @media print {
