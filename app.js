@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbwYQwCXHUTU5EpWDOMUPg70_spjUz5NdIeYkLz0Im9lBbXe4Lzf7GDoWfWefSQ8Cl0o/exec';
+var API = 'https://script.google.com/macros/s/AKfycbzLBfgZjHp8ea4yleXtP-lJ892ACZkob6dfZgvfguG6cukw-TZTlknilSzMc6XQFga_/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -103,24 +103,28 @@ function _api(action, data, ok, err) {
   var cb = '_gcb' + (++_cbIdx), t;
   window[cb] = function(r) {
     clearTimeout(t);
-    try { delete window[cb]; } catch(e) {}
+    try { delete window[cb]; } catch(e2) {}
     var s = document.getElementById('_s_' + cb); if (s) s.remove();
-    if (!r) { if (err) err({ message: 'Empty response from server.' }); return; }
+    if (!r) { if (err) err({ message: 'Empty server response.' }); return; }
     if (r.success === false && r.error === 'NOT_AUTHENTICATED') { _signOut(); return; }
-    if (r.success === false && !ok) {
-      _toast('Error: ' + (r.error||'Unknown error'), 'error');
-      return;
-    }
-    if (ok) ok(r);
+    if (ok) ok(r); else if (r.success === false) _toast('Error: '+(r.error||'Unknown'),'error');
   };
   t = setTimeout(function() {
-    try { delete window[cb]; } catch(e) {}
-    if (err) err({ message: 'Request timed out. Check your connection.' });
-  }, 25000);
-  var url = API + '?callback=' + cb + '&payload=' + encodeURIComponent(JSON.stringify({ action: action, data: data || {}, token: _TOKEN || '' }));
+    try { delete window[cb]; } catch(e2) {}
+    var s2 = document.getElementById('_s_' + cb); if (s2) s2.remove();
+    if (err) err({ message: 'Request timed out (30s). Please check connection and try again.' });
+  }, 30000);
+  var payload = JSON.stringify({ action: action, data: data || {}, token: _TOKEN || '' });
+  var url = API + '?callback=' + cb + '&payload=' + encodeURIComponent(payload);
   var s = document.createElement('script');
-  s.id = '_s_' + cb; s.src = url;
-  s.onerror = function() { clearTimeout(t); if (err) err({ message: 'Network error.' }); };
+  s.id = '_s_' + cb;
+  s.onerror = function() {
+    clearTimeout(t);
+    try { delete window[cb]; } catch(e2) {}
+    if (err) err({ message: 'Network error — could not reach server.' });
+    else _toast('Network error — please retry.', 'error');
+  };
+  s.src = url;
   document.body.appendChild(s);
 }
 
@@ -355,7 +359,7 @@ function _renderHome() {
   var openJobs     = jobs.filter(function(j){ return j['Status'] === 'Open'; }).length;
   var totalCands   = cands.length;
   var applied      = cands.filter(function(c){ return c['Stage'] === 'Applied'; }).length;
-  var interviewing = cands.filter(function(c){ return c['Stage'] === 'Interview'; }).length;
+  var interviewing = cands.filter(function(c){ return c['Stage']==='Interview' || c['Stage']==='Interviewing'; }).length;
   var selected     = cands.filter(function(c){ return c['Stage'] === 'Selected'; }).length;
   var offered      = cands.filter(function(c){ return c['Stage'] === 'Offered'; }).length;
   var joined       = cands.filter(function(c){ return c['Stage'] === 'Joined'; }).length;
@@ -366,7 +370,7 @@ function _renderHome() {
   var thisMonth    = _istMonth();
   var todayInts    = ints.filter(function(i){ return (i['Scheduled On']||'').slice(0,10) === today && i['Status'] === 'Scheduled'; }).length;
   var pendingOffs  = offs.filter(function(o){ return o['Offer Status'] === 'Sent'; }).length;
-  var joinedMonth  = cands.filter(function(c){ return c['Stage'] === 'Joined' && (c['Last Modified']||'').slice(0,7) === thisMonth; }).length;
+  var joinedMonth  = cands.filter(function(c){ return c['Stage']==='Joined' && ((c['Last Modified']||c['Applied On']||'')).slice(0,7)===thisMonth; }).length;
   var intDone      = ints.filter(function(i){ return i['Status'] === 'Done'; }).length;
   var intPass      = ints.filter(function(i){ return i['Result'] === 'Pass'; }).length;
   var passRate     = intDone > 0 ? Math.round(intPass / intDone * 100) : 0;
@@ -385,12 +389,20 @@ function _renderHome() {
   cands.forEach(function(c){ var a = c['Agency Name']||'Direct'; agyData[a] = (agyData[a]||0)+1; });
 
   // Monthly trend (last 6 months)
-  var monthLabels = [], monthJoined = [];
+  var monthLabels = [], monthJoined = [], monthApplied = [], monthInts = [];
   for (var m = 5; m >= 0; m--) {
     var d2 = new Date(new Date().getTime()+(330*60*1000)); d2.setMonth(d2.getMonth() - m);
     var ym = d2.toISOString().slice(0,7);
-    monthLabels.push(d2.toLocaleDateString('en-IN', { month: 'short' }));
-    monthJoined.push(cands.filter(function(c){ return c['Stage']==='Joined' && (c['Applied On']||'').slice(0,7)===ym; }).length);
+    var mLabel = d2.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+    monthLabels.push(mLabel);
+    // Joinings: use Last Modified month (when candidate actually joined)
+    monthJoined.push(cands.filter(function(c){
+      return c['Stage']==='Joined' && ((c['Last Modified']||c['Applied On']||'')).slice(0,7)===ym;
+    }).length);
+    // Applications this month
+    monthApplied.push(cands.filter(function(c){ return (c['Applied On']||'').slice(0,7)===ym; }).length);
+    // Interviews this month
+    monthInts.push(ints.filter(function(i){ return (i['Scheduled On']||'').slice(0,7)===ym; }).length);
   }
 
   // Top jobs by candidates
@@ -412,7 +424,18 @@ function _renderHome() {
     ${_kpiCard('fa-user-check','Joined This Month', joinedMonth, 'green', 'New employees')}
     ${_kpiCard('fa-percent','Interview Pass Rate', passRate+'%', 'teal', intPass+' of '+intDone+' passed')}
     ${_kpiCard('fa-chart-line','Conversion Rate', convRate+'%', 'rose', joined+' of '+totalCands+' hired')}
-    ${_kpiCard('fa-building','Active Agencies', activeAgys, 'slate', 'Recruitment partners')}
+    ${_kpiCard('fa-building','Active Agencies', activeAgys, 'slate', agys.length+' total partners')}
+  </div>
+  <!-- KPI Row 2 -->
+  <div class="kpi-grid" style="margin-top:-6px;">
+    ${_kpiCard('fa-user-clock','Scheduled Interviews', ints.filter(function(i){return i['Status']==='Scheduled';}).length, 'amber', todayInts+' today')}
+    ${_kpiCard('fa-trophy','Interview Pass Rate', passRate+'%', 'green', intPass+' of '+intDone+' passed')}
+    ${_kpiCard('fa-chart-line','Hire Rate', convRate+'%', 'teal', joined+' hired of '+totalCands)}
+    ${_kpiCard('fa-hourglass-half','Offers Pending', pendingOffs, 'violet', 'Awaiting candidate response')}
+    ${_kpiCard('fa-xmark-circle','Rejected', rejected, 'rose', Math.round(rejected/Math.max(totalCands,1)*100)+'% rejection rate')}
+    ${_kpiCard('fa-calendar-plus','Added This Month', cands.filter(function(c){return (c['Applied On']||'').slice(0,7)===thisMonth;}).length, 'blue', 'New applications')}
+    ${_kpiCard('fa-check-double','Selected', selected+offered, 'slate', selected+' selected · '+offered+' offered')}
+    ${_kpiCard('fa-user-check','Joined This Month', joinedMonth, 'red', 'New joinees')}
   </div>
 
   <!-- Pipeline Stage Bar -->
@@ -424,7 +447,7 @@ function _renderHome() {
     <div class="pipeline-bar-wrap">
       <div class="pipeline-bar">
         ${_pipeBar('Applied',      applied,     totalCands, '#3B82F6')}
-        ${_pipeBar('Interviewing', interviewing, totalCands, '#F59E0B')}
+        ${_pipeBar('Interview', interviewing, totalCands, '#F59E0B')}
         ${_pipeBar('Selected',     selected,     totalCands, '#8B5CF6')}
         ${_pipeBar('Offered',      offered,      totalCands, '#EC4899')}
         ${_pipeBar('Joined',       joined,       totalCands, '#10B981')}
@@ -433,7 +456,7 @@ function _renderHome() {
     </div>
     <div class="pipeline-leg">
       ${_pipeLeg('Applied',      applied,      '#3B82F6')}
-      ${_pipeLeg('Interviewing', interviewing, '#F59E0B')}
+      ${_pipeLeg('Interview', interviewing, '#F59E0B')}
       ${_pipeLeg('Selected',     selected,     '#8B5CF6')}
       ${_pipeLeg('Offered',      offered,      '#EC4899')}
       ${_pipeLeg('Joined',       joined,       '#10B981')}
@@ -486,6 +509,35 @@ function _renderHome() {
         <h3><i class="fa-solid fa-handshake mr-2 text-teal-600"></i>Top Agencies by Candidates</h3>
       </div>
       <div class="chart-h-md"><canvas id="cAgency"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 4 — Interview Results -->
+  <div class="charts-2">
+    <div class="section-card">
+      <div class="section-head">
+        <h3><i class="fa-solid fa-clipboard-check mr-2 text-green-600"></i>Interview Results</h3>
+      </div>
+      <div class="chart-h-md"><canvas id="cIntResult"></canvas></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head">
+        <h3><i class="fa-solid fa-gauge-high mr-2 text-violet-600"></i>Hiring Funnel</h3>
+        <span style="font-size:11px;color:var(--t3);">${totalCands} total</span>
+      </div>
+      <div style="padding:8px 0;">
+        ${[['Applied',applied,'#3B82F6'],['Interview',interviewing,'#F59E0B'],['Selected',selected,'#8B5CF6'],['Offered',offered,'#EC4899'],['Joined',joined,'#10B981']].map(function(row){
+          var pct = totalCands>0 ? Math.round(row[1]/totalCands*100) : 0;
+          return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+            +'<span style="font-size:12px;color:var(--t2);min-width:70px;">'+row[0]+'</span>'
+            +'<div style="flex:1;height:18px;background:var(--surf2);border-radius:9px;overflow:hidden;">'
+              +'<div style="height:100%;width:'+pct+'%;background:'+row[2]+';border-radius:9px;transition:width .6s;"></div>'
+            +'</div>'
+            +'<span style="font-size:12px;font-weight:700;color:var(--t1);min-width:30px;text-align:right;">'+row[1]+'</span>'
+            +'<span style="font-size:11px;color:var(--t4);min-width:34px;">'+pct+'%</span>'
+          +'</div>';
+        }).join('')}
+      </div>
     </div>
   </div>
 
@@ -567,14 +619,16 @@ function _renderHome() {
     if (typeof Chart === 'undefined') return;
     ['cStage','cDept','cTrend','cSource','cTopJobs','cAgency','cIntResult'].forEach(function(k){ _destroyChart(k); });
 
-    var COLORS = ['#E31E24','#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316'];
-    var gridColor = '#F1F5F9', labelColor = '#64748B';
-    var defOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor, font: { family: "'Plus Jakarta Sans'" } } } } };
+    var isDark    = document.body.getAttribute('data-theme') === 'dark';
+    var COLORS    = ['#E31E24','#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+    var gridColor = isDark ? '#1f2238' : '#F1F5F9';
+    var labelColor= isDark ? '#9ba3cc' : '#64748B';
+    var defOpts   = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor, font: { family: "'Plus Jakarta Sans'", size: 11 }, boxWidth: 12 } } } };
 
     // 1) Stage doughnut
     var el1 = _el('cStage');
     if (el1) _charts['cStage'] = new Chart(el1, { type: 'doughnut', data: {
-      labels: ['Applied','Interviewing','Selected','Offered','Joined','Rejected'],
+      labels: ['Applied','Interview','Selected','Offered','Joined','Rejected'],
       datasets: [{ data: [applied, interviewing, selected, offered, joined, rejected], backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
     }, options: Object.assign({}, defOpts, { cutout: '65%' }) });
 
@@ -588,14 +642,17 @@ function _renderHome() {
       y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
     }}) });
 
-    // 3) Trend line
+    // 3) Trend line — 3 series
     var el3 = _el('cTrend');
     if (el3) _charts['cTrend'] = new Chart(el3, { type: 'line', data: {
       labels: monthLabels,
-      datasets: [{ label: 'Joinings', data: monthJoined, borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)',
-        fill: true, tension: 0.4, pointBackgroundColor: '#10B981', pointRadius: 4 }]
-    }, options: Object.assign({}, defOpts, { plugins: { legend: { display: false } }, scales: {
-      x: { grid: { display: false }, ticks: { color: labelColor } },
+      datasets: [
+        { label: 'Applied',    data: monthApplied, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.06)', fill:true, tension:0.4, pointBackgroundColor:'#3B82F6', pointRadius:3, borderWidth:2 },
+        { label: 'Interviews', data: monthInts,    borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.06)',  fill:true, tension:0.4, pointBackgroundColor:'#F59E0B', pointRadius:3, borderWidth:2 },
+        { label: 'Joined',     data: monthJoined,  borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.08)',  fill:true, tension:0.4, pointBackgroundColor:'#10B981', pointRadius:3, borderWidth:2 }
+      ]
+    }, options: Object.assign({}, defOpts, { plugins: { legend: { labels: { color: labelColor, boxWidth: 10, font:{size:11} } } }, scales: {
+      x: { grid: { display: false }, ticks: { color: labelColor, font:{size:10} } },
       y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
     }}) });
 
@@ -1382,16 +1439,16 @@ function _submitJob(existingId) {
   var data = {
     jobId: existingId||null,
     title: _val('f_title'), department: _val('f_dept'), location: _val('f_loc'),
-    minExp: _val('f_exp'), openings: _val('f_open'), salaryRange: _val('f_sal'),
+    minExp: _val('f_exp'), openings: _val('f_open')||1, salaryRange: _val('f_sal'),
     deadline: _val('f_ddl'), description: _val('f_desc'),
-    status: _val('f_status') || 'Open',
-    postedBy: _val('f_by') || (_U?_U.name:'')
+    status: _val('f_status')||'Open',
+    postedBy: _val('f_by')||(_U?_U.name:'')
   };
   if (!data.title) { _toast('Job title is required.','error'); _submitting=false; return; }
-  _api(existingId ? 'updateJob' : 'saveJob', data, function(r) {
+  _api(existingId?'updateJob':'saveJob', data, function(r) {
     _submitting = false;
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-    else _toast(r.error, 'error');
+    else _toast(r.error||'Save failed','error');
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
 
@@ -2344,19 +2401,19 @@ function _editAgency(agencyId) {
 function _submitAgency(existingId) {
   if (_submitting) return; _submitting = true;
   var data = {
-    agencyId: existingId||null,
+    agencyId:      existingId||null,
     agencyName:    _val('a_name'),
     contactPerson: _val('a_person'),
     email:         _val('a_email'),
     phone:         _val('a_phone'),
     address:       _val('a_addr'),
-    commission:    _val('a_comm')
+    commission:    parseFloat(_val('a_comm'))||0
   };
   if (!data.agencyName) { _toast('Agency name is required.','error'); _submitting=false; return; }
-  _api(existingId ? 'updateAgency' : 'saveAgency', data, function(r) {
+  _api(existingId?'updateAgency':'saveAgency', data, function(r) {
     _submitting = false;
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-    else _toast(r.error,'error');
+    else _toast(r.error||'Save failed','error');
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
 
@@ -2373,6 +2430,9 @@ function _toggleAgencyStatus(agencyId, currentStatus) {
 function _handleResumeSelect(input) {
   var file = input.files[0];
   if (!file) return;
+  // Clear manual URL field when file is selected
+  var resEl = _el('c_res');
+  if (resEl) resEl.value = '';
   var lbl  = _el('c_res_lbl');
   var prev = _el('c_res_preview');
   if (lbl)  lbl.textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
@@ -2395,10 +2455,12 @@ function _uploadAndSaveResume(file, candidateId, onDone) {
   if (!file) { onDone(null); return; }
 
   // Hard limit: files > 500KB go through manual link
-  var CHUNK_LIMIT = 500 * 1024; // 500KB
+  // Files under 3MB: attempt chunked upload
+  // Files over 3MB: skip and let user add Drive link manually
+  var CHUNK_LIMIT = 3 * 1024 * 1024; // 3MB
   if (file.size > CHUNK_LIMIT) {
-    // Show link-paste dialog instead
-    _showResumeLinkPrompt(file.name, onDone);
+    _toast('File too large (>3MB). Upload to Drive folder and paste link in Resume field.', 'warning');
+    onDone(null);
     return;
   }
 
@@ -2578,9 +2640,9 @@ function _openCndModal(cnd) {
           <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf2);border:1.5px dashed var(--bdr);border-radius:9px;cursor:pointer;font-size:13px;color:var(--t3);transition:all .15s;" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--bdr)\';this.style.color=\'var(--t3)\'">
             <i class="fa-solid fa-cloud-arrow-up" style="font-size:16px;"></i>
             <span id="c_res_lbl">Click to upload resume (PDF/DOC)</span>
-            <input type="file" id="c_res_file" accept=".pdf,.doc,.docx" style="display:none;" onchange="_handleResumeSelect(this)">
+            <span id="c_res_lbl" style="font-size:12.5px;">Upload resume PDF/DOC (max 3MB)</span>
           </label>
-          <input type="hidden" id="c_res" value="${c['Resume Link']||''}">
+          <input type="url" id="c_res" value="${c['Resume Link']||''}" placeholder="Or paste Google Drive link here..." style="font-size:12px;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:9px;background:var(--surf2);color:var(--t1);font-family:inherit;outline:none;width:100%;">
         </div>
       </div>
     </div>`,
@@ -2603,25 +2665,29 @@ function _submitCandidate(existingId) {
 
   function _doSave(resumeUrl) {
     window._resumeFile = null;
+    var agyId   = _val('c_agy');
+    var agyObj  = agyId ? (_D.agencies||[]).find(function(a){ return a['Agency ID']===agyId; }) : null;
+    var agyName = agyObj ? agyObj['Agency Name'] : '';
     var data = {
-      candidateId: existingId||null,
-      name: name, phone: phone, email: _val('c_email'),
-      jobId: _val('c_job'), currentCompany: _val('c_co'), experience: _val('c_exp'),
-      currentCtc: _val('c_cctc'), expectedCtc: _val('c_ectc'),
-      source: _val('c_src'),
-      agencyId: _val('c_agy'),
-      agencyName: (function(){
-        var aid = _val('c_agy');
-        if (!aid) return '';
-        var ag = (_D.agencies||[]).find(function(a){ return a['Agency ID']===aid; });
-        return ag ? ag['Agency Name'] : aid; // fallback to id if not found
-      })(),
-      resumeLink: resumeUrl || resLink
+      candidateId:    existingId || null,
+      name:           name,
+      phone:          phone,
+      email:          _val('c_email'),
+      jobId:          _val('c_job'),
+      currentCompany: _val('c_co'),
+      experience:     _val('c_exp') || 0,
+      currentCtc:     _val('c_cctc'),
+      expectedCtc:    _val('c_ectc'),
+      source:         _val('c_src'),
+      agencyName:     agyName,
+      resumeLink:     resumeUrl || resLink || '',
+      stage:          _val('c_stage') || 'Applied',
+      appliedOn:      _val('c_adon')  || _istDate()
     };
-    _api(existingId ? 'updateCandidate' : 'saveCandidate', data, function(r) {
+    _api(existingId?'updateCandidate':'saveCandidate', data, function(r) {
       _submitting = false;
       if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-      else { _toast(r.error,'error'); }
+      else _toast(r.error||'Save failed','error');
     }, function(e) { _submitting=false; _toast(e.message,'error'); });
   }
 
@@ -2858,10 +2924,10 @@ function _submitInterview(existingId) {
     mode: _val('i_mode'), meetingLink: _val('i_link')
   };
   if (!data.scheduledOn || !data.interviewer) { _toast('Date and interviewer are required.','error'); _submitting=false; return; }
-  _api(existingId ? 'updateInterview' : 'saveInterview', data, function(r) {
+  _api(existingId?'updateInterview':'saveInterview', data, function(r) {
     _submitting = false;
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-    else _toast(r.error,'error');
+    else _toast(r.error||'Save failed','error');
   }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
 
