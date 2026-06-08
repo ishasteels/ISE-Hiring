@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbxFcSYkHX9Yjh_9I0MqG2QKOZUxWzOVaULi1y0vdQDqMUO-xufkyLe7vCFbX-IdxzMf/exec';
+var API = 'https://script.google.com/macros/s/AKfycbzY2B3T_q8Jam3lZII2fvEieTLvp-ESPHP1-yQqsS5rl0uiQXLBn_RcQ4F_LXtlcUYA/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -401,7 +401,7 @@ function _renderHome() {
 
   // Agency breakdown
   var agyData = {};
-  cands.forEach(function(c){ var a = c['Agency Name']||'Direct'; agyData[a] = (agyData[a]||0)+1; });
+  cands.forEach(function(c){ var a = c['Agency']||'Direct'; agyData[a] = (agyData[a]||0)+1; });
 
   // Monthly trend (last 6 months)
   var monthLabels = [], monthJoined = [], monthApplied = [], monthInts = [];
@@ -430,27 +430,16 @@ function _renderHome() {
   var recentInts  = ints.filter(function(i){ return i['Status']==='Scheduled'; }).sort(function(a,b){ return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||''); }).slice(0,5);
 
   var html = `
-  <!-- KPI Row 1 -->
-  <div class="kpi-grid">
-    ${_kpiCard('fa-briefcase','Open Positions', openJobs, 'red', 'Active job openings')}
-    ${_kpiCard('fa-users','Total Candidates', totalCands, 'blue', 'In pipeline')}
-    ${_kpiCard('fa-calendar-check','Interviews Today', todayInts, 'amber', 'Scheduled today')}
-    ${_kpiCard('fa-file-signature','Pending Offers', pendingOffs, 'violet', 'Awaiting response')}
-    ${_kpiCard('fa-user-check','Joined This Month', joinedMonth, 'green', 'New employees')}
-    ${_kpiCard('fa-percent','Interview Pass Rate', passRate+'%', 'teal', intPass+' of '+intDone+' passed')}
-    ${_kpiCard('fa-chart-line','Conversion Rate', convRate+'%', 'rose', joined+' of '+totalCands+' hired')}
-    ${_kpiCard('fa-building','Active Agencies', activeAgys, 'slate', agys.length+' total partners')}
-  </div>
-  <!-- KPI Row 2 -->
-  <div class="kpi-grid" style="margin-top:-6px;">
-    ${_kpiCard('fa-user-clock','Scheduled Interviews', ints.filter(function(i){return i['Status']==='Scheduled';}).length, 'amber', todayInts+' today')}
-    ${_kpiCard('fa-trophy','Interview Pass Rate', passRate+'%', 'green', intPass+' of '+intDone+' passed')}
-    ${_kpiCard('fa-chart-line','Hire Rate', convRate+'%', 'teal', joined+' hired of '+totalCands)}
-    ${_kpiCard('fa-hourglass-half','Offers Pending', pendingOffs, 'violet', 'Awaiting candidate response')}
-    ${_kpiCard('fa-xmark-circle','Rejected', rejected, 'rose', Math.round(rejected/Math.max(totalCands,1)*100)+'% rejection rate')}
-    ${_kpiCard('fa-calendar-plus','Added This Month', cands.filter(function(c){return (c['Applied On']||'').slice(0,7)===thisMonth;}).length, 'blue', 'New applications')}
-    ${_kpiCard('fa-check-double','Selected', selected+offered, 'slate', selected+' selected · '+offered+' offered')}
-    ${_kpiCard('fa-user-check','Joined This Month', joinedMonth, 'red', 'New joinees')}
+  <!-- KPI Cards — 8 unique metrics -->
+  <div class="kpi-grid" style="margin-bottom:16px;">
+    ${_kpiCard('fa-briefcase',       'Open Positions',     openJobs,       'red',    openJobs+' of '+jobs.length+' jobs active')}
+    ${_kpiCard('fa-users',           'Total Candidates',   totalCands,     'blue',   applied+' applied · '+interviewing+' in interview')}
+    ${_kpiCard('fa-calendar-check',  "Today's Interviews", todayInts,      'amber',  ints.filter(function(i){return i['Status']==='Scheduled';}).length+' total scheduled')}
+    ${_kpiCard('fa-file-signature',  'Pending Offers',     pendingOffs,    'violet', offs.length+' total offers')}
+    ${_kpiCard('fa-user-check',      'Total Joined',       joined,         'green',  joinedMonth+' this month · '+convRate+'% hire rate')}
+    ${_kpiCard('fa-percent',         'Interview Pass Rate',passRate+'%',   'teal',   intPass+' passed of '+intDone+' done')}
+    ${_kpiCard('fa-building',        'Active Agencies',    activeAgys,     'slate',  agys.length+' total registered agencies')}
+    ${_kpiCard('fa-xmark-circle',    'Rejected',           rejected,       'rose',   Math.round(rejected/Math.max(totalCands,1)*100)+'% of '+totalCands+' candidates')}
   </div>
 
   <!-- Pipeline Stage Bar -->
@@ -570,7 +559,7 @@ function _renderHome() {
             <div class="act-av">${(c['Full Name']||'?').charAt(0)}</div>
             <div class="act-info">
               <div class="act-name">${c['Full Name']}</div>
-              <div class="act-sub">${job ? job['Title'] : '—'} · ${c['Source']||'—'} ${c['Agency Name'] ? '· ' + c['Agency Name'] : ''}</div>
+              <div class="act-sub">${job ? job['Title'] : '—'} · ${c['Source']||'—'} ${c['Agency'] ? '· ' + c['Agency'] : ''}</div>
             </div>
             <span class="${_stageClass(c['Stage'])}">${c['Stage']}</span>
           </div>`;
@@ -1507,7 +1496,7 @@ function _renderCandidates() {
   var allSources = ['all'].concat([...new Set(cands.map(function(c){return c['Source']||'';}).filter(Boolean))]);
   // Agency filter: show active agencies from master list + any in existing candidates
   var activeAgys  = (_D.agencies||[]).filter(function(a){ return a['Status']==='Active'; }).map(function(a){ return a['Agency Name']; });
-  var candAgys    = cands.map(function(c){return c['Agency Name']||'';}).filter(Boolean);
+  var candAgys    = cands.map(function(c){return c['Agency']||'';}).filter(Boolean);
   var allAgysSet  = new Set(activeAgys.concat(candAgys));
   var allAgys     = ['all'].concat([...allAgysSet].sort());
   var allDepts   = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
@@ -1523,7 +1512,7 @@ function _renderCandidates() {
     if (stgF  !== 'all' && c['Stage']       !== stgF)  return false;
     if (jobF  !== 'all' && c['Job ID']      !== jobF)  return false;
     if (srcF  !== 'all' && c['Source']      !== srcF)  return false;
-    if (agyF  !== 'all' && c['Agency Name'] !== agyF)  return false;
+    if (agyF  !== 'all') { var cv2=String(c['Agency']||'').trim(); if(cv2!==agyF.trim()) return false; }
     if (deptF !== 'all') {
       var cJob = jobs.find(function(j){return j['Job ID']===c['Job ID'];});
       if (!cJob || cJob['Department'] !== deptF) return false;
@@ -1547,7 +1536,7 @@ function _renderCandidates() {
                   !(c['Phone']||'').toLowerCase().includes(search) &&
                   !(c['Current Company']||'').toLowerCase().includes(search) &&
                   !(c['Candidate ID']||'').toLowerCase().includes(search) &&
-                  !(c['Agency Name']||'').toLowerCase().includes(search)) return false;
+                  !(c['Agency']||'').toLowerCase().includes(search)) return false;
     return true;
   });
 
@@ -1698,7 +1687,7 @@ function _renderCandidates() {
               <td style="font-size:12px;color:var(--t2);">${c['Current CTC']?c['Current CTC']+' LPA':'—'}</td>
               <td style="font-weight:700;color:#059669;font-size:12.5px;">${c['Expected CTC']?c['Expected CTC']+' LPA':'—'}</td>
               <td><span class="src-tag">${c['Source']||'—'}</span></td>
-              <td>${c['Agency Name'] ? '<span class="agy-tag"><i class="fa-solid fa-handshake" style="font-size:9px;margin-right:4px;opacity:.7"></i>'+c['Agency Name']+'</span>' : '<span style="color:var(--t4);font-size:11px;">Direct</span>'}</td>
+              <td>${c['Agency'] ? '<span class="agy-tag"><i class="fa-solid fa-handshake" style="font-size:9px;margin-right:4px;opacity:.7"></i>'+c['Agency']+'</span>' : '<span style="color:var(--t4);font-size:11px;">Direct</span>'}</td>
               <td style="text-align:center;">
                 ${c['Resume Link'] ? '<a href="'+c['Resume Link']+'" title="View Resume" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:rgba(59,130,246,.1);color:#3b82f6;font-size:11px;border:1px solid rgba(59,130,246,.25);text-decoration:none;"><i class="fa-solid fa-file-pdf"></i></a>' : '<span style="color:var(--t4);font-size:11px;">—</span>'}
               </td>
@@ -1902,7 +1891,7 @@ function _bulkExportCsv() {
       c['Candidate ID'], c['Full Name'], c['Email'], c['Phone'],
       job?job['Title']:'', job?job['Department']||'':'',
       c['Current Company'], c['Experience (Yrs)'], c['Current CTC'], c['Expected CTC'],
-      c['Source'], c['Agency Name']||'', c['Stage'],
+      c['Source'], c['Agency']||'', c['Stage'],
       c['Applied On'], c['Last Modified'], c['Resume Link']||''
     ].map(function(v){ return '"'+(v||'').toString().replace(/"/g,'""')+'"'; }).join(',');
   });
@@ -1929,7 +1918,7 @@ function _renderAgencies() {
 
   // Enrich agency stats
   agys.forEach(function(a) {
-    var ac = cands.filter(function(c){ return c['Agency Name']===a['Agency Name']; });
+    var ac = cands.filter(function(c){ var cv=String(c['Agency']||'').trim(); return cv && (cv===a['Agency Name'] || cv===a['Agency ID']); });
     a._totalCands   = ac.length;
     a._placements   = ac.filter(function(c){ return c['Stage']==='Joined'; }).length;
     a._inPipeline   = ac.filter(function(c){ return ['Applied','Interview','Selected','Offered'].indexOf(c['Stage'])>=0; }).length;
@@ -2156,7 +2145,7 @@ function _renderAgencies() {
 function _openAgencyDetail(agencyId) {
   var a = (_D.agencies||[]).find(function(x){return x['Agency ID']===agencyId;});
   if(!a) return;
-  var cands = (_D.candidates||[]).filter(function(c){return c['Agency Name']===a['Agency Name'];});
+  var cands = (_D.candidates||[]).filter(function(c){ var cv = String(c['Agency']||'').trim(); var an = String(a['Agency Name']||'').trim(); var aid = String(a['Agency ID']||'').trim(); return cv && (cv===an || cv===aid); });
   var jobs  = _D.jobs   || [];
   var ints  = _D.interviews || [];
   var offs  = _D.offers || [];
@@ -2314,7 +2303,7 @@ function _viewAgencyCands(agencyName) {
 function _showAgencyReport(agencyId) {
   var a     = (_D.agencies||[]).find(function(x){ return x['Agency ID']===agencyId; });
   if (!a)   return;
-  var cands = (_D.candidates||[]).filter(function(c){ return c['Agency Name']===a['Agency Name']; });
+  var cands = (_D.candidates||[]).filter(function(c){ return c['Agency']===a['Agency Name']; });
   var jobs  = _D.jobs||[];
 
   var byStage = {};
@@ -2587,7 +2576,7 @@ function _openCndModal(cnd) {
         var nm  = String(a['Agency Name']||'').trim();
         var aid = String(a['Agency ID']  ||'').trim();
         // Pre-select: match by name (existing data) OR by ID
-        var stored = String(c['Agency Name']||'').trim();
+        var stored = String(c['Agency']||'').trim();
         var storedId = String(c['Agency ID']||'').trim();
         var sel = (stored && stored===nm) || (storedId && storedId===aid);
         var dim = (a['Status']==='Inactive') ? ' style=\"opacity:.55;\"' : '';
@@ -2742,7 +2731,7 @@ function _openCndDetail(candidateId) {
   var ints = (_D.interviews||[]).filter(function(i){return i['Candidate ID']===candidateId;})
              .sort(function(a,b){return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||'');});
   var offs = (_D.offers||[]).filter(function(o){return o['Candidate ID']===candidateId;});
-  var agy  = c['Agency Name'] ? (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency Name'];}) : null;
+  var agy  = c['Agency'] ? (_D.agencies||[]).find(function(a){return a['Agency Name']===c['Agency'];}) : null;
 
   // Store context for modal button handlers
   _cndCtx = { candidateId: candidateId, nextStage: _stageNext(c['Stage']), stage: c['Stage'], offs: offs };
