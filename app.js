@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbyN9iCv0eNBN9abYZp-mmiJC9yHZ-EbrrsBOiEIRDgqW-DjfVifg1EqmbQzSSHDvwEj/exec';
+var API = 'https://script.google.com/macros/s/AKfycbw9oNgBl0CgRIvUoiyxkq_uoNUm9vAn_8mkd8n8ocIsUzBU6iv9SGb7rRDSIs_oOczX/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -22,7 +22,7 @@ function _fload(id, def) {
   return el.value||def||'all'; 
 }
 function _fval(id, def) { var el=document.getElementById(id); return el?el.value:(def||'all'); }
-var _ROWS = 15;
+var _ROWS = 10;
 
 function _paginate(arr, view) {
   var pg = _PG[view] || 1;
@@ -176,37 +176,63 @@ function _showLogin() {
 function _showApp() {
   _el('sLogin').style.display = 'none';
   _el('sApp').style.display   = 'block';
-  var av = (_U.name || 'U').charAt(0).toUpperCase();
-  var roleCap = _U.role.charAt(0).toUpperCase() + _U.role.slice(1);
+  var av      = (_U.name || 'U').charAt(0).toUpperCase();
+  var role    = _U.role || 'viewer';
+  var roleCap = role.charAt(0).toUpperCase() + role.slice(1);
+
   // Topbar user chip
   if (_el('sbUserName'))  _el('sbUserName').textContent  = _U.name;
   if (_el('sbUserRole'))  _el('sbUserRole').textContent  = roleCap;
   if (_el('sbUserEmail')) _el('sbUserEmail').textContent = _U.email;
   if (_el('sbAvatar'))    _el('sbAvatar').textContent    = av;
-  // Dropdown
-  if (_el('ddAvatar')) _el('ddAvatar').textContent = av;
-  if (_el('ddName'))   _el('ddName').textContent   = _U.name;
-  if (_el('ddEmail'))  _el('ddEmail').textContent  = _U.email;
-  if (_el('ddRole'))   _el('ddRole').textContent   = roleCap;
-  // Role visibility
-  document.querySelectorAll('.hr-only').forEach(function(el) {
-    el.style.display = _hasWrite() ? '' : 'none';
+  if (_el('ddAvatar'))    _el('ddAvatar').textContent    = av;
+  if (_el('ddName'))      _el('ddName').textContent      = _U.name;
+  if (_el('ddEmail'))     _el('ddEmail').textContent     = _U.email;
+  if (_el('ddRole'))      _el('ddRole').textContent      = roleCap;
+
+  // ── Role-based nav visibility ──────────────────────────────
+  // admin:     everything
+  // hr:        dashboard, jobs, candidates, interviews, offers, agencies (no close-job, no user mgmt)
+  // viewer:    dashboard, jobs, candidates, interviews, offers, agencies (read-only)
+  // candidate: only jobs (read-only, no candidate details)
+
+  var hiddenNavViews = [];
+  if (role === 'candidate') {
+    hiddenNavViews = ['candidates','interviews','offers','agencies'];
+  } else if (role === 'viewer') {
+    hiddenNavViews = []; // viewer can see all, just can't edit
+  }
+
+  // Hide/show nav items
+  document.querySelectorAll('[data-v]').forEach(function(el) {
+    if (el.closest('#sb') || el.closest('#bnav')) {
+      el.style.display = hiddenNavViews.indexOf(el.dataset.v) >= 0 ? 'none' : '';
+    }
   });
-  document.querySelectorAll('.admin-only').forEach(function(el) {
-    el.style.display = _isAdmin() ? '' : 'none';
-  });
-  // Candidate role — show readonly banner
-  if (_U.role === 'candidate') {
-    document.querySelectorAll('[data-v="candidates"],[data-v="offers"],[data-v="agencies"]').forEach(function(el){
-      el.style.display = 'none';
-    });
+
+  // Default landing view based on role
+  if (role === 'candidate') {
+    _V = 'jobs';
+  }
+
+  // Role badge color
+  var badgeColors = { admin:'#e31e24', hr:'#3b82f6', viewer:'#10b981', candidate:'#f59e0b' };
+  if (_el('ddRole')) {
+    _el('ddRole').style.background = badgeColors[role] || '#64748b';
   }
 }
 
 function _lv(v) {
-  // Candidate role — restrict to jobs and home only
-  if (_U && _U.role === 'candidate' && ['offers','agencies'].indexOf(v) >= 0) {
-    _toast('Access restricted for your role.', 'warning'); return;
+  // Role-based navigation restriction
+  var role = _U ? _U.role : 'viewer';
+  var restricted = {
+    candidate: ['candidates','interviews','offers','agencies'],
+    viewer:     []
+  };
+  var roleRestrict = restricted[role] || [];
+  if (roleRestrict.indexOf(v) >= 0) {
+    _toast('Access restricted — ' + (role==='candidate'?'Candidates can only view Job Openings':'Your role cannot access this section.'), 'warning');
+    return;
   }
   _V = v;
   document.querySelectorAll('.view').forEach(function(el) { el.style.display = 'none'; });
@@ -996,9 +1022,9 @@ function _renderInterviews() {
               <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--t3);" title="${i['Feedback']||''}">${i['Feedback']?'<i class="fa-solid fa-comment-dots" style="color:#8b5cf6;margin-right:4px;font-size:10px;"></i>'+i['Feedback'].slice(0,40)+(i['Feedback'].length>40?'…':''):'—'}</td>
               ${_hasWrite()?`<td>
                 <div class="act-btns">
+                  <button class="ic-btn" title="Edit Interview" onclick="_openInterviewModal((_D.interviews||[]).find(function(x){return x['Interview ID']==='${i['Interview ID']}';}))"><i class="fa-solid fa-pen-to-square"></i></button>
                   ${i['Status']==='Scheduled'?`
                     <button class="ic-btn fwd" title="Mark Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-check-to-slot"></i></button>
-                    <button class="ic-btn" title="Reschedule" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.07);" onclick="_rescheduleInterview('${i['Interview ID']}')"><i class="fa-solid fa-calendar-pen"></i></button>
                     <button class="ic-btn rej" title="Cancel Interview" onclick="_cancelInterview('${i['Interview ID']}')"><i class="fa-solid fa-xmark"></i></button>
                   `:''}
                   ${i['Status']==='Done'&&!i['Result']?`<button class="ic-btn" title="Add Result" onclick="_markInterviewResult('${i['Interview ID']}','${i['Candidate ID']}')"><i class="fa-solid fa-pen"></i></button>`:''}
@@ -1222,7 +1248,8 @@ function _renderOffers() {
               </td>
               ${_hasWrite()?`<td>
                 <div class="act-btns">
-                  <button class="ic-btn" title="View Candidate Profile" onclick="_openCndDetail('${o['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
+                  <button class="ic-btn" title="Edit Offer" onclick="_editOffer('${o['Offer ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <button class="ic-btn" title="View Candidate" onclick="_openCndDetail('${o['Candidate ID']}')"><i class="fa-solid fa-eye"></i></button>
                   ${o['Offer Status']==='Sent'?`
                     <button class="ic-btn fwd" title="Mark Accepted" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Accepted')"><i class="fa-solid fa-check"></i></button>
                     <button class="ic-btn rej" title="Mark Declined" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Declined')"><i class="fa-solid fa-xmark"></i></button>
@@ -1232,7 +1259,7 @@ function _renderOffers() {
                     <button class="ic-btn fwd" title="Confirm Joining" onclick="_confirmJoining('${o['Offer ID']}','${o['Candidate ID']}')"><i class="fa-solid fa-flag-checkered"></i></button>
                   `:''}
                   ${o['Offer Status']==='Declined'?`
-                    <button class="ic-btn" title="Re-send Offer (reset to Sent)" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Sent')"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button class="ic-btn" title="Re-send Offer" style="color:#8b5cf6;border-color:rgba(139,92,246,.3);" onclick="_updateOfferStatus('${o['Offer ID']}','${o['Candidate ID']}','Sent')"><i class="fa-solid fa-rotate-right"></i></button>
                   `:''}
                 </div>
               </td>`:''}
@@ -2292,6 +2319,38 @@ function _toggleAgencyStatus(agencyId, currentStatus) {
     else _toast(r.error, 'error');
   });
 }
+
+// Resume file selection handler
+function _handleResumeSelect(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var lbl  = _el('c_res_lbl');
+  var prev = _el('c_res_preview');
+  if (lbl)  lbl.textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  if (prev) prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(16,185,129,.07);border-radius:8px;border:1px solid rgba(16,185,129,.2);font-size:12px;color:#059669;">'
+    +'<i class="fa-solid fa-circle-check"></i><span>Ready to upload: <strong>'+file.name+'</strong></span></div>';
+  // Store file reference for submit
+  window._resumeFile = file;
+}
+
+// Upload resume to Drive via GAS (base64)
+function _uploadAndSaveResume(file, candidateId, onDone) {
+  if (!file) { onDone(null); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    _api('uploadResume', {
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      base64:   b64,
+      candidateId: candidateId
+    }, function(r) {
+      onDone(r.success ? r.url : null);
+    }, function() { onDone(null); });
+  };
+  reader.readAsDataURL(file);
+}
+
 function _openCndModal(cnd) {
   var c = cnd || {};
   var jobs = _D.jobs || [];
@@ -2343,8 +2402,23 @@ function _openCndModal(cnd) {
         <select id="c_agy">${agyOpts}</select>
       </div>
       <div class="fg full">
-        <label>Resume Link (Google Drive)</label>
-        <input id="c_res" value="${c['Resume Link']||''}" placeholder="https://drive.google.com/...">
+        <label>Resume / CV</label>
+        <div id="c_res_wrap" style="display:flex;flex-direction:column;gap:8px;">
+          ${c['Resume Link']
+            ? '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,.07);border-radius:8px;border:1px solid rgba(59,130,246,.2);">'
+              +'<i class="fa-solid fa-file-pdf" style="color:#3b82f6;font-size:14px;"></i>'
+              +'<a href="'+c['Resume Link']+'" target="_blank" style="font-size:12px;color:#3b82f6;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">View Existing Resume</a>'
+              +'<button type="button" onclick="_el(\'c_res\').value=\'\';_el(\'c_res_preview\').innerHTML=\'\';" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:11px;font-weight:600;font-family:inherit;">Remove</button>'
+            +'</div>'
+            : ''}
+          <div id="c_res_preview"></div>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf2);border:1.5px dashed var(--bdr);border-radius:9px;cursor:pointer;font-size:13px;color:var(--t3);transition:all .15s;" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--bdr)\';this.style.color=\'var(--t3)\'">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:16px;"></i>
+            <span id="c_res_lbl">Click to upload resume (PDF/DOC)</span>
+            <input type="file" id="c_res_file" accept=".pdf,.doc,.docx" style="display:none;" onchange="_handleResumeSelect(this)">
+          </label>
+          <input type="hidden" id="c_res" value="${c['Resume Link']||''}">
+        </div>
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
@@ -2359,25 +2433,44 @@ function _editCnd(candidateId) {
 
 function _submitCandidate(existingId) {
   if (_submitting) return; _submitting = true;
-  var data = {
-    candidateId: existingId||null,
-    name: _val('c_name'), phone: _val('c_phone'), email: _val('c_email'),
-    jobId: _val('c_job'), currentCompany: _val('c_co'), experience: _val('c_exp'),
-    currentCtc: _val('c_cctc'), expectedCtc: _val('c_ectc'),
-    source: _val('c_src'), agencyName: _val('c_agy'),
-    resumeLink: _val('c_res')
-  };
-  if (!data.name || !data.phone) { _toast('Name and phone are required.','error'); _submitting=false; return; }
-  _api(existingId ? 'updateCandidate' : 'saveCandidate', data, function(r) {
-    _submitting = false;
-    if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
-    else _toast(r.error,'error');
-  }, function(e) { _submitting=false; _toast(e.message,'error'); });
+  var name  = _val('c_name'), phone = _val('c_phone');
+  if (!name || !phone) { _toast('Name and phone are required.','error'); _submitting=false; return; }
+  var file  = window._resumeFile || null;
+  var resLink = _val('c_res');
+
+  function _doSave(resumeUrl) {
+    window._resumeFile = null;
+    var data = {
+      candidateId: existingId||null,
+      name: name, phone: phone, email: _val('c_email'),
+      jobId: _val('c_job'), currentCompany: _val('c_co'), experience: _val('c_exp'),
+      currentCtc: _val('c_cctc'), expectedCtc: _val('c_ectc'),
+      source: _val('c_src'), agencyName: _val('c_agy'),
+      resumeLink: resumeUrl || resLink
+    };
+    _api(existingId ? 'updateCandidate' : 'saveCandidate', data, function(r) {
+      _submitting = false;
+      if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
+      else { _toast(r.error,'error'); }
+    }, function(e) { _submitting=false; _toast(e.message,'error'); });
+  }
+
+  if (file) {
+    _toast('Uploading resume...','info');
+    _uploadAndSaveResume(file, existingId||'NEW', function(url) {
+      if (!url) { _toast('Resume upload failed — saving without resume.','warning'); }
+      _doSave(url);
+    });
+  } else {
+    _doSave(null);
+  }
 }
 
 // Global context for candidate detail modal actions
 var _cndCtx = {};
 var _rejectCandId = '';
+var _editOfferId = '';
+var _editOfferCandId = '';
 
 function _openCndDetail(candidateId) {
   var c    = (_D.candidates||[]).find(function(x){return x['Candidate ID']===candidateId;});
@@ -2524,67 +2617,78 @@ function _createOfferFrom(cid)       { _closeModal(); setTimeout(function() { _o
 
 
 function _openInterviewModal(interview, preCandidateId, preJobId) {
-  var eligibleCands = (_D.candidates||[]).filter(function(c){ return ['Applied','Interview','Selected'].indexOf(c['Stage']) >= 0; });
+  var i = interview || {};
+  var allCands = _D.candidates||[];
+  var eligibleCands = allCands.filter(function(c){ return ['Applied','Interview','Selected'].indexOf(c['Stage']) >= 0; });
+  // When editing existing interview, ensure that candidate is in list
+  if (i['Candidate ID'] && !eligibleCands.find(function(c){return c['Candidate ID']===i['Candidate ID'];})) {
+    var ec = allCands.find(function(c){return c['Candidate ID']===i['Candidate ID'];});
+    if (ec) eligibleCands.unshift(ec);
+  }
   if (preJobId) { eligibleCands = eligibleCands.filter(function(c){return c['Job ID']===preJobId;}).concat(eligibleCands.filter(function(c){return c['Job ID']!==preJobId;})); }
-  var cndOpts = eligibleCands.map(function(c){ return '<option value="'+c['Candidate ID']+'" '+(preCandidateId===c['Candidate ID']?'selected':'')+'>'+(c['Full Name'])+' — '+(c['Stage'])+'</option>'; }).join('');
-  if (!cndOpts) { _toast('No eligible candidates (Applied/Interview stage) found.', 'warning'); return; }
+  var preCid = preCandidateId || i['Candidate ID'] || '';
+  var cndOpts = eligibleCands.map(function(c){ return '<option value="'+c['Candidate ID']+'" '+(preCid===c['Candidate ID']?'selected':'')+'>'+(c['Full Name'])+' — '+(c['Stage'])+'</option>'; }).join('');
+  if (!cndOpts) { _toast('No eligible candidates found.', 'warning'); return; }
 
-  _showModal('Schedule Interview', `
+  var isEdit = !!i['Interview ID'];
+  _showModal(isEdit ? 'Edit Interview' : 'Schedule Interview', `
     <div class="fg2">
       <div class="fg full">
         <label>Candidate <span class="req">*</span></label>
-        <select id="i_cnd">${cndOpts}</select>
+        <select id="i_cnd" ${isEdit?'disabled':''}>${cndOpts}</select>
       </div>
       <div class="fg">
         <label>Round</label>
         <select id="i_round">
-          <option value="1">Round 1</option><option value="2">Round 2</option>
-          <option value="3">Round 3 (Final)</option>
+          <option value="1" ${(i['Round']||1)==1?'selected':''}>Round 1</option>
+          <option value="2" ${i['Round']==2?'selected':''}>Round 2</option>
+          <option value="3" ${i['Round']==3?'selected':''}>Round 3 (Final)</option>
         </select>
       </div>
       <div class="fg">
         <label>Interview Type</label>
         <select id="i_type">
-          <option>HR</option><option>Technical</option><option>Final</option>
-          <option>Task / Assignment</option><option>Group Discussion</option>
+          ${['HR','Technical','Final','Task / Assignment','Group Discussion'].map(function(t){return '<option '+(i['Type']===t?'selected':'')+'>'+t+'</option>';}).join('')}
         </select>
       </div>
       <div class="fg full">
         <label>Scheduled Date & Time <span class="req">*</span></label>
-        <input id="i_sched" type="datetime-local">
+        <input id="i_sched" type="datetime-local" value="${i['Scheduled On']||''}">
       </div>
       <div class="fg">
         <label>Interviewer Name <span class="req">*</span></label>
-        <input id="i_iname" placeholder="e.g. Rahul Sharma">
+        <input id="i_iname" value="${i['Interviewer']||''}" placeholder="e.g. Rahul Sharma">
       </div>
       <div class="fg">
         <label>Mode</label>
         <select id="i_mode">
-          <option>In-Person</option><option>Online (Video)</option><option>Telephonic</option>
+          ${['In-Person','Online (Video)','Telephonic'].map(function(m){return '<option '+(i['Mode']===m?'selected':'')+'>'+m+'</option>';}).join('')}
         </select>
       </div>
       <div class="fg full">
         <label>Meeting Link (optional)</label>
-        <input id="i_link" placeholder="https://meet.google.com/...">
+        <input id="i_link" value="${i['Meeting Link']||''}" placeholder="https://meet.google.com/...">
       </div>
     </div>`,
-    `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" onclick="_submitInterview()"><i class="fa-solid fa-calendar-check" style="margin-right:4px;"></i>Schedule</button>`
+    '<button class="mbtn-s" onclick="_closeModal()">Cancel</button>'
+    +' <button class="mbtn-p" onclick="_submitInterview(\''+( i['Interview ID']||'')+'\')">'
+    +'<i class="fa-solid fa-calendar-check" style="margin-right:4px;"></i>'+(isEdit?'Update':'Schedule')+'</button>'
   );
 }
 
-function _submitInterview() {
+function _submitInterview(existingId) {
   if (_submitting) return; _submitting = true;
   var cid = _val('i_cnd');
   var c   = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===cid; });
   var data = {
+    interviewId: existingId||null,
     candidateId: cid, candidateName: c?c['Full Name']:'', candidateEmail: c?c['Email']:'',
     jobId: c?c['Job ID']:'', round: _val('i_round'), type: _val('i_type'),
     scheduledOn: _val('i_sched'), interviewer: _val('i_iname'),
     mode: _val('i_mode'), meetingLink: _val('i_link')
   };
   if (!data.scheduledOn || !data.interviewer) { _toast('Date and interviewer are required.','error'); _submitting=false; return; }
-  _api('saveInterview', data, function(r) {
+  _api(existingId ? 'updateInterview' : 'saveInterview', data, function(r) {
     _submitting = false;
     if (r.success) { _closeModal(); _toast(r.message,'success'); _loadData(); }
     else _toast(r.error,'error');
@@ -2634,6 +2738,56 @@ function _cancelInterview(interviewId) {
   );
 }
 
+
+function _editOffer(offerId) {
+  var o = (_D.offers||[]).find(function(x){return x['Offer ID']===offerId;});
+  if(!o) return;
+  _editOfferId = offerId; _editOfferCandId = o['Candidate ID'];
+  var o = (_D.offers||[]).find(function(x){ return x['Offer ID']===offerId; });
+  if (!o) return;
+  var c = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===o['Candidate ID']; });
+  _showModal('Edit Offer — ' + (c?c['Full Name']:''), `
+    <div class="fg2">
+      <div class="fg full" style="background:var(--surf2);border-radius:10px;padding:10px 14px;border:1px solid var(--bdr);margin-bottom:2px;">
+        <label style="margin-bottom:3px;">Candidate</label>
+        <span style="font-size:13px;font-weight:700;color:var(--t1);">${c?c['Full Name']:'—'} · ${o['Offer ID']}</span>
+      </div>
+      <div class="fg">
+        <label>Offered CTC (LPA) <span class="req">*</span></label>
+        <input id="eo_ctc" type="number" step="0.1" value="${o['Offered CTC']||''}">
+      </div>
+      <div class="fg">
+        <label>Joining Date <span class="req">*</span></label>
+        <input id="eo_jdate" type="date" value="${o['Joining Date']||''}">
+      </div>
+      <div class="fg">
+        <label>Designation</label>
+        <input id="eo_desg" value="${o['Designation']||''}" placeholder="e.g. Production Engineer">
+      </div>
+      <div class="fg">
+        <label>Offer Status</label>
+        <select id="eo_status">
+          ${['Sent','Accepted','Declined','Expired'].map(function(s){return '<option '+(o['Offer Status']===s?'selected':'')+'>'+s+'</option>';}).join('')}
+        </select>
+      </div>
+    </div>`,
+    '<button class="mbtn-s" onclick="_closeModal()">Cancel</button>'
+    +' <button class="mbtn-p" id="eo_save_btn" onclick="_submitEditOfferModal()"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Changes</button>'
+  );
+}
+
+function _submitEditOfferModal() { _submitEditOffer(_editOfferId, _editOfferCandId); }
+function _submitEditOffer(offerId, candidateId) {
+  if (_submitting) return; _submitting = true;
+  var ctc    = _val('eo_ctc');
+  var jdate  = _val('eo_jdate');
+  if (!ctc||!jdate){ _toast('CTC and joining date required.','error'); _submitting=false; return; }
+  _api('updateOffer', { offerId:offerId, candidateId:candidateId, offeredCtc:ctc, joiningDate:jdate, designation:_val('eo_desg'), status:_val('eo_status') }, function(r){
+    _submitting=false;
+    if(r.success){ _closeModal(); _toast('Offer updated.','success'); _loadData(); }
+    else _toast(r.error,'error');
+  }, function(e){ _submitting=false; _toast(e.message,'error'); });
+}
 function _openOfferModal(offer, preCandidateId) {
   var selCands = (_D.candidates||[]).filter(function(c){ return c['Stage']==='Selected'; });
   var cndOpts  = selCands.map(function(c){ return `<option value="${c['Candidate ID']}" ${preCandidateId===c['Candidate ID']?'selected':''}>${c['Full Name']}</option>`; }).join('');
