@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbyzE5Z59yG6OooeYAUbejzIasY7DRO9q0HqJ_YJ8Vr9G4dG3bxz_tix6qFLxCp8S2x5/exec';
+var API = 'https://script.google.com/macros/s/AKfycbyN9iCv0eNBN9abYZp-mmiJC9yHZ-EbrrsBOiEIRDgqW-DjfVifg1EqmbQzSSHDvwEj/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -48,6 +48,26 @@ function _pagerHtml(view, pag) {
   return '<div style="padding:12px 20px;border-top:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'
     +'<span style="font-size:12px;color:var(--t3);">Showing <strong style="color:var(--t1)">'+pag.start+'–'+pag.end+'</strong> of <strong style="color:var(--t1)">'+pag.total+'</strong></span>'
     +'<div style="display:flex;align-items:center;gap:4px;">'+b+'</div></div>';
+}
+
+
+// ─── IST DATE HELPERS (UTC+5:30) ─────────────────────────────
+function _istDate() {
+  // Returns today's date in IST as yyyy-MM-dd
+  var now = new Date();
+  // IST = UTC + 5h 30m = UTC + 330 minutes
+  var ist = new Date(now.getTime() + (330 * 60 * 1000));
+  return ist.toISOString().slice(0,10);
+}
+function _istMonth() {
+  var now = new Date();
+  var ist = new Date(now.getTime() + (330 * 60 * 1000));
+  return ist.toISOString().slice(0,7);
+}
+function _istYear() {
+  var now = new Date();
+  var ist = new Date(now.getTime() + (330 * 60 * 1000));
+  return ist.toISOString().slice(0,4);
 }
 
 function _pgGo(view, pg) {
@@ -285,8 +305,8 @@ function _renderHome() {
   var rejected     = cands.filter(function(c){ return c['Stage'] === 'Rejected'; }).length;
   var activeAgys   = agys.filter(function(a){ return a['Status'] === 'Active'; }).length;
 
-  var today        = new Date().toISOString().slice(0,10);
-  var thisMonth    = new Date().toISOString().slice(0,7);
+  var today        = _istDate();
+  var thisMonth    = _istMonth();
   var todayInts    = ints.filter(function(i){ return (i['Scheduled On']||'').slice(0,10) === today && i['Status'] === 'Scheduled'; }).length;
   var pendingOffs  = offs.filter(function(o){ return o['Offer Status'] === 'Sent'; }).length;
   var joinedMonth  = cands.filter(function(c){ return c['Stage'] === 'Joined' && (c['Last Modified']||'').slice(0,7) === thisMonth; }).length;
@@ -310,7 +330,7 @@ function _renderHome() {
   // Monthly trend (last 6 months)
   var monthLabels = [], monthJoined = [];
   for (var m = 5; m >= 0; m--) {
-    var d2 = new Date(); d2.setMonth(d2.getMonth() - m);
+    var d2 = new Date(new Date().getTime()+(330*60*1000)); d2.setMonth(d2.getMonth() - m);
     var ym = d2.toISOString().slice(0,7);
     monthLabels.push(d2.toLocaleDateString('en-IN', { month: 'short' }));
     monthJoined.push(cands.filter(function(c){ return c['Stage']==='Joined' && (c['Applied On']||'').slice(0,7)===ym; }).length);
@@ -790,7 +810,7 @@ function _renderJobs() {
 
 }
 
-var _today = new Date().toISOString().slice(0,10);
+var _today = _istDate();
 
 function _jobStatusQuick(st) {
   _PG.jobs=1; var el=_el('jobFilter');
@@ -827,7 +847,7 @@ function _renderInterviews() {
   var scheduled = ints.filter(function(i){return i['Status']==='Scheduled';}).length;
   var done      = ints.filter(function(i){return i['Status']==='Done';}).length;
   var cancelled = ints.filter(function(i){return i['Status']==='Cancelled';}).length;
-  var today     = _today;
+  var today = _istDate();
   var todayInts = ints.filter(function(i){return (i['Scheduled On']||'').slice(0,10)===today&&i['Status']==='Scheduled';}).length;
 
   var visible = ints.filter(function(i) {
@@ -838,7 +858,7 @@ function _renderInterviews() {
     if (resultF!=='all' && i['Result'] !==resultF)          return false;
     if (dateF==='today')    { if ((i['Scheduled On']||'').slice(0,10)!==today)  return false; }
     if (dateF==='week') {
-      var d = new Date(today); d.setDate(d.getDate()+7);
+      var d = new Date(new Date(today).getTime()); d.setDate(d.getDate()+7);
       var wEnd = d.toISOString().slice(0,10);
       if (!i['Scheduled On']||(i['Scheduled On']<today||i['Scheduled On']>wEnd)) return false;
     }
@@ -1058,15 +1078,15 @@ function _renderOffers() {
   var acceptedCount = offs.filter(function(o){return o['Offer Status']==='Accepted';}).length;
   var declinedCount = offs.filter(function(o){return o['Offer Status']==='Declined';}).length;
 
-  var today = _today;
+  var today = _istDate();
   var thisMonth = today.slice(0,7);
-  var lastMonth = new Date(new Date().getFullYear(), new Date().getMonth()-1, 1).toISOString().slice(0,7);
+  var _lmDate = new Date(new Date().getTime()+(330*60*1000)); _lmDate.setMonth(_lmDate.getMonth()-1); var lastMonth = _lmDate.toISOString().slice(0,7);
 
   var visible = offs.filter(function(o) {
     if (stF!=='all' && o['Offer Status']!==stF) return false;
     if (monthF==='this_month' && (o['Sent On']||'').slice(0,7)!==thisMonth) return false;
     if (monthF==='last_month' && (o['Sent On']||'').slice(0,7)!==lastMonth) return false;
-    if (monthF==='this_year'  && (o['Sent On']||'').slice(0,4)!==today.slice(0,4)) return false;
+    if (monthF==='this_year'  && (o['Sent On']||'').slice(0,4)!==_istYear()) return false;
     if (deptF!=='all') {
       var c = cands.find(function(x){return x['Candidate ID']===o['Candidate ID'];});
       var j = c ? jobs.find(function(x){return x['Job ID']===c['Job ID'];}) : null;
@@ -1175,7 +1195,7 @@ function _renderOffers() {
             var stCls = o['Offer Status']==='Accepted'?'badge b-accepted':o['Offer Status']==='Declined'?'badge b-declined':'badge b-sent';
             var daysSince = o['Sent On'] ? Math.floor((new Date()-new Date(o['Sent On']))/(1000*60*60*24)) : '—';
             var isUrgent = o['Offer Status']==='Sent' && typeof daysSince==='number' && daysSince>=7;
-            var joiningIsNear = o['Joining Date'] && o['Joining Date']<=new Date(Date.now()+7*864e5).toISOString().slice(0,10) && o['Joining Date']>=today;
+            var joiningIsNear = (function(){ var d=new Date(new Date().getTime()+(330*60*1000)+7*864e5); return o['Joining Date'] && o['Joining Date']<=d.toISOString().slice(0,10) && o['Joining Date']>=_istDate(); })();
             return `<tr style="${isUrgent?'background:rgba(245,158,11,.04);':''}">
               <td>
                 <div class="name-cell">
@@ -1342,7 +1362,11 @@ function _renderCandidates() {
 
   // Build option lists
   var allSources = ['all'].concat([...new Set(cands.map(function(c){return c['Source']||'';}).filter(Boolean))]);
-  var allAgys    = ['all'].concat([...new Set(cands.map(function(c){return c['Agency Name']||'';}).filter(Boolean))]);
+  // Agency filter: show active agencies from master list + any in existing candidates
+  var activeAgys  = (_D.agencies||[]).filter(function(a){ return a['Status']==='Active'; }).map(function(a){ return a['Agency Name']; });
+  var candAgys    = cands.map(function(c){return c['Agency Name']||'';}).filter(Boolean);
+  var allAgysSet  = new Set(activeAgys.concat(candAgys));
+  var allAgys     = ['all'].concat([...allAgysSet].sort());
   var allDepts   = ['all'].concat([...new Set(jobs.map(function(j){return j['Department']||'';}).filter(Boolean))]);
 
   // Stage counts for pills
@@ -1542,6 +1566,11 @@ function _renderCandidates() {
               </td>
               <td style="font-size:11px;color:var(--t4);white-space:nowrap;">${c['Applied On']||'—'}</td>
               <td style="font-size:11px;color:var(--t4);white-space:nowrap;">${c['Last Modified']?c['Last Modified'].slice(0,10):'—'}</td>
+              <td style="max-width:150px;">
+                ${c['Rejection Reason']
+                  ? '<span title="'+c['Rejection Reason']+'" style="display:inline-block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#dc2626;background:rgba(239,68,68,.08);padding:2px 7px;border-radius:6px;border:1px solid rgba(239,68,68,.2);">'+c['Rejection Reason']+'</span>'
+                  : '<span style="color:var(--t4);font-size:11px;">—</span>'}
+              </td>
               <td>
                 <div class="act-btns" style="gap:4px;flex-wrap:wrap;">
                   <!-- View Profile -->
@@ -1616,7 +1645,9 @@ function _cndStageQuick(stage) {
 // Quick stage change — no confirm dialog for forward movement, confirm for reject
 function _quickStageChange(candidateId, newStage) {
   if (newStage === 'Rejected') {
-    if (!confirm('Reject this candidate? This will move them to Rejected stage.')) return;
+    // Show rejection reason modal instead of confirm popup
+    _openRejectModal(candidateId);
+    return;
   }
   var btn = event && event.currentTarget;
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
@@ -1629,6 +1660,65 @@ function _quickStageChange(candidateId, newStage) {
       if (btn) { btn.disabled = false; }
     }
   }, function(e) { _toast(e.message, 'error'); if (btn) btn.disabled = false; });
+}
+
+
+// Rejection modal — no confirm() popup, captures reason
+function _openRejectModal(candidateId) {
+  _rejectCandId = candidateId;
+  var c = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===candidateId; });
+  if (!c) return;
+  _showModal('Reject Candidate', 
+    '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(239,68,68,.07);border-radius:10px;border:1px solid rgba(239,68,68,.2);margin-bottom:16px;">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ef4444;"><i class="fa-solid fa-ban"></i></div>'
+      +'<div><div style="font-size:13px;font-weight:700;color:var(--t1);">Reject: '+c['Full Name']+'</div>'
+        +'<div style="font-size:12px;color:var(--t3);">Current stage: '+c['Stage']+'</div></div>'
+    +'</div>'
+    +'<div class="fg">'
+      +'<label>Rejection Reason <span style="color:var(--t3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>'
+      +'<select id="rej_reason_sel" onchange="var _ro=document.getElementById(\'rej_reason_other\');if(_ro)_ro.style.display=this.value===\'Other\'?\'block\':\'none\';">'
+        +'<option value="">— Select reason —</option>'
+        +'<option>Salary expectation too high</option>'
+        +'<option>Under-qualified for the role</option>'
+        +'<option>Over-qualified for the role</option>'
+        +'<option>Failed technical round</option>'
+        +'<option>Failed HR round</option>'
+        +'<option>Not a culture fit</option>'
+        +'<option>Communication issues</option>'
+        +'<option>Position filled internally</option>'
+        +'<option>Position on hold / closed</option>'
+        +'<option>Candidate withdrew</option>'
+        +'<option>Better candidate selected</option>'
+        +'<option>Other</option>'
+      +'</select>'
+      +'<textarea id="rej_reason_other" rows="2" placeholder="Enter reason..." style="display:none;margin-top:8px;"></textarea>'
+    +'</div>',
+    '<button class="mbtn-s" onclick="_closeModal()">Cancel</button>'
+    +'<button class="mbtn-d" id="rej_submit_btn" onclick="_submitRejectModal()"><i class="fa-solid fa-ban" style="margin-right:6px;"></i>Reject Candidate</button>'
+  );
+}
+
+
+function _submitRejectModal() { _submitReject(_rejectCandId); }
+function _submitReject(candidateId) {
+  var sel    = _el('rej_reason_sel');
+  var other  = _el('rej_reason_other');
+  var reason = sel ? (sel.value === 'Other' ? (other?other.value:'')||'Other' : sel.value) : '';
+  var btn    = document.querySelector('#modal .mbtn-d');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Rejecting...'; }
+  _api('updateCandidateStage', { candidateId: candidateId, stage: 'Rejected', rejectionReason: reason }, function(r) {
+    if (r.success) {
+      _closeModal();
+      _toast('Candidate rejected' + (reason ? ' — ' + reason.slice(0,30) : ''), 'success');
+      _loadData();
+    } else {
+      _toast(r.error, 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-ban" style="margin-right:6px;"></i>Reject Candidate'; }
+    }
+  }, function(e) {
+    _toast(e.message, 'error');
+    if (btn) { btn.disabled = false; }
+  });
 }
 
 // Mark interview result directly from candidates table
@@ -1677,7 +1767,7 @@ function _bulkExportCsv() {
   var csv = [headers.join(',')].concat(rows).join('\n');
   var a   = document.createElement('a');
   a.href  = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'ISE_Candidates_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = 'ISE_Candidates_' + _istDate() + '.csv';
   a.click();
   _toast('Exported ' + visible.length + ' candidates', 'success');
 }
@@ -2287,6 +2377,7 @@ function _submitCandidate(existingId) {
 
 // Global context for candidate detail modal actions
 var _cndCtx = {};
+var _rejectCandId = '';
 
 function _openCndDetail(candidateId) {
   var c    = (_D.candidates||[]).find(function(x){return x['Candidate ID']===candidateId;});
@@ -2375,6 +2466,7 @@ function _openCndDetail(candidateId) {
       +'<div class="det-field"><label>Current CTC</label><span>'+(c['Current CTC']?c['Current CTC']+' LPA':'\u2014')+'</span></div>'
       +'<div class="det-field"><label>Expected CTC</label><span style="font-weight:700;color:#059669;">'+(c['Expected CTC']?c['Expected CTC']+' LPA':'\u2014')+'</span></div>'
       +'<div class="det-field"><label>Source</label><span>'+(c['Source']||'\u2014')+'</span></div>'
+    +(c['Rejection Reason']?'<div class="det-field" style="grid-column:1/-1;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);"><label style="color:#dc2626;">Rejection Reason</label><span style="color:#991b1b;">'+c['Rejection Reason']+'</span></div>':'')
       +'<div class="det-field"><label>Last Modified</label><span style="font-size:11px;">'+(c['Last Modified']?c['Last Modified'].slice(0,16):'\u2014')+'</span></div>'
       +agyHtml
       +(c['Resume Link']?'<div class="det-field" style="grid-column:1/-1;"><label>Resume</label><a href="'+c['Resume Link']+'" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(59,130,246,.1);color:#3b82f6;border-radius:8px;font-size:12.5px;font-weight:600;text-decoration:none;border:1px solid rgba(59,130,246,.25);"><i class="fa-solid fa-file-pdf"></i>View Resume</a></div>':'')
