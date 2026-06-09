@@ -2421,6 +2421,8 @@ function _showAgencyReport(agencyId) {
 function _openAgencyModal(agency) {
   _submitting = false;
   var a = agency || {};
+  // Store the ID in module-level var — bulletproof, no HTML quoting issues
+  _editingAgencyId = a['Agency ID'] ? String(a['Agency ID']).trim() : null;
   _showModal(a['Agency ID'] ? 'Edit Agency' : 'Add New Agency', `
     <div class="fg2">
       <div class="fg full">
@@ -2449,7 +2451,7 @@ function _openAgencyModal(agency) {
       </div>
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
-     <button class="mbtn-p" id="agySaveBtn" data-id="${a['Agency ID']||''}" onclick="_submitAgency(this.dataset.id)"><i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Save Agency</button>`
+     <button class="mbtn-p" id="agySaveBtn" onclick="_submitAgency()"><i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Save Agency</button>`
   );
 }
 
@@ -2466,9 +2468,10 @@ function _editAgencyFromDetail(agencyId) {
   }, 320);
 }
 
-function _submitAgency(existingId) {
+function _submitAgency() {
   if (_submitting) return; _submitting = true;
-  existingId = (existingId && String(existingId).match(/^AGY-/)) ? existingId : null;
+  // Read from module-level var set when modal opened — 100% reliable
+  var existingId = (_editingAgencyId && String(_editingAgencyId).match(/^AGY-/)) ? _editingAgencyId : null;
   var data = {
     agencyId:      existingId||null,
     agencyName:    _val('a_name'),
@@ -2785,6 +2788,7 @@ function _submitCandidate(existingId) {
 // Global context for candidate detail modal actions
 var _cndCtx = {};
 var _rejectCandId = '';
+var _editingAgencyId = null; // ID of agency currently being edited
 var _editOfferId = '';
 var _editOfferCandId = '';
 
@@ -3231,6 +3235,7 @@ var _closeModalTimer = null;
 function _closeModal() {
   _submitting = false;
   window._resumeFile = null;
+  _editingAgencyId = null;
   _el('modal').classList.remove('mv');
   _closeModalTimer = setTimeout(function() {
     _el('mOv').style.display = 'none';
