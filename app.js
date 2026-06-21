@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbxr-PPia2I92ZVBzwUZfnZOFtualYES2WZ4jMXKMKuNBVnniW_Z-sxkH2lqaxRfFjFj/exec';
+var API = 'https://script.google.com/macros/s/AKfycbxH6oImgkFpoCvBqtRF9MAtwFLjmkdkc7PmCcXNP17-PSVCPCbdAXL3aQg4mpdkJL7p/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -1203,6 +1203,16 @@ function _intStatusQuick(st) {
 function _rescheduleInterview(interviewId) {
   var i = (_D.interviews||[]).find(function(x){return x['Interview ID']===interviewId;});
   if (!i) return;
+  // Same staff-dropdown approach as _openInterviewModal — prevents reminders/
+  // notifications going to the wrong person due to a free-typed name mismatch.
+  var staffList2 = _D.staff || [];
+  var currentIvName2 = String(i['Interviewer'] || '').trim().toLowerCase();
+  var rsIvOpts = '<option value="">— Select interviewer —</option>'
+    + staffList2.map(function(u){
+        var isSel = currentIvName2 && String(u['name']||'').trim().toLowerCase() === currentIvName2;
+        return '<option value="'+u['id']+'|'+u['name']+'" '+(isSel?'selected':'')+'>'+u['name']+'</option>';
+      }).join('');
+  if (!staffList2.length) rsIvOpts = null;
   _showModal('Reschedule Interview', `
     <div class="fg1">
       <div class="fg">
@@ -1211,7 +1221,7 @@ function _rescheduleInterview(interviewId) {
       </div>
       <div class="fg">
         <label>Interviewer</label>
-        <input id="rs_iname" value="${i['Interviewer']||''}">
+        ${rsIvOpts ? '<select id="rs_iname">'+rsIvOpts+'</select>' : '<input id="rs_iname" value="'+(i['Interviewer']||'')+'">'}
       </div>
       <div class="fg">
         <label>Meeting Link (optional)</label>
@@ -1482,6 +1492,11 @@ function _openJobModal(job) {
         <label>Job Description</label>
         <textarea id="f_desc" rows="3" placeholder="Describe responsibilities, skills needed...">${j['Description']||''}</textarea>
       </div>
+      ${!j['Job ID'] ? `
+      <div class="fg full" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" id="f_notifyAgy" style="width:16px;height:16px;margin:0;">
+        <label for="f_notifyAgy" style="margin:0;text-transform:none;font-weight:500;color:var(--t2);">📢 Notify all active agencies via WhatsApp about this opening</label>
+      </div>` : ''}
     </div>`,
     `<button class="mbtn-s" onclick="_closeModal()">Cancel</button>
      <button class="mbtn-p" onclick="_submitJob('${j['Job ID']||''}')"><i class="fa-solid fa-floppy-disk" style="margin-right:4px;"></i>Save Job</button>`
@@ -1502,7 +1517,8 @@ function _submitJob(existingId) {
     minExp: _val('f_exp'), openings: _val('f_open')||1, salaryRange: _val('f_sal'),
     deadline: _val('f_ddl'), description: _val('f_desc'),
     status: _val('f_status')||'Open',
-    postedBy: _val('f_by')||(_U?_U.name:'')
+    postedBy: _val('f_by')||(_U?_U.name:''),
+    notifyAgencies: !!(_el('f_notifyAgy') && _el('f_notifyAgy').checked)
   };
   if (!data.title) { _toast('Job title is required.','error'); _submitting=false; return; }
   _api(existingId?'updateJob':'saveJob', data, function(r) {
@@ -2951,6 +2967,24 @@ function _openInterviewModal(interview, preCandidateId, preJobId) {
   var cndOpts = eligibleCands.map(function(c){ return '<option value="'+c['Candidate ID']+'" '+(preCid===c['Candidate ID']?'selected':'')+'>'+(c['Full Name'])+' — '+(c['Stage'])+'</option>'; }).join('');
   if (!cndOpts) { _toast('No eligible candidates found.', 'warning'); return; }
 
+  // Interviewer dropdown — built from the staff directory (_D.staff), NOT free text.
+  // This guarantees an exact User ID is captured so WhatsApp reminders/notifications
+  // always reach the correct person and never get mixed up between two staff with
+  // similar names. Option value is encoded as "USR-ID|Name"; existing interviews that
+  // stored a plain name (pre-dropdown data) are matched by name for pre-selection.
+  var staffList = _D.staff || [];
+  var currentIvName = String(i['Interviewer'] || '').trim().toLowerCase();
+  var ivOpts = '<option value="">— Select interviewer —</option>'
+    + staffList.map(function(u){
+        var isSel = currentIvName && String(u['name']||'').trim().toLowerCase() === currentIvName;
+        return '<option value="'+u['id']+'|'+u['name']+'" '+(isSel?'selected':'')+'>'+u['name']+'</option>';
+      }).join('');
+  if (!staffList.length) {
+    // Safety net: if staff directory hasn't loaded for any reason, fall back to a
+    // free-text field rather than breaking interview scheduling entirely.
+    ivOpts = null;
+  }
+
   var isEdit = !!i['Interview ID'];
   _showModal(isEdit ? 'Edit Interview' : 'Schedule Interview', `
     <div class="fg2">
@@ -2977,8 +3011,8 @@ function _openInterviewModal(interview, preCandidateId, preJobId) {
         <input id="i_sched" type="datetime-local" value="${i['Scheduled On']||''}">
       </div>
       <div class="fg">
-        <label>Interviewer Name <span class="req">*</span></label>
-        <input id="i_iname" value="${i['Interviewer']||''}" placeholder="e.g. Rahul Sharma">
+        <label>Interviewer <span class="req">*</span></label>
+        ${ivOpts ? '<select id="i_iname">'+ivOpts+'</select>' : '<input id="i_iname" value="'+(i['Interviewer']||'')+'" placeholder="e.g. Rahul Sharma">'}
       </div>
       <div class="fg">
         <label>Mode</label>
