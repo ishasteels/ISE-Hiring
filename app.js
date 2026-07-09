@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbxH6oImgkFpoCvBqtRF9MAtwFLjmkdkc7PmCcXNP17-PSVCPCbdAXL3aQg4mpdkJL7p/exec';
+var API = 'https://script.google.com/macros/s/AKfycbxHOUXJeD9Bs-dAArP4h0YBZYd3CmLomuZvI9FLia9hb5oN3KAiwK1dpRZL3BxNwbM2/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -276,7 +276,7 @@ function _lv(v) {
   // Role-based navigation restriction
   var role = _U ? _U.role : 'viewer';
   var restricted = {
-    candidate: ['candidates','interviews','offers','agencies'],
+    candidate: ['candidates','interviews','offers','agencies','insights','reports'],
     viewer:     []
   };
   var roleRestrict = restricted[role] || [];
@@ -292,10 +292,11 @@ function _lv(v) {
   });
   var titles = {
     home: 'Dashboard', jobs: 'Job Openings', candidates: 'Candidates',
-    interviews: 'Interviews', offers: 'Offer Letters', agencies: 'Agencies'
+    interviews: 'Interviews', offers: 'Offer Letters', agencies: 'Agencies',
+    insights: 'Insights & Analytics', reports: 'Reports Center'
   };
   _el('tbTitle').textContent = titles[v] || 'ISHA Hiring';
-  var renderers = { home: _renderHome, jobs: _renderJobs, candidates: _renderCandidates, interviews: _renderInterviews, offers: _renderOffers, agencies: _renderAgencies };
+  var renderers = { home: _renderHome, jobs: _renderJobs, candidates: _renderCandidates, interviews: _renderInterviews, offers: _renderOffers, agencies: _renderAgencies, insights: _renderInsights, reports: _renderReports };
   if (renderers[v]) renderers[v]();
   document.body.classList.remove('sb-open');
 }
@@ -3302,4 +3303,329 @@ function _setBtnLoading(cls, loading, label) {
 function _testGAS() {
   _toast('Testing...','info');
   _api('getAllData',{},function(r){_toast(r.success?'GAS OK':'Error: '+(r.error||'?'),r.success?'success':'error');},function(e){_toast('Network: '+e.message,'error');});
+}
+
+// ════════════════════════════════════════════════════════════════
+// INSIGHTS VIEW — deep hiring analytics
+// ════════════════════════════════════════════════════════════════
+function _renderInsights() {
+  var cands = _D.candidates || [];
+  var jobs  = _D.jobs       || [];
+  var ints  = _D.interviews || [];
+  var offs  = _D.offers     || [];
+  var agys  = _D.agencies   || [];
+
+  if (!cands.length && !jobs.length) {
+    _el('v-insights').innerHTML = '<div style="text-align:center;padding:80px;color:var(--t4);"><i class="fa-solid fa-chart-pie" style="font-size:40px;opacity:.3;display:block;margin-bottom:12px;"></i>No data yet — add candidates and jobs to see insights.</div>';
+    return;
+  }
+
+  // ── Source effectiveness: applications vs joined, per source ──
+  var srcMap = {};
+  cands.forEach(function(c) {
+    var s = c['Source'] || 'Unknown';
+    if (!srcMap[s]) srcMap[s] = { total: 0, joined: 0, interview: 0 };
+    srcMap[s].total++;
+    if (c['Stage'] === 'Joined') srcMap[s].joined++;
+    if (['Interview','Selected','Offered','Joined'].indexOf(c['Stage']) >= 0) srcMap[s].interview++;
+  });
+  var srcRows = Object.keys(srcMap).map(function(s) {
+    var m = srcMap[s];
+    return { src: s, total: m.total, reached: m.interview, joined: m.joined, conv: m.total > 0 ? Math.round(m.joined / m.total * 100) : 0 };
+  }).sort(function(a, b) { return b.total - a.total; });
+
+  // ── Department velocity: candidates per dept + joined ──
+  var deptMap = {};
+  cands.forEach(function(c) {
+    var job = jobs.find(function(j) { return j['Job ID'] === c['Job ID']; });
+    var d = job ? (job['Department'] || 'Other') : 'Other';
+    if (!deptMap[d]) deptMap[d] = { total: 0, joined: 0 };
+    deptMap[d].total++;
+    if (c['Stage'] === 'Joined') deptMap[d].joined++;
+  });
+
+  // ── CTC analysis: avg expected vs avg offered per dept ──
+  var ctcExp = [], ctcOff = [], ctcLabels = [];
+  Object.keys(deptMap).forEach(function(d) {
+    var deptCands = cands.filter(function(c) {
+      var job = jobs.find(function(j) { return j['Job ID'] === c['Job ID']; });
+      return job && (job['Department'] || 'Other') === d && parseFloat(c['Expected CTC'] || 0) > 0;
+    });
+    if (!deptCands.length) return;
+    ctcLabels.push(d);
+    ctcExp.push(+(deptCands.reduce(function(s, c) { return s + parseFloat(c['Expected CTC'] || 0); }, 0) / deptCands.length).toFixed(1));
+    var deptOffers = offs.filter(function(o) {
+      return deptCands.some(function(c) { return c['Candidate ID'] === o['Candidate ID']; }) && parseFloat(o['Offered CTC'] || 0) > 0;
+    });
+    ctcOff.push(deptOffers.length ? +(deptOffers.reduce(function(s, o) { return s + parseFloat(o['Offered CTC'] || 0); }, 0) / deptOffers.length).toFixed(1) : 0);
+  });
+
+  // ── Rejection reasons breakdown ──
+  var rejMap = {};
+  cands.filter(function(c) { return c['Stage'] === 'Rejected' && c['Rejection Reason']; }).forEach(function(c) {
+    var r = c['Rejection Reason'];
+    rejMap[r] = (rejMap[r] || 0) + 1;
+  });
+  var rejRows = Object.keys(rejMap).map(function(r) { return { reason: r, count: rejMap[r] }; })
+    .sort(function(a, b) { return b.count - a.count; }).slice(0, 8);
+
+  // ── Interview stats ──
+  var intDone = ints.filter(function(i) { return i['Status'] === 'Completed' || i['Result']; });
+  var intPass = intDone.filter(function(i) { return i['Result'] === 'Pass'; }).length;
+  var intFail = intDone.filter(function(i) { return i['Result'] === 'Fail'; }).length;
+  var intPend = ints.filter(function(i) { return i['Status'] === 'Scheduled'; }).length;
+  var rounds = {};
+  ints.forEach(function(i) { var r = 'Round ' + (i['Round'] || 1); rounds[r] = (rounds[r] || 0) + 1; });
+
+  // ── Experience distribution ──
+  var expBuckets = { '0-1 yr': 0, '1-3 yrs': 0, '3-5 yrs': 0, '5+ yrs': 0 };
+  cands.forEach(function(c) {
+    var e = parseFloat(c['Experience (Yrs)'] || 0);
+    if (e < 1) expBuckets['0-1 yr']++;
+    else if (e < 3) expBuckets['1-3 yrs']++;
+    else if (e < 5) expBuckets['3-5 yrs']++;
+    else expBuckets['5+ yrs']++;
+  });
+
+  var html = `
+  <div class="section-card" style="margin-bottom:16px;">
+    <div class="section-head">
+      <h3><i class="fa-solid fa-bullseye" style="margin-right:8px;color:#3b82f6;"></i>Source Effectiveness</h3>
+      <span style="font-size:11px;color:var(--t3);">Which channels deliver hires</span>
+    </div>
+    <div class="tbl-scroll"><table class="ins-table"><thead><tr>
+      <th>Source</th><th style="text-align:center;">Applications</th><th style="text-align:center;">Reached Interview</th><th style="text-align:center;">Joined</th><th style="text-align:center;">Hire Rate</th>
+    </tr></thead><tbody>
+    ${srcRows.map(function(r) {
+      var col = r.conv >= 20 ? '#10b981' : r.conv >= 8 ? '#f59e0b' : '#94a3b8';
+      return '<tr><td style="font-weight:600;color:var(--t1);">' + r.src + '</td>'
+        + '<td style="text-align:center;">' + r.total + '</td>'
+        + '<td style="text-align:center;color:#f59e0b;">' + r.reached + '</td>'
+        + '<td style="text-align:center;font-weight:700;color:#10b981;">' + r.joined + '</td>'
+        + '<td style="text-align:center;"><span style="font-weight:800;color:' + col + ';">' + r.conv + '%</span></td></tr>';
+    }).join('')}
+    </tbody></table></div>
+  </div>
+
+  <div class="charts-2" style="margin-bottom:16px;">
+    <div class="section-card">
+      <div class="section-head"><h3><i class="fa-solid fa-indian-rupee-sign" style="margin-right:8px;color:#10b981;"></i>CTC Analysis (LPA)</h3></div>
+      <div class="chart-h-md"><canvas id="cInsCtc"></canvas></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h3><i class="fa-solid fa-layer-group" style="margin-right:8px;color:#8b5cf6;"></i>Experience Mix</h3></div>
+      <div class="chart-h-md"><canvas id="cInsExp"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-2" style="margin-bottom:16px;">
+    <div class="section-card">
+      <div class="section-head"><h3><i class="fa-solid fa-clipboard-check" style="margin-right:8px;color:#f59e0b;"></i>Interview Outcomes</h3></div>
+      <div class="chart-h-md"><canvas id="cInsInt"></canvas></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h3><i class="fa-solid fa-ban" style="margin-right:8px;color:#ef4444;"></i>Top Rejection Reasons</h3></div>
+      ${rejRows.length ? '<div style="padding:6px 0;">' + rejRows.map(function(r) {
+        var maxC = rejRows[0].count;
+        var pct = Math.round(r.count / maxC * 100);
+        return '<div style="margin-bottom:10px;">'
+          + '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--t2);">' + r.reason + '</span><span style="font-weight:700;color:var(--t1);">' + r.count + '</span></div>'
+          + '<div style="height:6px;background:var(--surf2);border-radius:3px;overflow:hidden;"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:3px;"></div></div>'
+          + '</div>';
+      }).join('') + '</div>' : '<div class="empty-sm">No rejection data yet.</div>'}
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head">
+      <h3><i class="fa-solid fa-building-user" style="margin-right:8px;color:#14b8a6;"></i>Department Hiring Health</h3>
+    </div>
+    <div class="tbl-scroll"><table class="ins-table"><thead><tr>
+      <th>Department</th><th style="text-align:center;">In Pipeline</th><th style="text-align:center;">Joined</th><th style="text-align:center;">Fill Rate</th>
+    </tr></thead><tbody>
+    ${Object.keys(deptMap).sort(function(a,b){return deptMap[b].total-deptMap[a].total;}).map(function(d) {
+      var m = deptMap[d];
+      var rate = m.total > 0 ? Math.round(m.joined / m.total * 100) : 0;
+      return '<tr><td style="font-weight:600;color:var(--t1);">' + d + '</td>'
+        + '<td style="text-align:center;">' + (m.total - m.joined) + '</td>'
+        + '<td style="text-align:center;font-weight:700;color:#10b981;">' + m.joined + '</td>'
+        + '<td style="text-align:center;"><div style="display:flex;align-items:center;gap:6px;justify-content:center;">'
+        + '<div style="width:50px;height:5px;border-radius:3px;background:var(--surf2);overflow:hidden;"><div style="height:100%;width:' + rate + '%;background:#14b8a6;"></div></div>'
+        + '<span style="font-size:11px;font-weight:700;">' + rate + '%</span></div></td></tr>';
+    }).join('')}
+    </tbody></table></div>
+  </div>`;
+
+  _el('v-insights').innerHTML = html;
+
+  // ── Charts ──
+  setTimeout(function() {
+    if (typeof Chart === 'undefined') return;
+    var isDark = document.body.getAttribute('data-theme') === 'dark';
+    var gridColor  = isDark ? 'rgba(255,255,255,.06)' : 'rgba(99,115,180,.08)';
+    var labelColor = isDark ? '#9ba3cc' : '#6B7280';
+    var defOpts = { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: labelColor, font: { size: 11 }, boxWidth: 10 } } } };
+
+    ['cInsCtc','cInsExp','cInsInt'].forEach(function(k){ _destroyChart(k); });
+
+    var el1 = _el('cInsCtc');
+    if (el1) _charts['cInsCtc'] = new Chart(el1, { type: 'bar', data: {
+      labels: ctcLabels,
+      datasets: [
+        { label: 'Avg Expected', data: ctcExp, backgroundColor: 'rgba(59,130,246,.7)',  borderRadius: 6 },
+        { label: 'Avg Offered',  data: ctcOff, backgroundColor: 'rgba(16,185,129,.7)', borderRadius: 6 }
+      ]
+    }, options: Object.assign({}, defOpts, { scales: {
+      x: { grid: { display:false }, ticks: { color: labelColor, font:{size:10} } },
+      y: { grid: { color: gridColor }, ticks: { color: labelColor } }
+    }}) });
+
+    var el2 = _el('cInsExp');
+    if (el2) _charts['cInsExp'] = new Chart(el2, { type: 'doughnut', data: {
+      labels: Object.keys(expBuckets),
+      datasets: [{ data: Object.values(expBuckets), backgroundColor: ['#3B82F6','#10B981','#F59E0B','#8B5CF6'], borderWidth: 0 }]
+    }, options: Object.assign({}, defOpts, { cutout: '62%' }) });
+
+    var el3 = _el('cInsInt');
+    if (el3) _charts['cInsInt'] = new Chart(el3, { type: 'bar', data: {
+      labels: ['Passed','Failed','Pending'],
+      datasets: [{ data: [intPass, intFail, intPend], backgroundColor: ['rgba(16,185,129,.75)','rgba(239,68,68,.7)','rgba(245,158,11,.7)'], borderRadius: 8 }]
+    }, options: Object.assign({}, defOpts, { plugins: { legend: { display: false } }, scales: {
+      x: { grid: { display:false }, ticks: { color: labelColor } },
+      y: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } }
+    }}) });
+  }, 60);
+}
+
+// ════════════════════════════════════════════════════════════════
+// REPORTS VIEW — one-click CSV report center
+// ════════════════════════════════════════════════════════════════
+function _dlCsv(filename, headers, rows) {
+  var esc = function(v) {
+    var s = String(v === undefined || v === null ? '' : v);
+    return (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0)
+      ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  var csv = headers.map(esc).join(',') + '\n'
+    + rows.map(function(r) { return r.map(esc).join(','); }).join('\n');
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename + '_' + _istDate() + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  _toast('Report downloaded: ' + filename, 'success');
+}
+
+function _rptCandidates() {
+  var jobs = _D.jobs || [];
+  var rows = (_D.candidates || []).map(function(c) {
+    var j = jobs.find(function(x) { return x['Job ID'] === c['Job ID']; });
+    return [c['Candidate ID'], c['Full Name'], c['Phone'], c['Email'], j ? j['Title'] : c['Job ID'],
+      j ? j['Department'] : '', c['Current Company'], c['Experience (Yrs)'], c['Current CTC'],
+      c['Expected CTC'], c['Source'], c['Agency'], c['Stage'], c['Applied On'], c['Rejection Reason'] || ''];
+  });
+  _dlCsv('All_Candidates', ['ID','Name','Phone','Email','Job','Department','Company','Exp (Yrs)','Current CTC','Expected CTC','Source','Agency','Stage','Applied On','Rejection Reason'], rows);
+}
+
+function _rptInterviews() {
+  var cands = _D.candidates || [], jobs = _D.jobs || [];
+  var rows = (_D.interviews || []).map(function(i) {
+    var c = cands.find(function(x) { return x['Candidate ID'] === i['Candidate ID']; });
+    var j = jobs.find(function(x) { return x['Job ID'] === i['Job ID']; });
+    return [i['Interview ID'], c ? c['Full Name'] : i['Candidate ID'], j ? j['Title'] : i['Job ID'],
+      'Round ' + (i['Round'] || 1), i['Type'], i['Scheduled On'], i['Interviewer'], i['Mode'],
+      i['Status'], i['Result'] || '', i['Feedback'] || ''];
+  });
+  _dlCsv('Interview_Schedule', ['ID','Candidate','Job','Round','Type','Scheduled On','Interviewer','Mode','Status','Result','Feedback'], rows);
+}
+
+function _rptOffers() {
+  var cands = _D.candidates || [], jobs = _D.jobs || [];
+  var rows = (_D.offers || []).map(function(o) {
+    var c = cands.find(function(x) { return x['Candidate ID'] === o['Candidate ID']; });
+    var j = jobs.find(function(x) { return x['Job ID'] === o['Job ID']; });
+    return [o['Offer ID'], c ? c['Full Name'] : o['Candidate ID'], j ? j['Title'] : o['Job ID'],
+      o['Designation'], o['Offered CTC'], o['Joining Date'], o['Offer Status'], o['Sent On']];
+  });
+  _dlCsv('Offers_Summary', ['ID','Candidate','Job','Designation','Offered CTC','Joining Date','Status','Sent On'], rows);
+}
+
+function _rptAgencies() {
+  var cands = _D.candidates || [];
+  var rows = (_D.agencies || []).map(function(a) {
+    var ac = cands.filter(function(c) {
+      var cv = String(c['Agency'] || '').trim();
+      return cv && (cv === a['Agency Name'] || cv === a['Agency ID']);
+    });
+    var placed = ac.filter(function(c) { return c['Stage'] === 'Joined'; }).length;
+    return [a['Agency ID'], a['Agency Name'], a['Contact Person'], a['Phone'], a['Email'],
+      a['Commission (%)'], a['Status'], ac.length, placed,
+      ac.length > 0 ? Math.round(placed / ac.length * 100) + '%' : '0%'];
+  });
+  _dlCsv('Agency_Performance', ['ID','Agency','Contact','Phone','Email','Commission %','Status','Candidates','Placed','Conversion'], rows);
+}
+
+function _rptPipeline() {
+  var jobs = _D.jobs || [], cands = _D.candidates || [];
+  var rows = jobs.map(function(j) {
+    var jc = cands.filter(function(c) { return c['Job ID'] === j['Job ID']; });
+    var stages = { Applied:0, Interview:0, Selected:0, Offered:0, Joined:0, Rejected:0 };
+    jc.forEach(function(c) { if (stages[c['Stage']] !== undefined) stages[c['Stage']]++; });
+    return [j['Job ID'], j['Title'], j['Department'], j['Status'], j['Openings'], jc.length,
+      stages.Applied, stages.Interview, stages.Selected, stages.Offered, stages.Joined, stages.Rejected, j['Deadline'] || ''];
+  });
+  _dlCsv('Pipeline_Snapshot', ['Job ID','Title','Department','Status','Openings','Total Candidates','Applied','Interview','Selected','Offered','Joined','Rejected','Deadline'], rows);
+}
+
+function _rptMonthly() {
+  var cands = _D.candidates || [];
+  var months = {};
+  cands.forEach(function(c) {
+    var m = String(c['Applied On'] || '').slice(0, 7);
+    if (!m) return;
+    if (!months[m]) months[m] = { applied: 0, joined: 0, rejected: 0 };
+    months[m].applied++;
+    if (c['Stage'] === 'Joined') months[m].joined++;
+    if (c['Stage'] === 'Rejected') months[m].rejected++;
+  });
+  var rows = Object.keys(months).sort().map(function(m) {
+    return [m, months[m].applied, months[m].joined, months[m].rejected,
+      months[m].applied > 0 ? Math.round(months[m].joined / months[m].applied * 100) + '%' : '0%'];
+  });
+  _dlCsv('Monthly_Hiring_Summary', ['Month','Applications','Joined','Rejected','Hire Rate'], rows);
+}
+
+function _renderReports() {
+  var cands = _D.candidates || [], jobs = _D.jobs || [], ints = _D.interviews || [], offs = _D.offers || [], agys = _D.agencies || [];
+  var reports = [
+    { icon: 'fa-users',          color: '#3b82f6', title: 'All Candidates',        desc: 'Complete candidate database with job, CTC, source, agency & stage details', count: cands.length + ' records', fn: '_rptCandidates()' },
+    { icon: 'fa-calendar-days',  color: '#f59e0b', title: 'Interview Schedule',    desc: 'All interviews with round, interviewer, mode, status and results', count: ints.length + ' records', fn: '_rptInterviews()' },
+    { icon: 'fa-file-signature', color: '#8b5cf6', title: 'Offers Summary',        desc: 'Offer letters with CTC, joining dates and acceptance status', count: offs.length + ' records', fn: '_rptOffers()' },
+    { icon: 'fa-handshake',      color: '#14b8a6', title: 'Agency Performance',    desc: 'Agency-wise candidates, placements, conversion rate & commission', count: agys.length + ' records', fn: '_rptAgencies()' },
+    { icon: 'fa-diagram-project',color: '#ec4899', title: 'Pipeline Snapshot',     desc: 'Job-wise stage breakdown — Applied → Interview → Offered → Joined', count: jobs.length + ' jobs', fn: '_rptPipeline()' },
+    { icon: 'fa-chart-line',     color: '#10b981', title: 'Monthly Hiring Summary',desc: 'Month-by-month applications, joins, rejections and hire rate', count: 'Trend report', fn: '_rptMonthly()' }
+  ];
+
+  var html = `
+  <div style="margin-bottom:18px;">
+    <div style="font-size:13px;color:var(--t3);">One-click CSV downloads — open directly in Excel / Google Sheets. All reports reflect live portal data.</div>
+  </div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));">
+    ${reports.map(function(r) {
+      return '<div class="section-card" style="display:flex;flex-direction:column;gap:10px;cursor:default;">'
+        + '<div style="display:flex;align-items:center;gap:12px;">'
+          + '<div style="width:42px;height:42px;border-radius:12px;background:' + r.color + '18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+            + '<i class="fa-solid ' + r.icon + '" style="color:' + r.color + ';font-size:17px;"></i></div>'
+          + '<div><div style="font-weight:700;font-size:14px;color:var(--t1);">' + r.title + '</div>'
+          + '<div style="font-size:11px;color:var(--t4);">' + r.count + '</div></div>'
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--t3);line-height:1.5;flex:1;">' + r.desc + '</div>'
+        + '<button onclick="' + r.fn + '" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:' + r.color + '14;color:' + r.color + ';border:1.5px solid ' + r.color + '30;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;">'
+        + '<i class="fa-solid fa-download"></i> Download CSV</button>'
+      + '</div>';
+    }).join('')}
+  </div>`;
+
+  _el('v-reports').innerHTML = html;
 }
