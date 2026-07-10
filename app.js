@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbxHOUXJeD9Bs-dAArP4h0YBZYd3CmLomuZvI9FLia9hb5oN3KAiwK1dpRZL3BxNwbM2/exec';
+var API = 'https://script.google.com/macros/s/AKfycbwlLy0bIcnDJqddckpOIqZI90GnkXF4EoMAYdsEESKnX_HLo6z8HTCNz051GXOOjCPW/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
@@ -431,7 +431,32 @@ function _renderHome() {
   var recentInts  = ints.filter(function(i){ return i['Status']==='Scheduled'; }).sort(function(a,b){ return (a['Scheduled On']||'').localeCompare(b['Scheduled On']||''); }).slice(0,5);
 
   var html = `
-  <!-- KPI Cards — 8 unique metrics -->
+  <!-- HERO BANNER — greeting + live snapshot + quick actions -->
+  <div style="position:relative;overflow:hidden;border-radius:20px;padding:26px 28px;margin-bottom:18px;background:linear-gradient(135deg,#E31E24 0%,#b91c1c 45%,#7f1d1d 100%);color:#fff;box-shadow:0 12px 32px -12px rgba(227,30,36,.45);">
+    <div style="position:absolute;top:-40px;right:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.06);"></div>
+    <div style="position:absolute;bottom:-60px;right:120px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.05);"></div>
+    <div style="position:relative;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px;">
+      <div>
+        <div style="font-size:12.5px;font-weight:600;opacity:.85;letter-spacing:.04em;">${(function(){var h=new Date(new Date().getTime()+330*60*1000).getUTCHours();return h<12?'\u2600\ufe0f Good Morning':h<17?'\ud83c\udf24\ufe0f Good Afternoon':'\ud83c\udf19 Good Evening';})()}, ${_U?_U.name.split(' ')[0]:'there'}!</div>
+        <div style="font-size:24px;font-weight:800;margin:4px 0 6px;letter-spacing:-.02em;">Recruitment Command Center</div>
+        <div style="font-size:12px;opacity:.8;">${new Date(new Date().getTime()+330*60*1000).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'})}</div>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;">
+        <div style="text-align:center;"><div style="font-size:26px;font-weight:800;">${todayInts}</div><div style="font-size:10.5px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;">Interviews Today</div></div>
+        <div style="width:1px;background:rgba(255,255,255,.25);"></div>
+        <div style="text-align:center;"><div style="font-size:26px;font-weight:800;">${pendingOffs}</div><div style="font-size:10.5px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;">Offers Pending</div></div>
+        <div style="width:1px;background:rgba(255,255,255,.25);"></div>
+        <div style="text-align:center;"><div style="font-size:26px;font-weight:800;">${openJobs}</div><div style="font-size:10.5px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;">Open Roles</div></div>
+      </div>
+      ${_hasWrite() ? `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="_openCndModal()" style="display:flex;align-items:center;gap:7px;padding:10px 18px;background:#fff;color:#b91c1c;border:none;border-radius:50px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.18);"><i class="fa-solid fa-user-plus"></i>Add Candidate</button>
+        <button onclick="_openInterviewModal()" style="display:flex;align-items:center;gap:7px;padding:10px 18px;background:rgba(255,255,255,.14);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:50px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;"><i class="fa-solid fa-calendar-plus"></i>Schedule Interview</button>
+      </div>` : ''}
+    </div>
+  </div>
+
+  <!-- KPI Cards \u2014 8 unique metrics -->
   <div class="kpi-grid" style="margin-bottom:16px;">
     ${_kpiCard('fa-briefcase',       'Open Positions',     openJobs,       'red',    openJobs+' of '+jobs.length+' jobs active')}
     ${_kpiCard('fa-users',           'Total Candidates',   totalCands,     'blue',   applied+' applied · '+interviewing+' in interview')}
@@ -1782,6 +1807,8 @@ function _renderCandidates() {
                   ${_hasWrite() ? `
                   <!-- Edit -->
                   <button class="ic-btn" title="Edit Candidate" onclick="_editCnd('${c['Candidate ID']}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <!-- WhatsApp Message -->
+                  ${c['Phone'] ? `<button class="ic-btn" title="Send WhatsApp" style="color:#25D366;border-color:rgba(37,211,102,.35);background:rgba(37,211,102,.08);" onclick="_openWAModal('${c['Candidate ID']}')"><i class="fa-brands fa-whatsapp"></i></button>` : ''}
                   <!-- Advance Stage -->
                   ${canAdv ? `<button class="ic-btn fwd" title="Advance → ${nextStg}" onclick="_quickStageChange('${c['Candidate ID']}','${nextStg}')"><i class="fa-solid fa-circle-chevron-right"></i></button>` : ''}
                   <!-- Revert Stage -->
@@ -3628,4 +3655,62 @@ function _renderReports() {
   </div>`;
 
   _el('v-reports').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MANUAL WHATSAPP COMPOSE — from candidate table / detail
+// ════════════════════════════════════════════════════════════════
+var _waTargetPhone = null;
+
+function _openWAModal(candidateId) {
+  var c = (_D.candidates||[]).find(function(x){ return x['Candidate ID']===candidateId; });
+  if (!c) { _toast('Candidate not found.','error'); return; }
+  if (!c['Phone']) { _toast('No phone number for this candidate.','warning'); return; }
+  _waTargetPhone = c['Phone'];
+
+  var job = (_D.jobs||[]).find(function(j){ return j['Job ID']===c['Job ID']; });
+  var jobTitle = job ? job['Title'] : 'the role';
+  var name = c['Full Name'] || 'Candidate';
+
+  // Quick templates — click to fill
+  var templates = [
+    { label: '📄 Documents Request', text: 'Dear '+name+', please share your updated resume and documents for the '+jobTitle+' position at Isha Steels Enterprises. Thank you!' },
+    { label: '📞 Call Request',      text: 'Dear '+name+', our HR team would like to speak with you regarding your application for '+jobTitle+'. Please let us know a convenient time to call. — Isha Steels Enterprises' },
+    { label: '📍 Office Directions', text: 'Dear '+name+', for your visit to Isha Steels Enterprises, please reach our office. Feel free to call us if you need directions. See you soon!' },
+    { label: '⏰ Follow Up',         text: 'Dear '+name+', this is a follow-up regarding your application for '+jobTitle+' at Isha Steels Enterprises. Please confirm your availability. Thank you!' }
+  ];
+
+  _showModal('💬 WhatsApp — ' + name,
+    '<div style="margin-bottom:12px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.25);border-radius:10px;margin-bottom:14px;">'
+        +'<i class="fa-brands fa-whatsapp" style="color:#25D366;font-size:18px;"></i>'
+        +'<div><div style="font-size:12.5px;font-weight:700;color:var(--t1);">'+name+'</div>'
+        +'<div style="font-size:11px;color:var(--t3);">'+c['Phone']+'</div></div>'
+      +'</div>'
+      +'<label style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;">Quick Templates</label>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px;">'
+        + templates.map(function(t,i){
+            return '<button type="button" onclick="_el(\'wa_msg\').value=_waTpl['+i+']" style="padding:7px 12px;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:50px;font-size:11.5px;font-weight:600;color:var(--t2);cursor:pointer;font-family:inherit;">'+t.label+'</button>';
+          }).join('')
+      +'</div>'
+      +'<div class="fg"><label>Message</label>'
+      +'<textarea id="wa_msg" rows="5" placeholder="Type your message..." style="width:100%;resize:vertical;"></textarea></div>'
+    +'</div>',
+    '<button class="mbtn-s" onclick="_closeModal()">Cancel</button>'
+    +'<button class="mbtn-p" style="background:#25D366;" onclick="_sendWAFromModal()"><i class="fa-brands fa-whatsapp" style="margin-right:6px;"></i>Send WhatsApp</button>'
+  );
+  window._waTpl = templates.map(function(t){ return t.text; });
+}
+
+function _sendWAFromModal() {
+  if (_submitting) return;
+  var msg = _val('wa_msg');
+  if (!msg) { _toast('Message is empty.','error'); return; }
+  if (!_waTargetPhone) { _toast('No phone number.','error'); return; }
+  _submitting = true;
+  _api('sendCustomWA', { phone: _waTargetPhone, message: msg }, function(r) {
+    _submitting = false;
+    if (r.success) { _closeModal(); _toast('✓ WhatsApp sent!','success'); }
+    else _toast('WhatsApp failed: ' + (r.error||'Unknown'),'error');
+  }, function(e) { _submitting=false; _toast(e.message,'error'); });
 }
