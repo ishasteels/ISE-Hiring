@@ -1,7 +1,7 @@
 {
-  "name": "ISHA Steel Enterprises — Hiring Portal",
-  "short_name": "ISHA Hiring",
-  "description": "ISHA Steel Enterprises — Recruitment & Talent Management System with Agencies",
+  "name": "Isha Steel Enterprises — Hiring Portal",
+  "short_name": "ISE Hiring",
+  "description": "Isha Steel Enterprises — Recruitment & Talent Management System with Agencies",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
