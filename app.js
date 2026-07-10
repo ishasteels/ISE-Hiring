@@ -4,7 +4,7 @@
 // Clean Labels | Full CRUD | Maximum Analytics | Agencies | Quick Actions
 // ============================================================
 
-var API = 'https://script.google.com/macros/s/AKfycbwlLy0bIcnDJqddckpOIqZI90GnkXF4EoMAYdsEESKnX_HLo6z8HTCNz051GXOOjCPW/exec';
+var API = 'https://script.google.com/macros/s/AKfycbx6i-QYLT5aLqQ7k-yvqYtWJ6LgnmlFBpxNgD-2ansSYw9jiDamuHnoY8IdB__rBRHe/exec';
 
 var _U = null, _TOKEN = null, _D = {}, _V = 'home';
 var _cbIdx = 0, _submitting = false;
